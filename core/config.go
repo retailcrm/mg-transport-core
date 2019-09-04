@@ -3,10 +3,22 @@ package core
 import (
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 
 	"github.com/op/go-logging"
 	"gopkg.in/yaml.v2"
 )
+
+var (
+	credentialsTransport = []string{
+		"/api/integration-modules/{code}",
+		"/api/integration-modules/{code}/edit",
+	}
+	markdownSymbols = []string{"*", "_", "`", "["}
+	regCommandName  = regexp.MustCompile(`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simlachat\.(com|ru))/?$`)
+	slashRegex      = regexp.MustCompile(`/+$`)
+)
+
 
 // ConfigInterface settings data structure
 type ConfigInterface interface {
