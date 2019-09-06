@@ -12,7 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/Neur0toxine/mg-transport-lib/internal"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -40,7 +39,7 @@ func NewUtils(awsConfig ConfigAWS, localizer *Localizer, logger *logging.Logger,
 		Localizer:    localizer,
 		Logger:       logger,
 		TokenCounter: 0,
-		slashRegex:   internal.SlashRegex,
+		slashRegex:   slashRegex,
 	}
 }
 
@@ -49,7 +48,7 @@ func (u *Utils) resetUtils(awsConfig ConfigAWS, debug bool, tokenCounter uint32)
 	u.TokenCounter = tokenCounter
 	u.ConfigAWS = awsConfig
 	u.IsDebug = debug
-	u.slashRegex = internal.SlashRegex
+	u.slashRegex = slashRegex
 }
 
 // GenerateToken will generate long pseudo-random string.
@@ -73,29 +72,20 @@ func (u *Utils) GetAPIClient(url, key string) (*v5.Client, int, error) {
 
 	if !cr.Success {
 		u.Logger.Error(url, status, e.ApiErr, cr)
-		return nil, http.StatusBadRequest, errors.New(u.Localizer.GetLocalizedMessage("incorrect_url_key"))
+		return nil, http.StatusBadRequest, errors.New("invalid credentials")
 	}
 
 	if res := u.checkCredentials(cr.Credentials); len(res) != 0 {
 		u.Logger.Error(url, status, res)
-		return nil,
-			http.StatusBadRequest,
-			errors.New(
-				u.Localizer.GetLocalizedTemplateMessage(
-					"missing_credentials",
-					map[string]interface{}{
-						"Credentials": strings.Join(res, ", "),
-					},
-				),
-			)
+		return nil, http.StatusBadRequest, errors.New("missing credentials")
 	}
 
 	return client, 0, nil
 }
 
 func (u *Utils) checkCredentials(credential []string) []string {
-	rc := make([]string, len(internal.CredentialsTransport))
-	copy(rc, internal.CredentialsTransport)
+	rc := make([]string, len(credentialsTransport))
+	copy(rc, credentialsTransport)
 
 	for _, vc := range credential {
 		for kn, vn := range rc {
@@ -188,7 +178,7 @@ func GetEntitySHA1(v interface{}) (hash string, err error) {
 
 // ReplaceMarkdownSymbols will remove markdown symbols from text
 func ReplaceMarkdownSymbols(s string) string {
-	for _, v := range internal.MarkdownSymbols {
+	for _, v := range markdownSymbols {
 		s = strings.Replace(s, v, "\\"+v, -1)
 	}
 
