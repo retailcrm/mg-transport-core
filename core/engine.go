@@ -1,6 +1,8 @@
 package core
 
 import (
+	"html/template"
+
 	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
 )
@@ -84,9 +86,20 @@ func (e *Engine) Prepare() *Engine {
 	return e
 }
 
+// templateFuncMap combines func map for templates
+func (e *Engine) TemplateFuncMap(functions template.FuncMap) template.FuncMap {
+	funcMap := e.LocalizationFuncMap()
+
+	for name, fn := range functions {
+		funcMap[name] = fn
+	}
+
+	return funcMap
+}
+
 // CreateRenderer with translation function
-func (e *Engine) CreateRenderer(callback func(*Renderer)) Renderer {
-	renderer := NewRenderer(e.LocalizationFuncMap())
+func (e *Engine) CreateRenderer(callback func(*Renderer), funcs template.FuncMap) Renderer {
+	renderer := NewRenderer(e.TemplateFuncMap(funcs))
 	callback(&renderer)
 	return renderer
 }

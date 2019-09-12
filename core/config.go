@@ -96,6 +96,20 @@ func NewConfig(path string) *Config {
 
 // LoadConfig read & load configuration file
 func (c *Config) LoadConfig(path string) *Config {
+	return c.LoadConfigFromData(c.GetConfigData(path))
+}
+
+// LoadConfigFromData loads config from byte sequence
+func (c *Config) LoadConfigFromData(data []byte) *Config {
+	if err := yaml.Unmarshal(data, c); err != nil {
+		panic(err)
+	}
+
+	return c
+}
+
+// GetConfigData returns config file data in form of byte sequence
+func (c *Config) GetConfigData(path string) []byte {
 	var err error
 
 	path, err = filepath.Abs(path)
@@ -108,11 +122,7 @@ func (c *Config) LoadConfig(path string) *Config {
 		panic(err)
 	}
 
-	if err = yaml.Unmarshal(source, c); err != nil {
-		panic(err)
-	}
-
-	return c
+	return source
 }
 
 // GetSentryDSN sentry connection dsn
