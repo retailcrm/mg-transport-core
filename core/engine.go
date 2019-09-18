@@ -4,8 +4,8 @@ import (
 	"html/template"
 
 	"github.com/gin-gonic/gin"
-	"github.com/op/go-logging"
 	"github.com/gobuffalo/packr/v2"
+	"github.com/op/go-logging"
 )
 
 // Engine struct
