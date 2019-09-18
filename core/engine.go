@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/op/go-logging"
+	"github.com/gobuffalo/packr/v2"
 )
 
 // Engine struct
@@ -100,6 +101,14 @@ func (e *Engine) TemplateFuncMap(functions template.FuncMap) template.FuncMap {
 // CreateRenderer with translation function
 func (e *Engine) CreateRenderer(callback func(*Renderer), funcs template.FuncMap) Renderer {
 	renderer := NewRenderer(e.TemplateFuncMap(funcs))
+	callback(&renderer)
+	return renderer
+}
+
+// CreateRendererFS with translation function and packr box with templates data
+func (e *Engine) CreateRendererFS(box *packr.Box, callback func(*Renderer), funcs template.FuncMap) Renderer {
+	renderer := NewRenderer(e.TemplateFuncMap(funcs))
+	renderer.TemplatesBox = box
 	callback(&renderer)
 	return renderer
 }

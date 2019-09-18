@@ -6,6 +6,8 @@ import (
 	"path"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gobuffalo/packd"
+	"github.com/gobuffalo/packr/v2"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
@@ -14,6 +16,7 @@ import (
 // Localizer struct
 type Localizer struct {
 	i18n             *i18n.Localizer
+	TranslationsBox  *packr.Box
 	LocaleBundle     *i18n.Bundle
 	LocaleMatcher    language.Matcher
 	LanguageTag      language.Tag
@@ -86,17 +89,64 @@ func (l *Localizer) getLocaleBundle() *i18n.Bundle {
 	return l.LocaleBundle
 }
 
-// LoadTranslations will load all translation files from translations directory
+// LoadTranslations will load all translation files from translations directory or from embedded box
 func (l *Localizer) LoadTranslations() {
 	l.getLocaleBundle().RegisterUnmarshalFunc("yml", yaml.Unmarshal)
+
+	switch {
+	case l.TranslationsPath != "":
+		if err := l.loadFromDirectory(); err != nil {
+			panic(err.Error())
+		}
+	case l.TranslationsBox != nil:
+		if err := l.loadFromFS(); err != nil {
+			panic(err.Error())
+		}
+	default:
+		panic("TranslationsPath or TranslationsBox should be specified")
+	}
+}
+
+// LoadTranslations will load all translation files from translations directory
+func (l *Localizer) loadFromDirectory() error {
 	files, err := ioutil.ReadDir(l.TranslationsPath)
 	if err != nil {
-		panic(err)
+		return err
 	}
+
 	for _, f := range files {
 		if !f.IsDir() {
 			l.getLocaleBundle().MustLoadMessageFile(path.Join(l.TranslationsPath, f.Name()))
 		}
+	}
+
+	return nil
+}
+
+// LoadTranslations will load all translation files from embedded box
+func (l *Localizer) loadFromFS() error {
+	err := l.TranslationsBox.Walk(func(s string, file packd.File) error {
+		if fileInfo, err := file.FileInfo(); err == nil {
+			if !fileInfo.IsDir() {
+				if data, err := ioutil.ReadAll(file); err == nil {
+					if _, err := l.getLocaleBundle().ParseMessageFileBytes(data, fileInfo.Name()); err != nil {
+						return err
+					}
+				} else {
+					return err
+				}
+			}
+		} else {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
+	} else {
+		return nil
 	}
 }
 

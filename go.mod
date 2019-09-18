@@ -12,6 +12,7 @@ require (
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/gin-gonic/gin v1.3.0
 	github.com/go-sql-driver/mysql v1.4.1 // indirect
+	github.com/gobuffalo/packr/v2 v2.6.0
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/jinzhu/gorm v1.9.1
