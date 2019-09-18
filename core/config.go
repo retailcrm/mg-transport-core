@@ -19,7 +19,6 @@ var (
 	slashRegex      = regexp.MustCompile(`/+$`)
 )
 
-
 // ConfigInterface settings data structure
 type ConfigInterface interface {
 	GetVersion() string
@@ -168,11 +167,6 @@ func (c Config) GetHTTPConfig() HTTPServerConfig {
 // GetUpdateInterval user data update interval
 func (c Config) GetUpdateInterval() int {
 	return c.UpdateInterval
-}
-
-// IsDebug debug state
-func (c Config) IsDebug() bool {
-	return c.Debug
 }
 
 // GetName transport name
