@@ -287,7 +287,7 @@ func (t *SentryTaggedStruct) GetProperty(v interface{}, property string) (name s
 		err = fmt.Errorf("cannot find property `%s`", property)
 	}
 
-	field := val.FieldByName(property)
+	field := reflect.Indirect(val.FieldByName(property))
 	if !field.IsValid() {
 		err = fmt.Errorf("invalid property, got %s", field.String())
 		return

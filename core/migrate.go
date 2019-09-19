@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/jinzhu/gorm"
@@ -78,6 +79,10 @@ func (m *Migrate) Rollback() error {
 		return err
 	}
 
+	if m.first == nil {
+		return errors.New("abnormal termination: first migration is nil")
+	}
+
 	if err := m.GORMigrate.RollbackTo(m.first.ID); err == nil {
 		if err := m.GORMigrate.RollbackMigration(m.first); err == nil {
 			return nil
@@ -115,10 +120,10 @@ func (m *Migrate) MigrateNextTo(version string) error {
 	if next, err := m.NextFrom(version); err == nil {
 		current := m.Current()
 		switch {
-		case current > next:
-			return m.GORMigrate.RollbackTo(next)
 		case current < next:
 			return m.GORMigrate.MigrateTo(next)
+		case current > next:
+			return errors.New(fmt.Sprintf("current migration version '%s' is higher than fetched version '%s'", current, next))
 		default:
 			return nil
 		}
@@ -139,7 +144,9 @@ func (m *Migrate) MigratePreviousTo(version string) error {
 		case current > prev:
 			return m.GORMigrate.RollbackTo(prev)
 		case current < prev:
-			return m.GORMigrate.MigrateTo(prev)
+			return errors.New(fmt.Sprintf("current migration version '%s' is lower than fetched version '%s'", current, prev))
+		case prev == "0":
+			return m.GORMigrate.RollbackMigration(m.first)
 		default:
 			return nil
 		}
@@ -162,17 +169,24 @@ func (m *Migrate) Current() string {
 	var migrationInfo MigrationInfo
 
 	if m.db == nil {
+		fmt.Println("warning => db is nil - cannot return migration version")
 		return "0"
 	}
 
 	if !m.db.HasTable(MigrationInfo{}) {
-		m.db.CreateTable(MigrationInfo{})
+		if err := m.db.CreateTable(MigrationInfo{}).Error; err == nil {
+			fmt.Println("info => created migrations table")
+		} else {
+			panic(err.Error())
+		}
+
 		return "0"
 	}
 
 	if err := m.db.Last(&migrationInfo).Error; err == nil {
 		return migrationInfo.ID
 	} else {
+		fmt.Printf("warning => cannot fetch migration version: %s\n", err.Error())
 		return "0"
 	}
 }
@@ -199,7 +213,7 @@ func (m *Migrate) PreviousFrom(version string) (string, error) {
 			if key > 0 {
 				return m.versions[key-1], nil
 			} else {
-				return "", errors.New("this is first migration")
+				return "0", nil
 			}
 		}
 	}

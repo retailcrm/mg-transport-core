@@ -24,7 +24,6 @@ type ConfigInterface interface {
 	GetVersion() string
 	GetSentryDSN() string
 	GetLogLevel() logging.Level
-	GetDebug() bool
 	GetHTTPConfig() HTTPServerConfig
 	GetDBConfig() DatabaseConfig
 	GetAWSConfig() ConfigAWS
@@ -72,12 +71,12 @@ type ConfigAWS struct {
 
 // DatabaseConfig struct
 type DatabaseConfig struct {
-	Connection         string `yaml:"connection"`
-	Logging            bool   `yaml:"logging"`
-	TablePrefix        string `yaml:"table_prefix"`
-	MaxOpenConnections int    `yaml:"max_open_connections"`
-	MaxIdleConnections int    `yaml:"max_idle_connections"`
-	ConnectionLifetime int    `yaml:"connection_lifetime"`
+	Connection         interface{} `yaml:"connection"`
+	Logging            bool        `yaml:"logging"`
+	TablePrefix        string      `yaml:"table_prefix"`
+	MaxOpenConnections int         `yaml:"max_open_connections"`
+	MaxIdleConnections int         `yaml:"max_idle_connections"`
+	ConnectionLifetime int         `yaml:"connection_lifetime"`
 }
 
 // HTTPServerConfig struct
@@ -144,8 +143,8 @@ func (c Config) GetTransportInfo() InfoInterface {
 	return c.TransportInfo
 }
 
-// GetDebug debug flag
-func (c Config) GetDebug() bool {
+// IsDebug debug flag
+func (c Config) IsDebug() bool {
 	return c.Debug
 }
 

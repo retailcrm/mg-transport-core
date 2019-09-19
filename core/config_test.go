@@ -85,8 +85,8 @@ func (c *ConfigTest) Test_GetLogLevel() {
 	assert.Equal(c.T(), logging.Level(5), c.config.GetLogLevel())
 }
 
-func (c *ConfigTest) Test_GetDebug() {
-	assert.Equal(c.T(), true, c.config.GetDebug())
+func (c *ConfigTest) Test_IsDebug() {
+	assert.Equal(c.T(), true, c.config.IsDebug())
 }
 
 func (c *ConfigTest) Test_GetUpdateInterval() {

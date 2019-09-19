@@ -36,14 +36,14 @@ func New() *Engine {
 }
 
 func (e *Engine) initGin() {
-	if !e.Config.GetDebug() {
+	if !e.Config.IsDebug() {
 		gin.SetMode(gin.ReleaseMode)
 	}
 
 	r := gin.New()
 	r.Use(gin.Recovery())
 
-	if e.Config.GetDebug() {
+	if e.Config.IsDebug() {
 		r.Use(gin.Logger())
 	}
 
@@ -76,7 +76,7 @@ func (e *Engine) Prepare() *Engine {
 	e.LoadTranslations()
 	e.createDB(e.Config.GetDBConfig())
 	e.createRavenClient(e.Config.GetSentryDSN())
-	e.resetUtils(e.Config.GetAWSConfig(), e.Config.GetDebug(), 0)
+	e.resetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
 	e.Logger = NewLogger(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter)
 	e.Sentry.Localizer = &e.Localizer
 	e.Utils.Logger = e.Logger
