@@ -272,7 +272,7 @@ func (t *SentryTaggedStruct) GetProperty(v interface{}, property string) (name s
 	}
 
 	if val.Kind() != reflect.Struct {
-		err = fmt.Errorf("passed value must be struct, %s provided", val.String())
+		err = fmt.Errorf("passed value must be struct, %s provided", val.Type().String())
 		return
 	}
 

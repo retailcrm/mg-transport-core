@@ -32,6 +32,7 @@ func (s *SentryTest) SetupTest() {
 	require.Equal(s.T(), "", s.structTags.GetName())
 	require.Equal(s.T(), "Scalar", s.scalarTags.GetName())
 	s.structTags.Tags = map[string]string{}
+	s.sentry = NewSentry("dsn", "unknown_error", SentryTaggedTypes{}, nil, nil)
 }
 
 func (s *SentryTest) TestStruct_AddTag() {
@@ -62,9 +63,9 @@ func (s *SentryTest) TestStruct_GetProperty_InvalidStruct() {
 }
 
 func (s *SentryTest) TestStruct_GetProperty_GotScalar() {
-	_, _, err := s.structTags.GetProperty("str", "Field")
+	_, _, err := s.structTags.GetProperty("", "Field")
 	require.Error(s.T(), err)
-	assert.Equal(s.T(), "passed value must be struct, str provided", err.Error())
+	assert.Equal(s.T(), "passed value must be struct, string provided", err.Error())
 }
 
 func (s *SentryTest) TestStruct_GetProperty_InvalidType() {
@@ -84,6 +85,88 @@ func (s *SentryTest) TestStruct_GetProperty_InvalidProperty() {
 	_, _, err := s.structTags.GetProperty(SampleStruct{Pointer: nil}, "Pointer")
 	require.Error(s.T(), err)
 	assert.Equal(s.T(), "invalid property, got <invalid Value>", err.Error())
+}
+
+func (s *SentryTest) TestStruct_BuildTags_Fail() {
+	s.structTags.Tags = map[string]string{}
+	s.structTags.AddTag("test", "Field")
+	_, err := s.structTags.BuildTags(false)
+	assert.Error(s.T(), err)
+}
+
+func (s *SentryTest) TestStruct_BuildTags() {
+	s.structTags.Tags = map[string]string{}
+	s.structTags.AddTag("test", "Field")
+	tags, err := s.structTags.BuildTags(SampleStruct{Field: "value"})
+
+	require.NoError(s.T(), err)
+	require.NotEmpty(s.T(), tags)
+	i, ok := tags["test"]
+	require.True(s.T(), ok)
+	assert.Equal(s.T(), "value", i)
+}
+
+func (s *SentryTest) TestScalar_Get_Nil() {
+	_, err := s.scalarTags.Get(nil)
+	require.Error(s.T(), err)
+	assert.Equal(s.T(), "invalid value provided", err.Error())
+}
+
+func (s *SentryTest) TestScalar_Get_Struct() {
+	_, err := s.scalarTags.Get(struct{}{})
+	require.Error(s.T(), err)
+	assert.Equal(s.T(), "passed value must not be struct", err.Error())
+}
+
+func (s *SentryTest) TestScalar_Get_InvalidType() {
+	_, err := s.scalarTags.Get(false)
+	require.Error(s.T(), err)
+	assert.Equal(s.T(), "passed value should be of type `string`, got `bool` instead", err.Error())
+}
+
+func (s *SentryTest) TestScalar_Get() {
+	val, err := s.scalarTags.Get("test")
+	require.NoError(s.T(), err)
+	assert.Equal(s.T(), "test", val)
+}
+
+func (s *SentryTest) TestScalar_GetTags() {
+	assert.Empty(s.T(), s.scalarTags.GetTags())
+}
+
+func (s *SentryTest) TestScalar_BuildTags_Fail() {
+	_, err := s.scalarTags.BuildTags(false)
+	assert.Error(s.T(), err)
+}
+
+func (s *SentryTest) TestScalar_BuildTags() {
+	tags, err := s.scalarTags.BuildTags("test")
+
+	require.NoError(s.T(), err)
+	require.NotEmpty(s.T(), tags)
+	i, ok := tags[s.scalarTags.GetName()]
+	require.True(s.T(), ok)
+	assert.Equal(s.T(), "test", i)
+}
+
+func (s *SentryTest) TestSentry_ErrorMiddleware() {
+	assert.NotNil(s.T(), s.sentry.ErrorMiddleware())
+}
+
+func (s *SentryTest) TestSentry_PanicLogger() {
+	assert.NotNil(s.T(), s.sentry.PanicLogger())
+}
+
+func (s *SentryTest) TestSentry_ErrorLogger() {
+	assert.NotNil(s.T(), s.sentry.ErrorLogger())
+}
+
+func (s *SentryTest) TestSentry_ErrorResponseHandler() {
+	assert.NotNil(s.T(), s.sentry.ErrorResponseHandler())
+}
+
+func (s *SentryTest) TestSentry_ErrorCaptureHandler() {
+	assert.NotNil(s.T(), s.sentry.ErrorCaptureHandler())
 }
 
 func TestSentry_newRavenStackTrace_Fail(t *testing.T) {
