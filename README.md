@@ -1,5 +1,6 @@
 ## MG Transport Library
-
+[![Build Status](https://travis-ci.org/Neur0toxine/mg-transport-core.svg?branch=master)](https://travis-ci.org/Neur0toxine/mg-transport-core)
+[![codecov](https://codecov.io/gh/Neur0toxine/mg-transport-core/branch/master/graph/badge.svg)](https://codecov.io/gh/Neur0toxine/mg-transport-core)  
 This library provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.   
 Usage:
 ```go
