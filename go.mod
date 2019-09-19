@@ -1,6 +1,6 @@
 module github.com/retailcrm/mg-transport-core
 
-go 1.11
+go 1.12
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
