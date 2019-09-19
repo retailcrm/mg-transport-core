@@ -1,6 +1,6 @@
 module github.com/retailcrm/mg-transport-core
 
-go 1.12
+go 1.11
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
@@ -17,19 +17,21 @@ require (
 	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/h2non/gock v1.0.10
 	github.com/jinzhu/gorm v1.9.10
+	github.com/json-iterator/go v1.1.7 // indirect
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
 	github.com/mattn/go-sqlite3 v1.11.0 // indirect
+	github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.0.0-beta.5
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pkg/errors v0.8.1
 	github.com/retailcrm/api-client-go v1.1.1
 	github.com/retailcrm/mg-transport-api-client-go v1.1.31
 	github.com/stretchr/testify v1.4.0
-	github.com/ugorji/go v1.1.7 // indirect
+	github.com/ugorji/go/codec v1.1.7 // indirect
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
 	golang.org/x/text v0.3.1-0.20180807135948-17ff2d5776d2
-	golang.org/x/tools v0.0.0-20190830082254-f340ed3ae274 // indirect
+	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/yaml.v2 v2.2.2
