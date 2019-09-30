@@ -4,6 +4,7 @@ import (
 	"html/template"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gobuffalo/packr/v2"
 	"github.com/op/go-logging"
 )
 
@@ -77,7 +78,6 @@ func (e *Engine) Prepare() *Engine {
 	e.createRavenClient(e.Config.GetSentryDSN())
 	e.resetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
 	e.Logger = NewLogger(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter)
-	e.Utils.Localizer = &e.Localizer
 	e.Sentry.Localizer = &e.Localizer
 	e.Utils.Logger = e.Logger
 	e.Sentry.Logger = e.Logger
@@ -100,6 +100,14 @@ func (e *Engine) TemplateFuncMap(functions template.FuncMap) template.FuncMap {
 // CreateRenderer with translation function
 func (e *Engine) CreateRenderer(callback func(*Renderer), funcs template.FuncMap) Renderer {
 	renderer := NewRenderer(e.TemplateFuncMap(funcs))
+	callback(&renderer)
+	return renderer
+}
+
+// CreateRendererFS with translation function and packr box with templates data
+func (e *Engine) CreateRendererFS(box *packr.Box, callback func(*Renderer), funcs template.FuncMap) Renderer {
+	renderer := NewRenderer(e.TemplateFuncMap(funcs))
+	renderer.TemplatesBox = box
 	callback(&renderer)
 	return renderer
 }

@@ -25,18 +25,16 @@ import (
 type Utils struct {
 	IsDebug      bool
 	ConfigAWS    ConfigAWS
-	Localizer    *Localizer
 	Logger       *logging.Logger
 	TokenCounter uint32
 	slashRegex   *regexp.Regexp
 }
 
 // NewUtils will create new Utils instance
-func NewUtils(awsConfig ConfigAWS, localizer *Localizer, logger *logging.Logger, debug bool) *Utils {
+func NewUtils(awsConfig ConfigAWS, logger *logging.Logger, debug bool) *Utils {
 	return &Utils{
 		IsDebug:      debug,
 		ConfigAWS:    awsConfig,
-		Localizer:    localizer,
 		Logger:       logger,
 		TokenCounter: 0,
 		slashRegex:   slashRegex,
@@ -141,6 +139,11 @@ func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
 	return
 }
 
+// RemoveTrailingSlash will remove slash at the end of any string
+func (u *Utils) RemoveTrailingSlash(crmURL string) string {
+	return u.slashRegex.ReplaceAllString(crmURL, ``)
+}
+
 // GetMGItemData will upload file to MG by URL and return information about attachable item
 func GetMGItemData(client *v1.MgClient, url string, caption string) (v1.Item, int, error) {
 	item := v1.Item{}
@@ -158,11 +161,6 @@ func GetMGItemData(client *v1.MgClient, url string, caption string) (v1.Item, in
 	item.Caption = caption
 
 	return item, st, err
-}
-
-// RemoveTrailingSlash will remove slash at the end of any string
-func (u *Utils) RemoveTrailingSlash(crmURL string) string {
-	return u.slashRegex.ReplaceAllString(crmURL, ``)
 }
 
 // GetEntitySHA1 will serialize any value to JSON and return SHA1 hash of this JSON
