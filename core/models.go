@@ -31,7 +31,7 @@ type Account struct {
 // User model
 type User struct {
 	ID           int    `gorm:"primary_key"`
-	ExternalID   int    `gorm:"column:external_id; not null; unique"`
+	ExternalID   string `gorm:"column:external_id; type:varchar(255); not null; unique"`
 	UserPhotoURL string `gorm:"column:user_photo_url; type:varchar(255)" binding:"max=255"`
 	UserPhotoID  string `gorm:"column:user_photo_id; type:varchar(100)" binding:"max=100"`
 	CreatedAt    time.Time
