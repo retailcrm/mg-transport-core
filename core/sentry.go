@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"reflect"
 	"runtime"
 	"runtime/debug"
@@ -454,7 +455,7 @@ func convertFrame(f errors.Frame, context int, appPackagePrefixes []string) *rav
 	} else {
 		file = "unknown"
 	}
-	return raven.NewStacktraceFrame(pc, file, line, context, appPackagePrefixes)
+	return raven.NewStacktraceFrame(pc, path.Dir(file), file, line, context, appPackagePrefixes)
 }
 
 // getErrorStackTrace will try to extract stacktrace from error using StackTrace method (default errors doesn't have it)

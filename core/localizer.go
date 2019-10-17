@@ -41,7 +41,7 @@ func NewLocalizer(locale language.Tag, bundle *i18n.Bundle, matcher language.Mat
 
 // DefaultLocalizerBundle returns new localizer bundle with English as default language
 func DefaultLocalizerBundle() *i18n.Bundle {
-	return &i18n.Bundle{DefaultLanguage: language.English}
+	return i18n.NewBundle(language.English)
 }
 
 // DefaultLocalizerMatcher returns matcher with English, Russian and Spanish tags

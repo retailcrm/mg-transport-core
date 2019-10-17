@@ -62,14 +62,28 @@ func (u *Utils) GetAPIClient(url, key string) (*v5.Client, int, error) {
 	client.Debug = u.IsDebug
 
 	cr, status, e := client.APICredentials()
-	if e.RuntimeErr != nil {
-		u.Logger.Error(url, status, e.RuntimeErr, cr)
-		return nil, http.StatusInternalServerError, e.RuntimeErr
+	if e != nil && e.Error() != "" {
+		u.Logger.Error(url, status, e.Error(), cr)
+		return nil, http.StatusInternalServerError, errors.New(e.Error())
 
 	}
 
 	if !cr.Success {
-		u.Logger.Error(url, status, e.ApiErr, cr)
+		errMsg := "unknown error"
+
+		if e != nil {
+			if e.ApiError() != "" {
+				errMsg = e.ApiError()
+			} else if e.ApiErrors() != nil {
+				errMsg = ""
+
+				for key, errText := range e.ApiErrors() {
+					errMsg += fmt.Sprintf("[%s: %s] ", key, errText)
+				}
+			}
+		}
+
+		u.Logger.Error(url, status, errMsg, cr)
 		return nil, http.StatusBadRequest, errors.New("invalid credentials")
 	}
 
