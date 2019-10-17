@@ -85,3 +85,9 @@ func main() {
     }
 }
 ```
+### Migration generator
+This library contains helper tool for transports. You can install it via go:
+```sh
+$ go get -u github.com/retailcrm/mg-transport-core/cmd/transport-core-tool
+```
+Currently, it only can generate new migrations for your transport.
