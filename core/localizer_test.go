@@ -23,7 +23,7 @@ type LocalizerTest struct {
 	localizer *Localizer
 }
 
-func (l *LocalizerTest) SetupTest() {
+func (l *LocalizerTest) SetupSuite() {
 	if _, err := os.Stat(testTranslationsDir); err != nil && os.IsNotExist(err) {
 		err := os.Mkdir(testTranslationsDir, os.ModePerm)
 		require.Nil(l.T(), err)
@@ -78,7 +78,7 @@ func (l *LocalizerTest) Test_BadRequestLocalized() {
 	assert.Equal(l.T(), "Test message", resp.(ErrorResponse).Error)
 }
 
-func (l *LocalizerTest) TearDownTest() {
+func (l *LocalizerTest) TearDownSuite() {
 	err := os.RemoveAll(testTranslationsDir)
 	require.Nil(l.T(), err)
 }

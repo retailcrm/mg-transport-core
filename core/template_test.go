@@ -23,7 +23,7 @@ type TemplateTest struct {
 	renderer Renderer
 }
 
-func (t *TemplateTest) SetupTest() {
+func (t *TemplateTest) SetupSuite() {
 	if _, err := os.Stat(testTemplatesDir); err != nil && os.IsNotExist(err) {
 		err := os.Mkdir(testTemplatesDir, os.ModePerm)
 		require.Nil(t.T(), err)

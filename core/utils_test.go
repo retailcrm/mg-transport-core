@@ -29,7 +29,7 @@ func mgClient() *v1.MgClient {
 	return v1.New(testMGURL, "token")
 }
 
-func (u *UtilsTest) SetupTest() {
+func (u *UtilsTest) SetupSuite() {
 	logger := NewLogger("code", logging.DEBUG, DefaultLogFormatter())
 	awsConfig := ConfigAWS{
 		AccessKeyID:     "access key id (will be removed)",

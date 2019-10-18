@@ -19,7 +19,7 @@ type EngineTest struct {
 	engine *Engine
 }
 
-func (e *EngineTest) SetupTest() {
+func (e *EngineTest) SetupSuite() {
 	var (
 		db  *sql.DB
 		err error

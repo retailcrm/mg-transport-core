@@ -2,6 +2,7 @@ package core
 
 import (
 	"html/template"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gobuffalo/packr/v2"
@@ -15,6 +16,7 @@ type Engine struct {
 	Sentry
 	Utils
 	ginEngine    *gin.Engine
+	httpClient   *http.Client
 	Logger       *logging.Logger
 	Config       ConfigInterface
 	LogFormatter logging.Formatter
@@ -122,6 +124,28 @@ func (e *Engine) Router() *gin.Engine {
 	}
 
 	return e.ginEngine
+}
+
+// BuildHTTPClient builds HTTP client with provided configuration
+func (e *Engine) BuildHTTPClient(replaceDefault ...bool) *Engine {
+	if e.Config.GetHTTPClientConfig() != nil {
+		if client, err := NewHTTPClientBuilder().FromEngine(e).Build(replaceDefault...); err != nil {
+			panic(err)
+		} else {
+			e.httpClient = client
+		}
+	}
+
+	return e
+}
+
+// HTTPClient returns inner http client or default http client
+func (e *Engine) HTTPClient() *http.Client {
+	if e.httpClient == nil {
+		return http.DefaultClient
+	} else {
+		return e.httpClient
+	}
 }
 
 // ConfigureRouter will call provided callback with current gin.Engine, or panic if engine is not present

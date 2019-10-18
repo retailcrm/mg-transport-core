@@ -20,7 +20,7 @@ type ConfigTest struct {
 	data   []byte
 }
 
-func (c *ConfigTest) SetupTest() {
+func (c *ConfigTest) SetupSuite() {
 	c.data = []byte(`
 version: 3.2.1
 
@@ -102,7 +102,7 @@ func (c *ConfigTest) Test_GetConfigAWS() {
 	assert.Equal(c.T(), "image/jpeg", c.config.GetAWSConfig().ContentType)
 }
 
-func (c *ConfigTest) TearDownTest() {
+func (c *ConfigTest) TearDownSuite() {
 	_ = os.Remove(testConfigFile)
 }
 
