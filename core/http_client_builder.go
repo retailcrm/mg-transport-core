@@ -70,13 +70,13 @@ func (b *HTTPClientBuilder) SetMockedDomains(domains []string) *HTTPClientBuilde
 	return b
 }
 
-// DisableSSLVerification disables SSL certificates verification in client
-func (b *HTTPClientBuilder) DisableSSLVerification() *HTTPClientBuilder {
-	b.logf("WARNING: SSL verification is now disabled, don't use this parameter in production!")
-
-	b.httpTransport.TLSClientConfig = &tls.Config{
-		InsecureSkipVerify: true,
+// SetSSLVerification enables or disables SSL certificates verification in client
+func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder {
+	if b.httpTransport.TLSClientConfig == nil {
+		b.httpTransport.TLSClientConfig = &tls.Config{}
 	}
+
+	b.httpTransport.TLSClientConfig.InsecureSkipVerify = !enabled
 
 	return b
 }
@@ -98,13 +98,11 @@ func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuil
 		b.mockedDomains = config.MockedDomains
 	}
 
-	if !config.SSLVerification {
-		b.DisableSSLVerification()
-	}
-
 	if config.Timeout > 0 {
 		b.SetTimeout(config.Timeout)
 	}
+
+	b.SetSSLVerification(config.SSLVerification)
 
 	return b
 }

@@ -21,12 +21,12 @@ func (t *HTTPClientBuilderTest) SetupSuite() {
 func (t *HTTPClientBuilderTest) Test_SetTimeout() {
 	t.builder.SetTimeout(90)
 
-	assert.Equal(t.T(), 90, t.builder.timeout)
-	assert.Equal(t.T(), 90, t.builder.httpClient.Timeout)
+	assert.Equal(t.T(), 90*time.Second, t.builder.timeout)
+	assert.Equal(t.T(), 90*time.Second, t.builder.httpClient.Timeout)
 }
 
 func (t *HTTPClientBuilderTest) Test_SetMockAddress() {
-	addr := "http://mock.local:3004"
+	addr := "mock.local:3004"
 	t.builder.SetMockAddress(addr)
 
 	assert.Equal(t.T(), addr, t.builder.mockAddress)
@@ -48,21 +48,23 @@ func (t *HTTPClientBuilderTest) Test_SetMockedDomains() {
 	assert.Equal(t.T(), domains[0], t.builder.mockedDomains[0])
 }
 
-func (t *HTTPClientBuilderTest) Test_DisableSSLVerification() {
-	t.builder.DisableSSLVerification()
+func (t *HTTPClientBuilderTest) Test_SetSSLVerification() {
+	t.builder.SetSSLVerification(true)
+	assert.False(t.T(), t.builder.httpTransport.TLSClientConfig.InsecureSkipVerify)
 
+	t.builder.SetSSLVerification(false)
 	assert.True(t.T(), t.builder.httpTransport.TLSClientConfig.InsecureSkipVerify)
 }
 
 func (t *HTTPClientBuilderTest) Test_FromConfig() {
 	config := &HTTPClientConfig{
 		SSLVerification: true,
-		MockAddress:     "http://anothermock.local:3004",
+		MockAddress:     "anothermock.local:3004",
 		MockedDomains:   []string{"example.gov"},
+		Timeout:         60,
 	}
 
 	t.builder.FromConfig(config)
-
 	assert.Equal(t.T(), !config.SSLVerification, t.builder.httpTransport.TLSClientConfig.InsecureSkipVerify)
 	assert.Equal(t.T(), config.MockAddress, t.builder.mockAddress)
 	assert.Equal(t.T(), config.MockedDomains[0], t.builder.mockedDomains[0])
@@ -75,14 +77,15 @@ func (t *HTTPClientBuilderTest) Test_FromEngine() {
 		Config: Config{
 			HTTPClientConfig: &HTTPClientConfig{
 				SSLVerification: true,
-				MockAddress:     "http://anothermock.local:3004",
+				MockAddress:     "anothermock.local:3004",
 				MockedDomains:   []string{"example.gov"},
 			},
 			Debug: false,
 		},
 	}
 
-	assert.Equal(t.T(), engine, t.builder.engine)
+	t.builder.FromEngine(engine)
+	assert.NotNil(t.T(), engine, t.builder.engine)
 }
 
 func (t *HTTPClientBuilderTest) Test_buildDialer() {
@@ -108,7 +111,11 @@ func (t *HTTPClientBuilderTest) Test_logf() {
 }
 
 func (t *HTTPClientBuilderTest) Test_Build() {
-	client, err := t.builder.Build(true)
+	client, err := t.builder.
+		SetTimeout(10).
+		SetMockAddress("api_mock:3004").
+		AddMockedDomain("google.com").
+		Build(true)
 
 	assert.NoError(t.T(), err)
 	assert.NotNil(t.T(), client)
@@ -116,9 +123,11 @@ func (t *HTTPClientBuilderTest) Test_Build() {
 }
 
 func (t *HTTPClientBuilderTest) Test_RestoreDefault() {
+	t.builder.ReplaceDefault()
 	t.builder.RestoreDefault()
 
-	assert.NotEqual(t.T(), http.DefaultClient, t.builder.httpClient)
+	assert.Equal(t.T(), http.DefaultClient, DefaultClient)
+	assert.Equal(t.T(), http.DefaultTransport, DefaultTransport)
 }
 
 func Test_HTTPClientBuilder(t *testing.T) {
