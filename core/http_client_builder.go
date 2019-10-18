@@ -16,7 +16,30 @@ var (
 	DefaultTransport = http.DefaultTransport
 )
 
-// HTTPClientBuilder builds http client with mocks (if necessary) and timeout
+// HTTPClientBuilder builds http client with mocks (if necessary) and timeout.
+// Example:
+// 		// Build HTTP client with timeout = 10 sec, without SSL certificates verification and with mocked google.com
+// 		client, err := NewHTTPClientBuilder().
+// 			SetTimeout(10).
+// 			SetMockAddress("api_mock:3004").
+// 			AddMockedDomain("google.com").
+// 			SetSSLVerification(false).
+// 			Build()
+//
+// 		if err != nil {
+// 			fmt.Print(err)
+// 		}
+//
+// 		// Actual response will be returned from "api_mock:3004" (it should provide any ssl certificate)
+// 		if resp, err := client.Get("https://google.com"); err == nil {
+// 			if data, err := ioutil.ReadAll(resp.Body); err == nil {
+// 				fmt.Printf("Data: %s", string(data))
+// 			} else {
+// 				fmt.Print(err)
+// 			}
+// 		} else {
+// 			fmt.Print(err)
+// 		}
 type HTTPClientBuilder struct {
 	httpClient    *http.Client
 	httpTransport *http.Transport
