@@ -139,6 +139,15 @@ func (e *Engine) BuildHTTPClient(replaceDefault ...bool) *Engine {
 	return e
 }
 
+// SetHTTPClient sets HTTP client to engine
+func (e *Engine) SetHTTPClient(client *http.Client) *Engine {
+	if client != nil {
+		e.httpClient = client
+	}
+
+	return e
+}
+
 // HTTPClient returns inner http client or default http client
 func (e *Engine) HTTPClient() *http.Client {
 	if e.httpClient == nil {

@@ -117,8 +117,8 @@ func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuil
 	}
 
 	if config.MockAddress != "" {
-		b.mockAddress = config.MockAddress
-		b.mockedDomains = config.MockedDomains
+		b.SetMockAddress(config.MockAddress)
+		b.SetMockedDomains(config.MockedDomains)
 	}
 
 	if config.Timeout > 0 {
