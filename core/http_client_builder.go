@@ -149,6 +149,10 @@ func (b *HTTPClientBuilder) buildDialer() *HTTPClientBuilder {
 
 // parseAddress parses address and returns error in case of error (port is necessary)
 func (b *HTTPClientBuilder) parseAddress() error {
+	if b.mockAddress == "" {
+		return nil
+	}
+
 	if host, port, err := net.SplitHostPort(b.mockAddress); err == nil {
 		b.mockHost = host
 		b.mockPort = port

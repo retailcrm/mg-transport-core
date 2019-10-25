@@ -147,6 +147,39 @@ func (e *EngineTest) Test_ConfigureRouter() {
 	})
 }
 
+func (e *EngineTest) Test_BuildHTTPClient() {
+	e.engine.Config = &Config{
+		HTTPClientConfig: &HTTPClientConfig{
+			Timeout:         30,
+			SSLVerification: true,
+		},
+	}
+	e.engine.BuildHTTPClient()
+
+	assert.NotNil(e.T(), e.engine.httpClient)
+}
+
+func (e *EngineTest) Test_SetHTTPClient() {
+	var err error
+
+	e.engine.httpClient = nil
+	e.engine.httpClient, err = NewHTTPClientBuilder().Build()
+
+	assert.NoError(e.T(), err)
+	assert.NotNil(e.T(), e.engine.httpClient)
+}
+
+func (e *EngineTest) Test_HTTPClient() {
+	var err error
+
+	e.engine.httpClient = nil
+	assert.NotNil(e.T(), e.engine.HTTPClient())
+
+	e.engine.httpClient, err = NewHTTPClientBuilder().Build()
+	assert.NoError(e.T(), err)
+	assert.NotNil(e.T(), e.engine.httpClient)
+}
+
 func (e *EngineTest) Test_Run_Fail() {
 	defer func() {
 		assert.NotNil(e.T(), recover())
