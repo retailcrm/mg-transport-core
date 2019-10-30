@@ -29,7 +29,7 @@ func mgClient() *v1.MgClient {
 	return v1.New(testMGURL, "token")
 }
 
-func (u *UtilsTest) SetupTest() {
+func (u *UtilsTest) SetupSuite() {
 	logger := NewLogger("code", logging.DEBUG, DefaultLogFormatter())
 	awsConfig := ConfigAWS{
 		AccessKeyID:     "access key id (will be removed)",
@@ -46,7 +46,7 @@ func (u *UtilsTest) SetupTest() {
 
 func (u *UtilsTest) Test_ResetUtils() {
 	assert.Equal(u.T(), "access key id (will be removed)", u.utils.ConfigAWS.AccessKeyID)
-	assert.Equal(u.T(), uint32(12345), u.utils.TokenCounter)
+	assert.Equal(u.T(), uint32(12346), u.utils.TokenCounter)
 	assert.False(u.T(), u.utils.IsDebug)
 
 	awsConfig := u.utils.ConfigAWS

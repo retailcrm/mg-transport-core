@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
+	"time"
 
 	"github.com/op/go-logging"
 	"gopkg.in/yaml.v2"
@@ -28,6 +29,7 @@ type ConfigInterface interface {
 	GetDBConfig() DatabaseConfig
 	GetAWSConfig() ConfigAWS
 	GetTransportInfo() InfoInterface
+	GetHTTPClientConfig() *HTTPClientConfig
 	GetUpdateInterval() int
 	IsDebug() bool
 }
@@ -41,15 +43,16 @@ type InfoInterface interface {
 
 // Config struct
 type Config struct {
-	Version        string           `yaml:"version"`
-	LogLevel       logging.Level    `yaml:"log_level"`
-	Database       DatabaseConfig   `yaml:"database"`
-	SentryDSN      string           `yaml:"sentry_dsn"`
-	HTTPServer     HTTPServerConfig `yaml:"http_server"`
-	Debug          bool             `yaml:"debug"`
-	UpdateInterval int              `yaml:"update_interval"`
-	ConfigAWS      ConfigAWS        `yaml:"config_aws"`
-	TransportInfo  Info             `yaml:"transport_info"`
+	Version          string            `yaml:"version"`
+	LogLevel         logging.Level     `yaml:"log_level"`
+	Database         DatabaseConfig    `yaml:"database"`
+	SentryDSN        string            `yaml:"sentry_dsn"`
+	HTTPServer       HTTPServerConfig  `yaml:"http_server"`
+	Debug            bool              `yaml:"debug"`
+	UpdateInterval   int               `yaml:"update_interval"`
+	ConfigAWS        ConfigAWS         `yaml:"config_aws"`
+	TransportInfo    Info              `yaml:"transport_info"`
+	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
 }
 
 // Info struct
@@ -77,6 +80,14 @@ type DatabaseConfig struct {
 	MaxOpenConnections int         `yaml:"max_open_connections"`
 	MaxIdleConnections int         `yaml:"max_idle_connections"`
 	ConnectionLifetime int         `yaml:"connection_lifetime"`
+}
+
+// HTTPClientConfig struct
+type HTTPClientConfig struct {
+	Timeout         time.Duration `yaml:"timeout"`
+	SSLVerification bool          `yaml:"ssl_verification"`
+	MockAddress     string        `yaml:"mock_address"`
+	MockedDomains   []string      `yaml:"mocked_domains"`
 }
 
 // HTTPServerConfig struct
@@ -166,6 +177,11 @@ func (c Config) GetHTTPConfig() HTTPServerConfig {
 // GetUpdateInterval user data update interval
 func (c Config) GetUpdateInterval() int {
 	return c.UpdateInterval
+}
+
+// GetHTTPClientConfig returns http client config
+func (c Config) GetHTTPClientConfig() *HTTPClientConfig {
+	return c.HTTPClientConfig
 }
 
 // GetName transport name

@@ -24,7 +24,7 @@ type SentryTest struct {
 	scalarTags *SentryTaggedScalar
 }
 
-func (s *SentryTest) SetupTest() {
+func (s *SentryTest) SetupSuite() {
 	s.structTags = NewTaggedStruct(SampleStruct{}, "struct", map[string]string{"fake": "prop"})
 	s.scalarTags = NewTaggedScalar("", "scalar", "Scalar")
 	require.Equal(s.T(), "struct", s.structTags.GetContextKey())
