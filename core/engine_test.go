@@ -1,9 +1,12 @@
 package core
 
 import (
+	"bytes"
 	"database/sql"
 	"html/template"
 	"io/ioutil"
+	"net/http"
+	"net/url"
 	"os"
 	"testing"
 
@@ -178,6 +181,112 @@ func (e *EngineTest) Test_HTTPClient() {
 	e.engine.httpClient, err = NewHTTPClientBuilder().Build()
 	assert.NoError(e.T(), err)
 	assert.NotNil(e.T(), e.engine.httpClient)
+}
+
+func (e *EngineTest) Test_WithCookieSessions() {
+	e.engine.Sessions = nil
+	e.engine.WithCookieSessions(4)
+
+	assert.NotNil(e.T(), e.engine.Sessions)
+}
+
+func (e *EngineTest) Test_WithFilesystemSessions() {
+	e.engine.Sessions = nil
+	e.engine.WithFilesystemSessions(os.TempDir(), 4)
+
+	assert.NotNil(e.T(), e.engine.Sessions)
+}
+
+func (e *EngineTest) Test_InitCSRF_Fail() {
+	defer func() {
+		assert.NotNil(e.T(), recover())
+	}()
+
+	e.engine.csrf = nil
+	e.engine.Sessions = nil
+	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	assert.Nil(e.T(), e.engine.csrf)
+}
+
+func (e *EngineTest) Test_InitCSRF() {
+	defer func() {
+		assert.Nil(e.T(), recover())
+	}()
+
+	e.engine.csrf = nil
+	e.engine.WithCookieSessions(4)
+	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	assert.NotNil(e.T(), e.engine.csrf)
+}
+
+func (e *EngineTest) Test_VerifyCSRFMiddleware_Fail() {
+	defer func() {
+		assert.NotNil(e.T(), recover())
+	}()
+
+	e.engine.csrf = nil
+	e.engine.VerifyCSRFMiddleware(DefaultIgnoredMethods)
+}
+
+func (e *EngineTest) Test_VerifyCSRFMiddleware() {
+	defer func() {
+		assert.Nil(e.T(), recover())
+	}()
+
+	e.engine.csrf = nil
+	e.engine.WithCookieSessions(4)
+	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	e.engine.VerifyCSRFMiddleware(DefaultIgnoredMethods)
+}
+
+func (e *EngineTest) Test_GenerateCSRFMiddleware_Fail() {
+	defer func() {
+		assert.NotNil(e.T(), recover())
+	}()
+
+	e.engine.csrf = nil
+	e.engine.GenerateCSRFMiddleware()
+}
+
+func (e *EngineTest) Test_GenerateCSRFMiddleware() {
+	defer func() {
+		assert.Nil(e.T(), recover())
+	}()
+
+	e.engine.csrf = nil
+	e.engine.WithCookieSessions(4)
+	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	e.engine.GenerateCSRFMiddleware()
+}
+
+func (e *EngineTest) Test_GetCSRFToken_Fail() {
+	defer func() {
+		assert.NotNil(e.T(), recover())
+	}()
+
+	e.engine.csrf = nil
+	e.engine.GetCSRFToken(nil)
+}
+
+func (e *EngineTest) Test_GetCSRFToken() {
+	defer func() {
+		assert.Nil(e.T(), recover())
+	}()
+
+	c := &gin.Context{Request: &http.Request{
+		URL: &url.URL{
+			RawQuery: "",
+		},
+		Body:   ioutil.NopCloser(bytes.NewReader([]byte{})),
+		Header: http.Header{"X-CSRF-Token": []string{"token"}},
+	}}
+	c.Set("csrf_token", "token")
+
+	e.engine.csrf = nil
+	e.engine.WithCookieSessions(4)
+	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	assert.NotEmpty(e.T(), e.engine.GetCSRFToken(c))
+	assert.Equal(e.T(), "token", e.engine.GetCSRFToken(c))
 }
 
 func (e *EngineTest) Test_Run_Fail() {
