@@ -15,11 +15,12 @@ require (
 	github.com/gobuffalo/packr/v2 v2.7.1
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
+	github.com/gorilla/securecookie v1.1.1
+	github.com/gorilla/sessions v1.2.0
 	github.com/h2non/gock v1.0.10
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jinzhu/gorm v1.9.11
 	github.com/json-iterator/go v1.1.7 // indirect
-	github.com/karrick/godirwalk v1.12.0 // indirect
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.10 // indirect
 	github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32 // indirect
