@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"sort"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,6 +16,20 @@ import (
 type TranslationsExtractorTest struct {
 	suite.Suite
 	extractor *TranslationsExtractor
+}
+
+func (t *TranslationsExtractorTest) getKeys(data map[string]interface{}) []string {
+	keys := make([]string, len(data))
+
+	i := 0
+	for k := range data {
+		keys[i] = k
+		i++
+	}
+
+	sort.Strings(keys)
+
+	return keys
 }
 
 func (t *TranslationsExtractorTest) SetupSuite() {
@@ -27,6 +43,7 @@ func (t *TranslationsExtractorTest) SetupSuite() {
 
 	t.extractor = NewTranslationsExtractor("translate.{}.yml")
 	t.extractor.TranslationsPath = "/tmp"
+	t.extractor.TranslationsBox = nil
 }
 
 func (t *TranslationsExtractorTest) Test_LoadLocale() {
@@ -48,7 +65,7 @@ func (t *TranslationsExtractorTest) Test_GetMapKeys() {
 }
 
 func (t *TranslationsExtractorTest) Test_unmarshalToMap() {
-	translation := map[string]string{
+	translation := map[string]interface{}{
 		"test":    "first",
 		"another": "second",
 	}
@@ -56,5 +73,9 @@ func (t *TranslationsExtractorTest) Test_unmarshalToMap() {
 	mapData, err := t.extractor.unmarshalToMap(data)
 	require.NoError(t.T(), err)
 
-	assert.True(t.T(), reflect.DeepEqual(translation, mapData))
+	assert.True(t.T(), reflect.DeepEqual(t.getKeys(translation), t.getKeys(mapData)))
+}
+
+func Test_TranslationExtractor(t *testing.T) {
+	suite.Run(t, new(TranslationsExtractorTest))
 }

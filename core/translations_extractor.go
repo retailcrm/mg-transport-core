@@ -78,7 +78,7 @@ func (t *TranslationsExtractor) loadYAML(fileName string) (map[string]interface{
 	if t.TranslationsBox != nil {
 		return t.loadYAMLBox(fileName)
 	} else if t.TranslationsPath != "" {
-		return t.loadYAMLFile(fileName)
+		return t.loadYAMLFile(filepath.Join(t.TranslationsPath, fileName))
 	} else {
 		return map[string]interface{}{}, errors.New("nor box nor translations directory was provided")
 	}
