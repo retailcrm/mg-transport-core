@@ -17,8 +17,23 @@ type Renderer struct {
 
 // NewRenderer is a Renderer constructor
 func NewRenderer(funcMap template.FuncMap) Renderer {
+	return newRendererWithMultitemplate(funcMap, multitemplate.NewRenderer())
+}
+
+// NewStaticRenderer is a Renderer constructor with multitemplate.Render
+func NewStaticRenderer(funcMap template.FuncMap) Renderer {
+	return newRendererWithMultitemplate(funcMap, multitemplate.New())
+}
+
+// NewStaticRenderer is a Renderer constructor with multitemplate.DynamicRender
+func NewDynamicRenderer(funcMap template.FuncMap) Renderer {
+	return newRendererWithMultitemplate(funcMap, multitemplate.NewDynamic())
+}
+
+// newRendererWithMultitemplate initializes Renderer with provided multitemplate.Renderer instance
+func newRendererWithMultitemplate(funcMap template.FuncMap, renderer multitemplate.Renderer) Renderer {
 	return Renderer{
-		Renderer:     multitemplate.NewRenderer(),
+		Renderer:     renderer,
 		FuncMap:      funcMap,
 		alreadyAdded: map[string]*template.Template{},
 	}
