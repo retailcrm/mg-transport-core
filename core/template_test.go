@@ -24,6 +24,11 @@ type TemplateTest struct {
 }
 
 func (t *TemplateTest) SetupSuite() {
+	t.initTestData()
+	t.renderer = t.initRenderer()
+}
+
+func (t *TemplateTest) initTestData() {
 	if _, err := os.Stat(testTemplatesDir); err != nil && os.IsNotExist(err) {
 		err := os.Mkdir(testTemplatesDir, os.ModePerm)
 		require.Nil(t.T(), err)
@@ -34,8 +39,10 @@ func (t *TemplateTest) SetupSuite() {
 		require.Nil(t.T(), err1)
 		require.Nil(t.T(), err2)
 	}
+}
 
-	t.renderer = NewRenderer(template.FuncMap{
+func (t *TemplateTest) initRenderer() Renderer {
+	return NewRenderer(template.FuncMap{
 		"trans": func(data string) string {
 			if data == "test" {
 				return "ok"
@@ -48,6 +55,25 @@ func (t *TemplateTest) SetupSuite() {
 
 func (t *TemplateTest) Test_Push() {
 	tpl := t.renderer.Push("index", fmt.Sprintf(testTemplatesFile, 1), fmt.Sprintf(testTemplatesFile, 2))
+	assert.Equal(t.T(), 3, len(tpl.Templates()))
+}
+
+func (t *TemplateTest) Test_PushAlreadyExists() {
+	defer func() {
+		assert.Nil(t.T(), recover())
+	}()
+
+	tpl := t.renderer.Push("index", fmt.Sprintf(testTemplatesFile, 1), fmt.Sprintf(testTemplatesFile, 2))
+	assert.Equal(t.T(), 3, len(tpl.Templates()))
+}
+
+func (t *TemplateTest) Test_PushNewInstance() {
+	defer func() {
+		assert.Nil(t.T(), recover())
+	}()
+
+	newInstance := t.initRenderer()
+	tpl := newInstance.Push("index", fmt.Sprintf(testTemplatesFile, 1), fmt.Sprintf(testTemplatesFile, 2))
 	assert.Equal(t.T(), 3, len(tpl.Templates()))
 }
 
