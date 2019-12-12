@@ -25,6 +25,11 @@ func (t *HTTPClientBuilderTest) Test_SetTimeout() {
 	assert.Equal(t.T(), 90*time.Second, t.builder.httpClient.Timeout)
 }
 
+func (t *HTTPClientBuilderTest) Test_EnableLogging() {
+	t.builder.EnableLogging()
+	assert.Equal(t.T(), true, t.builder.logging)
+}
+
 func (t *HTTPClientBuilderTest) Test_SetMockAddress() {
 	addr := "mock.local:3004"
 	t.builder.SetMockAddress(addr)
@@ -54,6 +59,13 @@ func (t *HTTPClientBuilderTest) Test_SetSSLVerification() {
 
 	t.builder.SetSSLVerification(false)
 	assert.True(t.T(), t.builder.httpTransport.TLSClientConfig.InsecureSkipVerify)
+}
+
+func (t *HTTPClientBuilderTest) Test_FromConfigNil() {
+	defer func() {
+		assert.Nil(t.T(), recover())
+	}()
+	t.builder.FromConfig(nil)
 }
 
 func (t *HTTPClientBuilderTest) Test_FromConfig() {
