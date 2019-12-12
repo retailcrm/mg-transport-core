@@ -4,6 +4,7 @@ import (
 	"html/template"
 
 	"github.com/gin-contrib/multitemplate"
+	"github.com/gobuffalo/packr/v2"
 )
 
 // Renderer wraps multitemplate.Renderer in order to make it easier to use

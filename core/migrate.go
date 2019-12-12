@@ -83,15 +83,15 @@ func (m *Migrate) Rollback() error {
 		return errors.New("abnormal termination: first migration is nil")
 	}
 
-	if err := m.GORMigrate.RollbackTo(m.first.ID); err == nil {
-		if err := m.GORMigrate.RollbackMigration(m.first); err == nil {
-			return nil
-		}
-
-		return err
-	} else {
+	if err := m.GORMigrate.RollbackTo(m.first.ID); err != nil {
 		return err
 	}
+
+	if err := m.GORMigrate.RollbackMigration(m.first); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // MigrateTo specified version
@@ -183,12 +183,12 @@ func (m *Migrate) Current() string {
 		return "0"
 	}
 
-	if err := m.db.Last(&migrationInfo).Error; err == nil {
-		return migrationInfo.ID
+	if err := m.db.Last(&migrationInfo).Error; err != nil {
+		fmt.Printf("warning => cannot fetch migration version: %s\n", err.Error())
+		return "0"
 	}
 
-	fmt.Printf("warning => cannot fetch migration version: %s\n", err.Error())
-	return "0"
+	return migrationInfo.ID
 }
 
 // NextFrom returns next version from passed version

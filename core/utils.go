@@ -25,9 +25,9 @@ import (
 // Utils service object
 type Utils struct {
 	IsDebug      bool
+	TokenCounter uint32
 	ConfigAWS    ConfigAWS
 	Logger       *logging.Logger
-	TokenCounter uint32
 	slashRegex   *regexp.Regexp
 }
 
