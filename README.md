@@ -1,7 +1,8 @@
 ## MG Transport Library
 [![Build Status](https://travis-ci.org/retailcrm/mg-transport-core.svg?branch=master)](https://travis-ci.org/retailcrm/mg-transport-core)
 [![codecov](https://codecov.io/gh/retailcrm/mg-transport-core/branch/master/graph/badge.svg)](https://codecov.io/gh/retailcrm/mg-transport-core)
-[![GoDoc](https://godoc.org/github.com/retailcrm/mg-transport-core/core?status.svg)](https://godoc.org/github.com/retailcrm/mg-transport-core/core)  
+[![GoDoc](https://godoc.org/github.com/retailcrm/mg-transport-core/core?status.svg)](https://godoc.org/github.com/retailcrm/mg-transport-core/core)
+[![Go Report Card](https://goreportcard.com/badge/github.com/retailcrm/mg-transport-core)](https://goreportcard.com/report/github.com/retailcrm/mg-transport-core)    
 This library provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.   
 Usage:
 ```go
