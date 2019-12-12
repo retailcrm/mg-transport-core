@@ -194,7 +194,7 @@ func (e *Engine) WithFilesystemSessions(path string, keyLength ...int) *Engine {
 // InitCSRF initializes CSRF middleware. engine.Sessions must be already initialized,
 // use engine.WithCookieStore or engine.WithFilesystemStore for that.
 // Syntax is similar to core.NewCSRF, but you shouldn't pass sessionName, store and salt.
-func (e *Engine) InitCSRF(secret string, abortFunc gin.HandlerFunc, getter CSRFTokenGetter) *Engine {
+func (e *Engine) InitCSRF(secret string, abortFunc CSRFAbortFunc, getter CSRFTokenGetter) *Engine {
 	if e.Sessions == nil {
 		panic("engine.Sessions must be initialized first")
 	}

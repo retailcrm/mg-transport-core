@@ -204,7 +204,7 @@ func (e *EngineTest) Test_InitCSRF_Fail() {
 
 	e.engine.csrf = nil
 	e.engine.Sessions = nil
-	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
 	assert.Nil(e.T(), e.engine.csrf)
 }
 
@@ -215,7 +215,7 @@ func (e *EngineTest) Test_InitCSRF() {
 
 	e.engine.csrf = nil
 	e.engine.WithCookieSessions(4)
-	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
 	assert.NotNil(e.T(), e.engine.csrf)
 }
 
@@ -235,7 +235,7 @@ func (e *EngineTest) Test_VerifyCSRFMiddleware() {
 
 	e.engine.csrf = nil
 	e.engine.WithCookieSessions(4)
-	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
 	e.engine.VerifyCSRFMiddleware(DefaultIgnoredMethods)
 }
 
@@ -255,7 +255,7 @@ func (e *EngineTest) Test_GenerateCSRFMiddleware() {
 
 	e.engine.csrf = nil
 	e.engine.WithCookieSessions(4)
-	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
 	e.engine.GenerateCSRFMiddleware()
 }
 
@@ -284,7 +284,7 @@ func (e *EngineTest) Test_GetCSRFToken() {
 
 	e.engine.csrf = nil
 	e.engine.WithCookieSessions(4)
-	e.engine.InitCSRF("test", func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
 	assert.NotEmpty(e.T(), e.engine.GetCSRFToken(c))
 	assert.Equal(e.T(), "token", e.engine.GetCSRFToken(c))
 }
