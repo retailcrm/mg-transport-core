@@ -154,7 +154,7 @@ func (e *EngineTest) Test_BuildHTTPClient() {
 	e.engine.Config = &Config{
 		HTTPClientConfig: &HTTPClientConfig{
 			Timeout:         30,
-			SSLVerification: true,
+			SSLVerification: boolPtr(true),
 		},
 	}
 	e.engine.BuildHTTPClient()
@@ -299,4 +299,9 @@ func (e *EngineTest) Test_Run_Fail() {
 
 func TestEngine_Suite(t *testing.T) {
 	suite.Run(t, new(EngineTest))
+}
+
+func boolPtr(val bool) *bool {
+	b := val
+	return &b
 }

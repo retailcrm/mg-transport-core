@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	// nolint:gosec
 	"crypto/sha1"
 	"encoding/base64"
 	"io"
@@ -44,6 +45,7 @@ var DefaultCSRFTokenGetter = func(c *gin.Context) string {
 // DefaultIgnoredMethods ignored methods for CSRF verifier middleware
 var DefaultIgnoredMethods = []string{"GET", "HEAD", "OPTIONS"}
 
+// CSRF struct. Provides CSRF token verification.
 type CSRF struct {
 	salt            string
 	secret          string
@@ -51,7 +53,6 @@ type CSRF struct {
 	abortFunc       gin.HandlerFunc
 	csrfTokenGetter CSRFTokenGetter
 	store           sessions.Store
-	locale          *Localizer
 }
 
 // NewCSRF creates CSRF struct with specified configuration and session store.
@@ -115,8 +116,12 @@ func (x *CSRF) strInSlice(slice []string, v string) bool {
 
 // generateCSRFToken generates new CSRF token
 func (x *CSRF) generateCSRFToken() string {
+	// nolint:gosec
 	h := sha1.New()
-	io.WriteString(h, x.salt+"#"+x.secret)
+	// Fallback to less secure method - token must be always filled even if we cannot properly generate it
+	if _, err := io.WriteString(h, x.salt+"#"+x.secret); err != nil {
+		return base64.URLEncoding.EncodeToString([]byte(time.Now().String()))
+	}
 	hash := base64.URLEncoding.EncodeToString(h.Sum(nil))
 
 	return hash
@@ -155,12 +160,10 @@ func (x *CSRF) CSRFFromContext(c *gin.Context) string {
 	if i, ok := c.Get("csrf_token"); ok {
 		if token, ok := i.(string); ok {
 			return token
-		} else {
-			return x.generateCSRFToken()
 		}
-	} else {
-		return x.generateCSRFToken()
 	}
+
+	return x.generateCSRFToken()
 }
 
 // GenerateCSRFMiddleware returns gin.HandlerFunc which will generate CSRF token
@@ -211,13 +214,14 @@ func (x *CSRF) VerifyCSRFMiddleware(ignoredMethods []string) gin.HandlerFunc {
 		session, _ := x.store.Get(c.Request, x.sessionName)
 
 		if i, ok := session.Values["csrf_token"]; ok {
-			if i, ok := i.(string); !ok || i == "" {
+			var v string
+			if v, ok = i.(string); !ok || v == "" {
 				x.abortFunc(c)
 				c.Abort()
 				return
-			} else {
-				token = i
 			}
+
+			token = v
 		} else {
 			x.abortFunc(c)
 			c.Abort()

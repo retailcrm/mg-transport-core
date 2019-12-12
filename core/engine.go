@@ -92,12 +92,16 @@ func (e *Engine) Prepare() *Engine {
 	return e
 }
 
-// templateFuncMap combines func map for templates
+// TemplateFuncMap combines func map for templates
 func (e *Engine) TemplateFuncMap(functions template.FuncMap) template.FuncMap {
 	funcMap := e.LocalizationFuncMap()
 
 	for name, fn := range functions {
 		funcMap[name] = fn
+	}
+
+	funcMap["version"] = func() string {
+		return e.Config.GetVersion()
 	}
 
 	return funcMap
@@ -156,9 +160,9 @@ func (e *Engine) SetHTTPClient(client *http.Client) *Engine {
 func (e *Engine) HTTPClient() *http.Client {
 	if e.httpClient == nil {
 		return http.DefaultClient
-	} else {
-		return e.httpClient
 	}
+
+	return e.httpClient
 }
 
 // WithCookieSessions generates new CookieStore with optional key length.
@@ -174,7 +178,7 @@ func (e *Engine) WithCookieSessions(keyLength ...int) *Engine {
 	return e
 }
 
-// WithCookieSessions generates new FilesystemStore with optional key length.
+// WithFilesystemSessions generates new FilesystemStore with optional key length.
 // Default key length is 32 bytes.
 func (e *Engine) WithFilesystemSessions(path string, keyLength ...int) *Engine {
 	length := 32

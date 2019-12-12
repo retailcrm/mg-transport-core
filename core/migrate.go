@@ -54,7 +54,7 @@ func (m *Migrate) Add(migration *gormigrate.Migration) {
 	m.migrations[migration.ID] = migration
 }
 
-// SetORM to migrate
+// SetDB to migrate
 func (m *Migrate) SetDB(db *gorm.DB) *Migrate {
 	m.db = db
 	return m
@@ -86,9 +86,9 @@ func (m *Migrate) Rollback() error {
 	if err := m.GORMigrate.RollbackTo(m.first.ID); err == nil {
 		if err := m.GORMigrate.RollbackMigration(m.first); err == nil {
 			return nil
-		} else {
-			return err
 		}
+
+		return err
 	} else {
 		return err
 	}
@@ -185,10 +185,10 @@ func (m *Migrate) Current() string {
 
 	if err := m.db.Last(&migrationInfo).Error; err == nil {
 		return migrationInfo.ID
-	} else {
-		fmt.Printf("warning => cannot fetch migration version: %s\n", err.Error())
-		return "0"
 	}
+
+	fmt.Printf("warning => cannot fetch migration version: %s\n", err.Error())
+	return "0"
 }
 
 // NextFrom returns next version from passed version
@@ -197,9 +197,9 @@ func (m *Migrate) NextFrom(version string) (string, error) {
 		if ver == version {
 			if key < (len(m.versions) - 1) {
 				return m.versions[key+1], nil
-			} else {
-				return "", errors.New("this is last migration")
 			}
+
+			return "", errors.New("this is last migration")
 		}
 	}
 
@@ -212,9 +212,9 @@ func (m *Migrate) PreviousFrom(version string) (string, error) {
 		if ver == version {
 			if key > 0 {
 				return m.versions[key-1], nil
-			} else {
-				return "0", nil
 			}
+
+			return "0", nil
 		}
 	}
 

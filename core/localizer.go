@@ -145,9 +145,9 @@ func (l *Localizer) loadFromFS() error {
 
 	if err != nil {
 		return err
-	} else {
-		return nil
 	}
+
+	return nil
 }
 
 // SetLocale will change language for current localizer

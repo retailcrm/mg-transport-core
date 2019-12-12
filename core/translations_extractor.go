@@ -23,7 +23,7 @@ type TranslationsExtractor struct {
 	TranslationsPath string
 }
 
-// TranslationsExtractor constructor. Use "translate.{}.yml" as template if your translations are named like "translate.en.yml"
+// NewTranslationsExtractor constructor. Use "translate.{}.yml" as template if your translations are named like "translate.en.yml"
 func NewTranslationsExtractor(fileNameTemplate string) *TranslationsExtractor {
 	return &TranslationsExtractor{fileNameTemplate: fileNameTemplate}
 }
@@ -43,10 +43,10 @@ func (t *TranslationsExtractor) unmarshalToMap(in []byte) (map[string]interface{
 func (t *TranslationsExtractor) loadYAMLBox(fileName string) (map[string]interface{}, error) {
 	var dataMap map[string]interface{}
 
-	if data, err := t.TranslationsBox.Find(fileName); err == nil {
-		return t.unmarshalToMap(data)
-	} else {
+	if data, err := t.TranslationsBox.Find(fileName); err != nil {
 		return dataMap, err
+	} else {
+		return t.unmarshalToMap(data)
 	}
 }
 
@@ -57,10 +57,10 @@ func (t *TranslationsExtractor) loadYAMLFile(fileName string) (map[string]interf
 	if info, err := os.Stat(fileName); err == nil {
 		if !info.IsDir() {
 			if path, err := filepath.Abs(fileName); err == nil {
-				if source, err := ioutil.ReadFile(path); err == nil {
-					return t.unmarshalToMap(source)
-				} else {
+				if source, err := ioutil.ReadFile(path); err != nil {
 					return dataMap, err
+				} else {
+					return t.unmarshalToMap(source)
 				}
 			} else {
 				return dataMap, err
@@ -106,9 +106,9 @@ func (t *TranslationsExtractor) LoadLocale(locale string) (map[string]interface{
 
 // LoadLocaleKeys returns only sorted keys from translation file
 func (t *TranslationsExtractor) LoadLocaleKeys(locale string) ([]string, error) {
-	if data, err := t.LoadLocale(locale); err == nil {
-		return t.GetMapKeys(data), nil
-	} else {
+	if data, err := t.LoadLocale(locale); err != nil {
 		return []string{}, err
 	}
+
+	return t.GetMapKeys(data), nil
 }

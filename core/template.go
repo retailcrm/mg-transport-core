@@ -4,7 +4,6 @@ import (
 	"html/template"
 
 	"github.com/gin-contrib/multitemplate"
-	"github.com/gobuffalo/packr/v2"
 )
 
 // Renderer wraps multitemplate.Renderer in order to make it easier to use
@@ -25,7 +24,7 @@ func NewStaticRenderer(funcMap template.FuncMap) Renderer {
 	return newRendererWithMultitemplate(funcMap, multitemplate.New())
 }
 
-// NewStaticRenderer is a Renderer constructor with multitemplate.DynamicRender
+// NewDynamicRenderer is a Renderer constructor with multitemplate.DynamicRender
 func NewDynamicRenderer(funcMap template.FuncMap) Renderer {
 	return newRendererWithMultitemplate(funcMap, multitemplate.NewDynamic())
 }
@@ -47,9 +46,9 @@ func (r *Renderer) Push(name string, files ...string) *template.Template {
 
 	if r.TemplatesBox == nil {
 		return r.storeTemplate(name, r.AddFromFilesFuncs(name, r.FuncMap, files...))
-	} else {
-		return r.storeTemplate(name, r.addFromBox(name, r.FuncMap, files...))
 	}
+
+	return r.storeTemplate(name, r.addFromBox(name, r.FuncMap, files...))
 }
 
 // addFromBox adds embedded template
@@ -67,7 +66,7 @@ func (r *Renderer) addFromBox(name string, funcMap template.FuncMap, files ...st
 
 // storeTemplate stores built template if multitemplate.DynamicRender is used.
 // Dynamic render doesn't store templates - it stores builders, that's why we can't just extract them.
-// It possibly can cause data inconsistency in developer enviroments where return value from Renderer.Push is used.
+// It possibly can cause data inconsistency in developer environments where return value from Renderer.Push is used.
 func (r *Renderer) storeTemplate(name string, tpl *template.Template) *template.Template {
 	if _, ok := r.Renderer.(multitemplate.DynamicRender); ok {
 		r.alreadyAdded[name] = tpl

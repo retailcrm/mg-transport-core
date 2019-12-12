@@ -58,14 +58,14 @@ func (t *HTTPClientBuilderTest) Test_SetSSLVerification() {
 
 func (t *HTTPClientBuilderTest) Test_FromConfig() {
 	config := &HTTPClientConfig{
-		SSLVerification: true,
+		SSLVerification: boolPtr(true),
 		MockAddress:     "anothermock.local:3004",
 		MockedDomains:   []string{"example.gov"},
 		Timeout:         60,
 	}
 
 	t.builder.FromConfig(config)
-	assert.Equal(t.T(), !config.SSLVerification, t.builder.httpTransport.TLSClientConfig.InsecureSkipVerify)
+	assert.Equal(t.T(), !config.IsSSLVerificationEnabled(), t.builder.httpTransport.TLSClientConfig.InsecureSkipVerify)
 	assert.Equal(t.T(), config.MockAddress, t.builder.mockAddress)
 	assert.Equal(t.T(), config.MockedDomains[0], t.builder.mockedDomains[0])
 	assert.Equal(t.T(), config.Timeout*time.Second, t.builder.timeout)
@@ -76,7 +76,7 @@ func (t *HTTPClientBuilderTest) Test_FromEngine() {
 	engine := &Engine{
 		Config: Config{
 			HTTPClientConfig: &HTTPClientConfig{
-				SSLVerification: true,
+				SSLVerification: boolPtr(true),
 				MockAddress:     "anothermock.local:3004",
 				MockedDomains:   []string{"example.gov"},
 			},

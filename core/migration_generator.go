@@ -35,6 +35,7 @@ type NewMigrationCommand struct {
 	Directory string `short:"d" long:"directory" default:"./migrations" description:"Directory where migration will be created"`
 }
 
+// FileExists returns true if provided file exist and it's not directory
 func (x *NewMigrationCommand) FileExists(filename string) bool {
 	info, err := os.Stat(filename)
 	if os.IsNotExist(err) {
@@ -43,6 +44,7 @@ func (x *NewMigrationCommand) FileExists(filename string) bool {
 	return !info.IsDir()
 }
 
+// Execute migration generator command
 func (x *NewMigrationCommand) Execute(args []string) error {
 	version := strconv.FormatInt(time.Now().Unix(), 10)
 	directory := path.Clean(x.Directory)

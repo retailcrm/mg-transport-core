@@ -42,7 +42,7 @@ func (s *MigrationGeneratorSuite) Test_Execute() {
 	}
 
 	for _, f := range files {
-		if strings.Index(f.Name(), "_app.go") != -1 {
+		if strings.Contains(f.Name(), "_app.go") {
 			found = true
 			assert.NoError(s.T(), os.Remove(path.Join(s.command.Directory, f.Name())))
 		}

@@ -16,7 +16,8 @@ var (
 		"/api/integration-modules/{code}/edit",
 	}
 	markdownSymbols = []string{"*", "_", "`", "["}
-	regCommandName  = regexp.MustCompile(`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simlachat\.(com|ru))/?$`)
+	regCommandName  = regexp.MustCompile(
+		`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simlachat\.(com|ru))/?$`)
 	slashRegex      = regexp.MustCompile(`/+$`)
 )
 
@@ -29,7 +30,7 @@ type ConfigInterface interface {
 	GetDBConfig() DatabaseConfig
 	GetAWSConfig() ConfigAWS
 	GetTransportInfo() InfoInterface
-	GetHTTPClientConfig() *HTTPClientConfig
+	GetHTTPClientConfig() HTTPClientConfigInterface
 	GetUpdateInterval() int
 	IsDebug() bool
 }
@@ -41,18 +42,26 @@ type InfoInterface interface {
 	GetLogoPath() string
 }
 
+// HTTPClientConfigInterface can be used to provide alternative way for configuring HTTP server
+type HTTPClientConfigInterface interface {
+	GetTimeout() time.Duration
+	IsSSLVerificationEnabled() bool
+	GetMockAddress() string
+	GetMockedDomains() []string
+}
+
 // Config struct
 type Config struct {
-	Version          string            `yaml:"version"`
-	LogLevel         logging.Level     `yaml:"log_level"`
-	Database         DatabaseConfig    `yaml:"database"`
-	SentryDSN        string            `yaml:"sentry_dsn"`
-	HTTPServer       HTTPServerConfig  `yaml:"http_server"`
-	Debug            bool              `yaml:"debug"`
-	UpdateInterval   int               `yaml:"update_interval"`
-	ConfigAWS        ConfigAWS         `yaml:"config_aws"`
-	TransportInfo    Info              `yaml:"transport_info"`
-	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
+	Version          string                    `yaml:"version"`
+	LogLevel         logging.Level             `yaml:"log_level"`
+	Database         DatabaseConfig            `yaml:"database"`
+	SentryDSN        string                    `yaml:"sentry_dsn"`
+	HTTPServer       HTTPServerConfig          `yaml:"http_server"`
+	Debug            bool                      `yaml:"debug"`
+	UpdateInterval   int                       `yaml:"update_interval"`
+	ConfigAWS        ConfigAWS                 `yaml:"config_aws"`
+	TransportInfo    Info                      `yaml:"transport_info"`
+	HTTPClientConfig HTTPClientConfigInterface `yaml:"http_client"`
 }
 
 // Info struct
@@ -85,7 +94,7 @@ type DatabaseConfig struct {
 // HTTPClientConfig struct
 type HTTPClientConfig struct {
 	Timeout         time.Duration `yaml:"timeout"`
-	SSLVerification bool          `yaml:"ssl_verification"`
+	SSLVerification *bool         `yaml:"ssl_verification"`
 	MockAddress     string        `yaml:"mock_address"`
 	MockedDomains   []string      `yaml:"mocked_domains"`
 }
@@ -180,7 +189,7 @@ func (c Config) GetUpdateInterval() int {
 }
 
 // GetHTTPClientConfig returns http client config
-func (c Config) GetHTTPClientConfig() *HTTPClientConfig {
+func (c Config) GetHTTPClientConfig() HTTPClientConfigInterface {
 	return c.HTTPClientConfig
 }
 
@@ -197,4 +206,32 @@ func (t Info) GetCode() string {
 // GetLogoPath transport logo
 func (t Info) GetLogoPath() string {
 	return t.LogoPath
+}
+
+// GetTimeout returns timeout for HTTP client (default is 30 seconds)
+func (h *HTTPClientConfig) GetTimeout() time.Duration {
+	if h.Timeout <= 0 {
+		h.Timeout = 30 * time.Second
+	}
+
+	return h.Timeout
+}
+
+// IsSSLVerificationEnabled returns SSL verification flag (default is true)
+func (h *HTTPClientConfig) IsSSLVerificationEnabled() bool {
+	if h.SSLVerification == nil {
+		return true
+	}
+
+	return *h.SSLVerification
+}
+
+// GetMockAddress returns mock address
+func (h *HTTPClientConfig) GetMockAddress() string {
+	return h.MockAddress
+}
+
+// GetMockedDomains returns mocked domains list
+func (h *HTTPClientConfig) GetMockedDomains() []string {
+	return h.MockedDomains
 }

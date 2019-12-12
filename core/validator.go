@@ -1,12 +1,11 @@
 package core
 
 import (
-	"reflect"
-
 	"github.com/gin-gonic/gin/binding"
-	"gopkg.in/go-playground/validator.v8"
+	"gopkg.in/go-playground/validator.v9"
 )
 
+// init here will register `validatecrmurl` function for gin validator
 func init() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		if err := v.RegisterValidation("validatecrmurl", validateCrmURL); err != nil {
@@ -15,9 +14,7 @@ func init() {
 	}
 }
 
-func validateCrmURL(
-	v *validator.Validate, topStruct reflect.Value, currentStructOrField reflect.Value,
-	field reflect.Value, fieldType reflect.Type, fieldKind reflect.Kind, param string,
-) bool {
-	return regCommandName.Match([]byte(field.Interface().(string)))
+// validateCrmURL will validate CRM URL
+func validateCrmURL(fl validator.FieldLevel) bool {
+	return regCommandName.Match([]byte(fl.Field().String()))
 }

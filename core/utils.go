@@ -1,6 +1,7 @@
 package core
 
 import (
+	// nolint:gosec
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/json"
@@ -127,6 +128,7 @@ func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
 	s := session.Must(session.NewSession(s3Config))
 	uploader := s3manager.NewUploader(s)
 
+	// nolint:gosec
 	resp, err := http.Get(url)
 	if err != nil {
 		return
@@ -181,6 +183,7 @@ func GetMGItemData(client *v1.MgClient, url string, caption string) (v1.Item, in
 func GetEntitySHA1(v interface{}) (hash string, err error) {
 	res, _ := json.Marshal(v)
 
+	// nolint:gosec
 	h := sha1.New()
 	_, err = h.Write(res)
 	hash = fmt.Sprintf("%x", h.Sum(nil))

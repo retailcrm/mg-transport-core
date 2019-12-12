@@ -11,10 +11,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	DefaultClient    = http.DefaultClient
-	DefaultTransport = http.DefaultTransport
-)
+// DefaultClient stores original http.DefaultClient
+var DefaultClient = http.DefaultClient
+
+// DefaultTransport stores original http.DefaultTransport
+var DefaultTransport = http.DefaultTransport
 
 // HTTPClientBuilder builds http client with mocks (if necessary) and timeout.
 // Example:
@@ -111,21 +112,21 @@ func (b *HTTPClientBuilder) EnableLogging() *HTTPClientBuilder {
 }
 
 // FromConfig fulfills mock configuration from HTTPClientConfig
-func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuilder {
+func (b *HTTPClientBuilder) FromConfig(config HTTPClientConfigInterface) *HTTPClientBuilder {
 	if config == nil {
 		return b
 	}
 
-	if config.MockAddress != "" {
-		b.SetMockAddress(config.MockAddress)
-		b.SetMockedDomains(config.MockedDomains)
+	if config.GetMockAddress() != "" {
+		b.SetMockAddress(config.GetMockAddress())
+		b.SetMockedDomains(config.GetMockedDomains())
 	}
 
-	if config.Timeout > 0 {
-		b.SetTimeout(config.Timeout)
+	if config.GetTimeout() > 0 {
+		b.SetTimeout(config.GetTimeout())
 	}
 
-	b.SetSSLVerification(config.SSLVerification)
+	b.SetSSLVerification(config.IsSSLVerificationEnabled())
 
 	return b
 }
@@ -156,10 +157,11 @@ func (b *HTTPClientBuilder) parseAddress() error {
 	if host, port, err := net.SplitHostPort(b.mockAddress); err == nil {
 		b.mockHost = host
 		b.mockPort = port
-		return nil
 	} else {
 		return errors.Errorf("cannot split host and port: %s", err.Error())
 	}
+
+	return nil
 }
 
 // buildMocks builds mocks for http client
@@ -177,21 +179,26 @@ func (b *HTTPClientBuilder) buildMocks() error {
 		}
 
 		b.httpTransport.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
-			if host, port, err := net.SplitHostPort(addr); err != nil {
+			var (
+				host string
+				port string
+				err  error
+			)
+			if host, port, err = net.SplitHostPort(addr); err != nil {
 				return b.dialer.DialContext(ctx, network, addr)
-			} else {
-				for _, mock := range b.mockedDomains {
-					if mock == host {
-						oldAddr := addr
+			}
 
-						if b.mockPort == "0" {
-							addr = net.JoinHostPort(b.mockHost, port)
-						} else {
-							addr = net.JoinHostPort(b.mockHost, b.mockPort)
-						}
+			for _, mock := range b.mockedDomains {
+				if mock == host {
+					oldAddr := addr
 
-						b.logf("Mocking \"%s\" with \"%s\"\n", oldAddr, addr)
+					if b.mockPort == "0" {
+						addr = net.JoinHostPort(b.mockHost, port)
+					} else {
+						addr = net.JoinHostPort(b.mockHost, b.mockPort)
 					}
+
+					b.logf("Mocking \"%s\" with \"%s\"\n", oldAddr, addr)
 				}
 			}
 
