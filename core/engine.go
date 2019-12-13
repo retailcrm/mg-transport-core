@@ -92,12 +92,16 @@ func (e *Engine) Prepare() *Engine {
 	return e
 }
 
-// templateFuncMap combines func map for templates
+// TemplateFuncMap combines func map for templates
 func (e *Engine) TemplateFuncMap(functions template.FuncMap) template.FuncMap {
 	funcMap := e.LocalizationFuncMap()
 
 	for name, fn := range functions {
 		funcMap[name] = fn
+	}
+
+	funcMap["version"] = func() string {
+		return e.Config.GetVersion()
 	}
 
 	return funcMap
@@ -133,7 +137,12 @@ func (e *Engine) Router() *gin.Engine {
 // BuildHTTPClient builds HTTP client with provided configuration
 func (e *Engine) BuildHTTPClient(replaceDefault ...bool) *Engine {
 	if e.Config.GetHTTPClientConfig() != nil {
-		if client, err := NewHTTPClientBuilder().FromEngine(e).Build(replaceDefault...); err != nil {
+		client, err := NewHTTPClientBuilder().
+			WithLogger(e.Logger).
+			SetLogging(e.Config.IsDebug()).
+			FromEngine(e).Build(replaceDefault...)
+
+		if err != nil {
 			panic(err)
 		} else {
 			e.httpClient = client
@@ -156,9 +165,9 @@ func (e *Engine) SetHTTPClient(client *http.Client) *Engine {
 func (e *Engine) HTTPClient() *http.Client {
 	if e.httpClient == nil {
 		return http.DefaultClient
-	} else {
-		return e.httpClient
 	}
+
+	return e.httpClient
 }
 
 // WithCookieSessions generates new CookieStore with optional key length.
@@ -174,7 +183,7 @@ func (e *Engine) WithCookieSessions(keyLength ...int) *Engine {
 	return e
 }
 
-// WithCookieSessions generates new FilesystemStore with optional key length.
+// WithFilesystemSessions generates new FilesystemStore with optional key length.
 // Default key length is 32 bytes.
 func (e *Engine) WithFilesystemSessions(path string, keyLength ...int) *Engine {
 	length := 32
@@ -190,7 +199,7 @@ func (e *Engine) WithFilesystemSessions(path string, keyLength ...int) *Engine {
 // InitCSRF initializes CSRF middleware. engine.Sessions must be already initialized,
 // use engine.WithCookieStore or engine.WithFilesystemStore for that.
 // Syntax is similar to core.NewCSRF, but you shouldn't pass sessionName, store and salt.
-func (e *Engine) InitCSRF(secret string, abortFunc gin.HandlerFunc, getter CSRFTokenGetter) *Engine {
+func (e *Engine) InitCSRF(secret string, abortFunc CSRFAbortFunc, getter CSRFTokenGetter) *Engine {
 	if e.Sessions == nil {
 		panic("engine.Sessions must be initialized first")
 	}

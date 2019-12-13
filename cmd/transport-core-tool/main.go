@@ -7,6 +7,7 @@ import (
 	"github.com/retailcrm/mg-transport-core/core"
 )
 
+// Options for tool command
 type Options struct{}
 
 var (

@@ -38,6 +38,8 @@ func (t *TranslationsExtractorTest) SetupSuite() {
 		"another": "second",
 	}
 	data, _ := yaml.Marshal(translation)
+	// It's not regular temporary file. Little hack in order to test translations extractor.
+	// nolint:gosec
 	errWrite := ioutil.WriteFile("/tmp/translate.en.yml", data, os.ModePerm)
 	require.NoError(t.T(), errWrite)
 

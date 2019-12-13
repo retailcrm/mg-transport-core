@@ -16,8 +16,9 @@ var (
 		"/api/integration-modules/{code}/edit",
 	}
 	markdownSymbols = []string{"*", "_", "`", "["}
-	regCommandName  = regexp.MustCompile(`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simlachat\.(com|ru))/?$`)
-	slashRegex      = regexp.MustCompile(`/+$`)
+	regCommandName  = regexp.MustCompile(
+		`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simlachat\.(com|ru))/?$`)
+	slashRegex = regexp.MustCompile(`/+$`)
 )
 
 // ConfigInterface settings data structure
@@ -85,7 +86,7 @@ type DatabaseConfig struct {
 // HTTPClientConfig struct
 type HTTPClientConfig struct {
 	Timeout         time.Duration `yaml:"timeout"`
-	SSLVerification bool          `yaml:"ssl_verification"`
+	SSLVerification *bool         `yaml:"ssl_verification"`
 	MockAddress     string        `yaml:"mock_address"`
 	MockedDomains   []string      `yaml:"mocked_domains"`
 }
@@ -197,4 +198,13 @@ func (t Info) GetCode() string {
 // GetLogoPath transport logo
 func (t Info) GetLogoPath() string {
 	return t.LogoPath
+}
+
+// IsSSLVerificationEnabled returns SSL verification flag (default is true)
+func (h *HTTPClientConfig) IsSSLVerificationEnabled() bool {
+	if h.SSLVerification == nil {
+		return true
+	}
+
+	return *h.SSLVerification
 }

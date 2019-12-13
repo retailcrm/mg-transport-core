@@ -8,13 +8,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 )
 
-var (
-	DefaultClient    = http.DefaultClient
-	DefaultTransport = http.DefaultTransport
-)
+// DefaultClient stores original http.DefaultClient
+var DefaultClient = http.DefaultClient
+
+// DefaultTransport stores original http.DefaultTransport
+var DefaultTransport = http.DefaultTransport
 
 // HTTPClientBuilder builds http client with mocks (if necessary) and timeout.
 // Example:
@@ -44,7 +46,7 @@ type HTTPClientBuilder struct {
 	httpClient    *http.Client
 	httpTransport *http.Transport
 	dialer        *net.Dialer
-	engine        *Engine
+	logger        *logging.Logger
 	built         bool
 	logging       bool
 	timeout       time.Duration
@@ -65,6 +67,15 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 		mockedDomains: []string{},
 		logging:       false,
 	}
+}
+
+// WithLogger sets provided logger into HTTPClientBuilder
+func (b *HTTPClientBuilder) WithLogger(logger *logging.Logger) *HTTPClientBuilder {
+	if logger != nil {
+		b.logger = logger
+	}
+
+	return b
 }
 
 // SetTimeout sets timeout for http client
@@ -104,9 +115,9 @@ func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder 
 	return b
 }
 
-// EnableLogging enables logging in mocks
-func (b *HTTPClientBuilder) EnableLogging() *HTTPClientBuilder {
-	b.logging = true
+// SetLogging enables or disables logging in mocks
+func (b *HTTPClientBuilder) SetLogging(flag bool) *HTTPClientBuilder {
+	b.logging = flag
 	return b
 }
 
@@ -125,15 +136,13 @@ func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuil
 		b.SetTimeout(config.Timeout)
 	}
 
-	b.SetSSLVerification(config.SSLVerification)
+	b.SetSSLVerification(config.IsSSLVerificationEnabled())
 
 	return b
 }
 
 // FromEngine fulfills mock configuration from ConfigInterface inside Engine
 func (b *HTTPClientBuilder) FromEngine(engine *Engine) *HTTPClientBuilder {
-	b.engine = engine
-	b.logging = engine.Config.IsDebug()
 	return b.FromConfig(engine.Config.GetHTTPClientConfig())
 }
 
@@ -156,10 +165,11 @@ func (b *HTTPClientBuilder) parseAddress() error {
 	if host, port, err := net.SplitHostPort(b.mockAddress); err == nil {
 		b.mockHost = host
 		b.mockPort = port
-		return nil
 	} else {
 		return errors.Errorf("cannot split host and port: %s", err.Error())
 	}
+
+	return nil
 }
 
 // buildMocks builds mocks for http client
@@ -177,21 +187,26 @@ func (b *HTTPClientBuilder) buildMocks() error {
 		}
 
 		b.httpTransport.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
-			if host, port, err := net.SplitHostPort(addr); err != nil {
+			var (
+				host string
+				port string
+				err  error
+			)
+			if host, port, err = net.SplitHostPort(addr); err != nil {
 				return b.dialer.DialContext(ctx, network, addr)
-			} else {
-				for _, mock := range b.mockedDomains {
-					if mock == host {
-						oldAddr := addr
+			}
 
-						if b.mockPort == "0" {
-							addr = net.JoinHostPort(b.mockHost, port)
-						} else {
-							addr = net.JoinHostPort(b.mockHost, b.mockPort)
-						}
+			for _, mock := range b.mockedDomains {
+				if mock == host {
+					oldAddr := addr
 
-						b.logf("Mocking \"%s\" with \"%s\"\n", oldAddr, addr)
+					if b.mockPort == "0" {
+						addr = net.JoinHostPort(b.mockHost, port)
+					} else {
+						addr = net.JoinHostPort(b.mockHost, b.mockPort)
 					}
+
+					b.logf("Mocking \"%s\" with \"%s\"\n", oldAddr, addr)
 				}
 			}
 
@@ -205,8 +220,8 @@ func (b *HTTPClientBuilder) buildMocks() error {
 // logf prints logs via Engine or via fmt.Printf
 func (b *HTTPClientBuilder) logf(format string, args ...interface{}) {
 	if b.logging {
-		if b.engine != nil && b.engine.Logger != nil {
-			b.engine.Logger.Infof(format, args...)
+		if b.logger != nil {
+			b.logger.Infof(format, args...)
 		} else {
 			fmt.Printf(format, args...)
 		}

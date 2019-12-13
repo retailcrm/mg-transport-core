@@ -101,7 +101,7 @@ func TestCSRF_NewCSRF_NilStore(t *testing.T) {
 		assert.NotNil(t, recover())
 	}()
 
-	NewCSRF("salt", "secret", "csrf", nil, func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	NewCSRF("salt", "secret", "csrf", nil, func(c *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
 }
 
 func TestCSRF_NewCSRF_EmptySecret(t *testing.T) {
@@ -110,14 +110,29 @@ func TestCSRF_NewCSRF_EmptySecret(t *testing.T) {
 	}()
 
 	store := sessions.NewCookieStore([]byte("keys"))
-	NewCSRF("salt", "", "csrf", store, func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	NewCSRF("salt", "", "csrf", store, func(c *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
 }
 
 func TestCSRF_NewCSRF_SaltAndSessionNotEmpty(t *testing.T) {
 	store := sessions.NewCookieStore([]byte("keys"))
-	csrf := NewCSRF("salt", "secret", "", store, func(context *gin.Context) {}, DefaultCSRFTokenGetter)
+	csrf := NewCSRF("salt", "secret", "", store, func(c *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
 	assert.NotEmpty(t, csrf.salt)
 	assert.NotEmpty(t, csrf.sessionName)
+}
+
+func TestCSRF_GetCSRFErrorMessage(t *testing.T) {
+	items := map[CSRFErrorReason]string{
+		CSRFErrorNoTokenInSession:          "token is not present in session",
+		CSRFErrorCannotStoreTokenInSession: "cannot store token in session",
+		CSRFErrorIncorrectTokenType:        "incorrect token type",
+		CSRFErrorEmptyToken:                "empty token present in session",
+		CSRFErrorTokenMismatch:             "token mismatch",
+		99:                                 "unknown error",
+	}
+
+	for reason, message := range items {
+		assert.Equal(t, message, GetCSRFErrorMessage(reason))
+	}
 }
 
 func TestCSRF_Suite(t *testing.T) {
@@ -126,7 +141,7 @@ func TestCSRF_Suite(t *testing.T) {
 
 func (x *CSRFTest) SetupSuite() {
 	store := sessions.NewCookieStore([]byte("keys"))
-	x.csrf = NewCSRF("salt", "secret", "", store, func(context *gin.Context) {
+	x.csrf = NewCSRF("salt", "secret", "", store, func(context *gin.Context, r CSRFErrorReason) {
 		context.AbortWithStatus(900)
 	}, DefaultCSRFTokenGetter)
 }

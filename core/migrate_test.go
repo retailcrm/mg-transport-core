@@ -54,7 +54,7 @@ func (m *MigrateTest) RefreshMigrate() {
 	}
 }
 
-func (m *MigrateTest) Migration_TestModelFirst() *gormigrate.Migration {
+func (m *MigrateTest) MigrationTestModelFirst() *gormigrate.Migration {
 	return &gormigrate.Migration{
 		ID: "1",
 		Migrate: func(db *gorm.DB) error {
@@ -66,7 +66,7 @@ func (m *MigrateTest) Migration_TestModelFirst() *gormigrate.Migration {
 	}
 }
 
-func (m *MigrateTest) Migration_TestModelSecond() *gormigrate.Migration {
+func (m *MigrateTest) MigrationTestModelSecond() *gormigrate.Migration {
 	return &gormigrate.Migration{
 		ID: "2",
 		Migrate: func(db *gorm.DB) error {
@@ -81,7 +81,7 @@ func (m *MigrateTest) Migration_TestModelSecond() *gormigrate.Migration {
 func (m *MigrateTest) Test_Add() {
 	m.RefreshMigrate()
 	m.Migrate.Add(nil)
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 
 	assert.Equal(m.T(), 1, len(m.Migrate.migrations))
 	i, ok := m.Migrate.migrations["1"]
@@ -112,7 +112,7 @@ func (m *MigrateTest) Test_prepareMigrations_AlreadyPrepared() {
 
 func (m *MigrateTest) Test_prepareMigrations_OK() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 	err := m.Migrate.prepareMigrations()
 
 	require.NoError(m.T(), err)
@@ -124,7 +124,7 @@ func (m *MigrateTest) Test_prepareMigrations_OK() {
 func (m *MigrateTest) Test_Migrate_Fail_NilDB() {
 	m.RefreshMigrate()
 	m.Migrate.SetDB(nil)
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 
 	err := m.Migrate.Migrate()
 
@@ -134,7 +134,7 @@ func (m *MigrateTest) Test_Migrate_Fail_NilDB() {
 
 func (m *MigrateTest) Test_Migrate_Success_NoMigrations() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 
 	m.mock.ExpectBegin()
 	m.mock.
@@ -157,7 +157,7 @@ func (m *MigrateTest) Test_Migrate_Success_NoMigrations() {
 
 func (m *MigrateTest) Test_Migrate_Success() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 
 	m.mock.ExpectBegin()
 	m.mock.
@@ -188,7 +188,7 @@ func (m *MigrateTest) Test_Migrate_Success() {
 func (m *MigrateTest) Test_Rollback_Fail_NilDB() {
 	m.RefreshMigrate()
 	m.Migrate.SetDB(nil)
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 
 	err := m.Migrate.Rollback()
 
@@ -198,7 +198,7 @@ func (m *MigrateTest) Test_Rollback_Fail_NilDB() {
 
 func (m *MigrateTest) Test_Rollback_Fail_NoMigrations() {
 	m.RefreshMigrate()
-	m.Migrate.first = m.Migration_TestModelFirst()
+	m.Migrate.first = m.MigrationTestModelFirst()
 
 	err := m.Migrate.Rollback()
 
@@ -208,7 +208,7 @@ func (m *MigrateTest) Test_Rollback_Fail_NoMigrations() {
 
 func (m *MigrateTest) Test_Rollback_Fail_NoFirstMigration() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 	m.Migrate.first = nil
 
 	err := m.Migrate.Rollback()
@@ -229,7 +229,7 @@ func (m *MigrateTest) Test_MigrateTo_Fail_NilDB() {
 
 func (m *MigrateTest) Test_MigrateTo_DoNothing() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 
 	m.mock.
 		ExpectExec(regexp.QuoteMeta(`CREATE TABLE "migrations" ("id" varchar(255) , PRIMARY KEY ("id"))`)).
@@ -247,7 +247,7 @@ func (m *MigrateTest) Test_MigrateTo_DoNothing() {
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(1))
 	m.mock.ExpectCommit()
 
-	err := m.Migrate.MigrateTo(m.Migration_TestModelFirst().ID)
+	err := m.Migrate.MigrateTo(m.MigrationTestModelFirst().ID)
 
 	assert.NoError(m.T(), err)
 	assert.NoError(m.T(), m.mock.ExpectationsWereMet())
@@ -255,7 +255,7 @@ func (m *MigrateTest) Test_MigrateTo_DoNothing() {
 
 func (m *MigrateTest) Test_MigrateTo() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelFirst())
 
 	m.mock.
 		ExpectExec(regexp.QuoteMeta(`CREATE TABLE "migrations" ("id" varchar(255) , PRIMARY KEY ("id"))`)).
@@ -280,7 +280,7 @@ func (m *MigrateTest) Test_MigrateTo() {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	m.mock.ExpectCommit()
 
-	err := m.Migrate.MigrateTo(m.Migration_TestModelFirst().ID)
+	err := m.Migrate.MigrateTo(m.MigrationTestModelFirst().ID)
 
 	assert.NoError(m.T(), err)
 	assert.NoError(m.T(), m.mock.ExpectationsWereMet())
@@ -288,13 +288,13 @@ func (m *MigrateTest) Test_MigrateTo() {
 
 func (m *MigrateTest) Test_RollbackTo() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
-	m.Migrate.Add(m.Migration_TestModelSecond())
+	m.Migrate.Add(m.MigrationTestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelSecond())
 
 	m.mock.ExpectBegin()
 	m.mock.ExpectCommit()
 
-	err := m.Migrate.RollbackTo(m.Migration_TestModelSecond().ID)
+	err := m.Migrate.RollbackTo(m.MigrationTestModelSecond().ID)
 
 	assert.NoError(m.T(), err)
 	assert.NoError(m.T(), m.mock.ExpectationsWereMet())
@@ -302,8 +302,8 @@ func (m *MigrateTest) Test_RollbackTo() {
 
 func (m *MigrateTest) Test_MigrateNextTo() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
-	m.Migrate.Add(m.Migration_TestModelSecond())
+	m.Migrate.Add(m.MigrationTestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelSecond())
 
 	m.mock.
 		ExpectExec(regexp.QuoteMeta(`CREATE TABLE "migrations" ("id" varchar(255) , PRIMARY KEY ("id"))`)).
@@ -332,7 +332,7 @@ func (m *MigrateTest) Test_MigrateNextTo() {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	m.mock.ExpectCommit()
 
-	err := m.Migrate.MigrateNextTo(m.Migration_TestModelFirst().ID)
+	err := m.Migrate.MigrateNextTo(m.MigrationTestModelFirst().ID)
 
 	assert.NoError(m.T(), err)
 	assert.NoError(m.T(), m.mock.ExpectationsWereMet())
@@ -340,14 +340,14 @@ func (m *MigrateTest) Test_MigrateNextTo() {
 
 func (m *MigrateTest) Test_MigratePreviousTo() {
 	m.RefreshMigrate()
-	m.Migrate.Add(m.Migration_TestModelFirst())
-	m.Migrate.Add(m.Migration_TestModelSecond())
+	m.Migrate.Add(m.MigrationTestModelFirst())
+	m.Migrate.Add(m.MigrationTestModelSecond())
 
 	m.mock.
 		ExpectExec(regexp.QuoteMeta(`CREATE TABLE "migrations" ("id" varchar(255) , PRIMARY KEY ("id"))`)).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
-	err := m.Migrate.MigratePreviousTo(m.Migration_TestModelSecond().ID)
+	err := m.Migrate.MigratePreviousTo(m.MigrationTestModelSecond().ID)
 
 	assert.Error(m.T(), err)
 	assert.NoError(m.T(), m.mock.ExpectationsWereMet())
