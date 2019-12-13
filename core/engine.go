@@ -137,7 +137,12 @@ func (e *Engine) Router() *gin.Engine {
 // BuildHTTPClient builds HTTP client with provided configuration
 func (e *Engine) BuildHTTPClient(replaceDefault ...bool) *Engine {
 	if e.Config.GetHTTPClientConfig() != nil {
-		if client, err := NewHTTPClientBuilder().FromEngine(e).Build(replaceDefault...); err != nil {
+		client, err := NewHTTPClientBuilder().
+			WithLogger(e.Logger).
+			SetLogging(e.Config.IsDebug()).
+			FromEngine(e).Build(replaceDefault...)
+
+		if err != nil {
 			panic(err)
 		} else {
 			e.httpClient = client

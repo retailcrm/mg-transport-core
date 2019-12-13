@@ -8,7 +8,7 @@ import (
 
 // NewLogger will create new logger with specified formatter.
 // Usage:
-//	    logger := NewLogger(config, DefaultLogFormatter())
+//	    logger := NewLogger("telegram", logging.ERROR, DefaultLogFormatter())
 func NewLogger(transportCode string, logLevel logging.Level, logFormat logging.Formatter) *logging.Logger {
 	logger := logging.MustGetLogger(transportCode)
 	logBackend := logging.NewLogBackend(os.Stdout, "", 0)

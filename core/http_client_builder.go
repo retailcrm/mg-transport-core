@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 )
 
@@ -45,7 +46,7 @@ type HTTPClientBuilder struct {
 	httpClient    *http.Client
 	httpTransport *http.Transport
 	dialer        *net.Dialer
-	engine        *Engine
+	logger        *logging.Logger
 	built         bool
 	logging       bool
 	timeout       time.Duration
@@ -66,6 +67,15 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 		mockedDomains: []string{},
 		logging:       false,
 	}
+}
+
+// WithLogger sets provided logger into HTTPClientBuilder
+func (b *HTTPClientBuilder) WithLogger(logger *logging.Logger) *HTTPClientBuilder {
+	if logger != nil {
+		b.logger = logger
+	}
+
+	return b
 }
 
 // SetTimeout sets timeout for http client
@@ -105,9 +115,9 @@ func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder 
 	return b
 }
 
-// EnableLogging enables logging in mocks
-func (b *HTTPClientBuilder) EnableLogging() *HTTPClientBuilder {
-	b.logging = true
+// SetLogging enables or disables logging in mocks
+func (b *HTTPClientBuilder) SetLogging(flag bool) *HTTPClientBuilder {
+	b.logging = flag
 	return b
 }
 
@@ -133,8 +143,6 @@ func (b *HTTPClientBuilder) FromConfig(config HTTPClientConfigInterface) *HTTPCl
 
 // FromEngine fulfills mock configuration from ConfigInterface inside Engine
 func (b *HTTPClientBuilder) FromEngine(engine *Engine) *HTTPClientBuilder {
-	b.engine = engine
-	b.logging = engine.Config.IsDebug()
 	return b.FromConfig(engine.Config.GetHTTPClientConfig())
 }
 
@@ -212,8 +220,8 @@ func (b *HTTPClientBuilder) buildMocks() error {
 // logf prints logs via Engine or via fmt.Printf
 func (b *HTTPClientBuilder) logf(format string, args ...interface{}) {
 	if b.logging {
-		if b.engine != nil && b.engine.Logger != nil {
-			b.engine.Logger.Infof(format, args...)
+		if b.logger != nil {
+			b.logger.Infof(format, args...)
 		} else {
 			fmt.Printf(format, args...)
 		}

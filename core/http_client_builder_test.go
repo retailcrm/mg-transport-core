@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/op/go-logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -25,9 +27,12 @@ func (t *HTTPClientBuilderTest) Test_SetTimeout() {
 	assert.Equal(t.T(), 90*time.Second, t.builder.httpClient.Timeout)
 }
 
-func (t *HTTPClientBuilderTest) Test_EnableLogging() {
-	t.builder.EnableLogging()
-	assert.Equal(t.T(), true, t.builder.logging)
+func (t *HTTPClientBuilderTest) Test_SetLogging() {
+	t.builder.SetLogging(true)
+	assert.True(t.T(), t.builder.logging)
+
+	t.builder.SetLogging(false)
+	assert.False(t.T(), t.builder.logging)
 }
 
 func (t *HTTPClientBuilderTest) Test_SetMockAddress() {
@@ -97,7 +102,7 @@ func (t *HTTPClientBuilderTest) Test_FromEngine() {
 	}
 
 	t.builder.FromEngine(engine)
-	assert.NotNil(t.T(), engine, t.builder.engine)
+	assert.Equal(t.T(), engine.Config.GetHTTPClientConfig().GetMockAddress(), t.builder.mockAddress)
 }
 
 func (t *HTTPClientBuilderTest) Test_buildDialer() {
@@ -112,6 +117,18 @@ func (t *HTTPClientBuilderTest) Test_parseAddress() {
 
 func (t *HTTPClientBuilderTest) Test_buildMocks() {
 	assert.NoError(t.T(), t.builder.buildMocks())
+}
+
+func (t *HTTPClientBuilderTest) Test_WithLogger() {
+	logger := NewLogger("telegram", logging.ERROR, DefaultLogFormatter())
+	builder := NewHTTPClientBuilder()
+	require.Nil(t.T(), builder.logger)
+
+	builder.WithLogger(nil)
+	assert.Nil(t.T(), builder.logger)
+
+	builder.WithLogger(logger)
+	assert.NotNil(t.T(), builder.logger)
 }
 
 func (t *HTTPClientBuilderTest) Test_logf() {
