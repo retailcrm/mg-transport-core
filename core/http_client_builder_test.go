@@ -241,8 +241,7 @@ uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 	srv := &http.Server{Addr: mockServerAddr, Handler: mux}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
-		_, err := io.WriteString(w, "ok")
-		require.NoError(t.T(), err, "cannot response properly")
+		_, _ = io.WriteString(w, "ok")
 	})
 
 	testSkipChan := make(chan error, 1)
