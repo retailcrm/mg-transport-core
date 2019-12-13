@@ -102,7 +102,7 @@ func (t *HTTPClientBuilderTest) Test_FromEngine() {
 	}
 
 	t.builder.FromEngine(engine)
-	assert.Equal(t.T(), engine.Config.GetHTTPClientConfig().GetMockAddress(), t.builder.mockAddress)
+	assert.Equal(t.T(), engine.Config.GetHTTPClientConfig().MockAddress, t.builder.mockAddress)
 }
 
 func (t *HTTPClientBuilderTest) Test_buildDialer() {

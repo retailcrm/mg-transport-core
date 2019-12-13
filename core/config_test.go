@@ -41,6 +41,10 @@ log_level: 5
 debug: true
 update_interval: 24
 
+http_client:
+    ssl_verification: false
+    timeout: 30
+
 config_aws:
     access_key_id: key
     secret_access_key: secret

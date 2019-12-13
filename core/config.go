@@ -30,7 +30,7 @@ type ConfigInterface interface {
 	GetDBConfig() DatabaseConfig
 	GetAWSConfig() ConfigAWS
 	GetTransportInfo() InfoInterface
-	GetHTTPClientConfig() HTTPClientConfigInterface
+	GetHTTPClientConfig() *HTTPClientConfig
 	GetUpdateInterval() int
 	IsDebug() bool
 }
@@ -42,26 +42,18 @@ type InfoInterface interface {
 	GetLogoPath() string
 }
 
-// HTTPClientConfigInterface can be used to provide alternative way for configuring HTTP server
-type HTTPClientConfigInterface interface {
-	GetTimeout() time.Duration
-	IsSSLVerificationEnabled() bool
-	GetMockAddress() string
-	GetMockedDomains() []string
-}
-
 // Config struct
 type Config struct {
-	Version          string                    `yaml:"version"`
-	LogLevel         logging.Level             `yaml:"log_level"`
-	Database         DatabaseConfig            `yaml:"database"`
-	SentryDSN        string                    `yaml:"sentry_dsn"`
-	HTTPServer       HTTPServerConfig          `yaml:"http_server"`
-	Debug            bool                      `yaml:"debug"`
-	UpdateInterval   int                       `yaml:"update_interval"`
-	ConfigAWS        ConfigAWS                 `yaml:"config_aws"`
-	TransportInfo    Info                      `yaml:"transport_info"`
-	HTTPClientConfig HTTPClientConfigInterface `yaml:"http_client"`
+	Version          string            `yaml:"version"`
+	LogLevel         logging.Level     `yaml:"log_level"`
+	Database         DatabaseConfig    `yaml:"database"`
+	SentryDSN        string            `yaml:"sentry_dsn"`
+	HTTPServer       HTTPServerConfig  `yaml:"http_server"`
+	Debug            bool              `yaml:"debug"`
+	UpdateInterval   int               `yaml:"update_interval"`
+	ConfigAWS        ConfigAWS         `yaml:"config_aws"`
+	TransportInfo    Info              `yaml:"transport_info"`
+	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
 }
 
 // Info struct
@@ -189,7 +181,7 @@ func (c Config) GetUpdateInterval() int {
 }
 
 // GetHTTPClientConfig returns http client config
-func (c Config) GetHTTPClientConfig() HTTPClientConfigInterface {
+func (c Config) GetHTTPClientConfig() *HTTPClientConfig {
 	return c.HTTPClientConfig
 }
 
@@ -208,15 +200,6 @@ func (t Info) GetLogoPath() string {
 	return t.LogoPath
 }
 
-// GetTimeout returns timeout for HTTP client (default is 30 seconds)
-func (h *HTTPClientConfig) GetTimeout() time.Duration {
-	if h.Timeout <= 0 {
-		h.Timeout = 30 * time.Second
-	}
-
-	return h.Timeout
-}
-
 // IsSSLVerificationEnabled returns SSL verification flag (default is true)
 func (h *HTTPClientConfig) IsSSLVerificationEnabled() bool {
 	if h.SSLVerification == nil {
@@ -224,14 +207,4 @@ func (h *HTTPClientConfig) IsSSLVerificationEnabled() bool {
 	}
 
 	return *h.SSLVerification
-}
-
-// GetMockAddress returns mock address
-func (h *HTTPClientConfig) GetMockAddress() string {
-	return h.MockAddress
-}
-
-// GetMockedDomains returns mocked domains list
-func (h *HTTPClientConfig) GetMockedDomains() []string {
-	return h.MockedDomains
 }

@@ -122,18 +122,18 @@ func (b *HTTPClientBuilder) SetLogging(flag bool) *HTTPClientBuilder {
 }
 
 // FromConfig fulfills mock configuration from HTTPClientConfig
-func (b *HTTPClientBuilder) FromConfig(config HTTPClientConfigInterface) *HTTPClientBuilder {
+func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuilder {
 	if config == nil {
 		return b
 	}
 
-	if config.GetMockAddress() != "" {
-		b.SetMockAddress(config.GetMockAddress())
-		b.SetMockedDomains(config.GetMockedDomains())
+	if config.MockAddress != "" {
+		b.SetMockAddress(config.MockAddress)
+		b.SetMockedDomains(config.MockedDomains)
 	}
 
-	if config.GetTimeout() > 0 {
-		b.SetTimeout(config.GetTimeout())
+	if config.Timeout > 0 {
+		b.SetTimeout(config.Timeout)
 	}
 
 	b.SetSSLVerification(config.IsSSLVerificationEnabled())
