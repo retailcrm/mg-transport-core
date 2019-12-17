@@ -142,6 +142,17 @@ func (e *EngineTest) Test_Router() {
 	assert.NotNil(e.T(), e.engine.Router())
 }
 
+func (e *EngineTest) Test_JobManager() {
+	defer func() {
+		require.Nil(e.T(), recover())
+	}()
+
+	require.Nil(e.T(), e.engine.jobManager)
+	manager := e.engine.JobManager()
+	require.NotNil(e.T(), manager)
+	assert.Equal(e.T(), manager, e.engine.JobManager())
+}
+
 func (e *EngineTest) Test_ConfigureRouter() {
 	e.engine.TranslationsPath = testTranslationsDir
 	e.engine.Prepare()

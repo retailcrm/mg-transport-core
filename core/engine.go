@@ -21,6 +21,7 @@ type Engine struct {
 	httpClient   *http.Client
 	Logger       *logging.Logger
 	csrf         *CSRF
+	jobManager   *JobManager
 	Sessions     sessions.Store
 	Config       ConfigInterface
 	LogFormatter logging.Formatter
@@ -132,6 +133,15 @@ func (e *Engine) Router() *gin.Engine {
 	}
 
 	return e.ginEngine
+}
+
+// JobManager will return singleton JobManager from Engine
+func (e *Engine) JobManager() *JobManager {
+	if e.jobManager == nil {
+		e.jobManager = NewJobManager().SetLogger(e.Logger).SetLogging(e.Config.IsDebug())
+	}
+
+	return e.jobManager
 }
 
 // BuildHTTPClient builds HTTP client with provided configuration
