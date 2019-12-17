@@ -419,6 +419,12 @@ func (t *JobManagerTest) Test_UpdateJob() {
 	assert.NoError(t.T(), err)
 }
 
+func (t *JobManagerTest) Test_StopJobDoesntExist() {
+	require.NotNil(t.T(), t.manager.jobs)
+	err := t.manager.StopJob("doesn't exist")
+	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
+}
+
 func (t *JobManagerTest) Test_RunJobDoesntExist() {
 	require.NotNil(t.T(), t.manager.jobs)
 	err := t.manager.RunJob("doesn't exist")
