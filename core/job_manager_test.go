@@ -475,6 +475,23 @@ func (t *JobManagerTest) Test_UnregisterJobDoesntExist() {
 	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
 }
 
+func (t *JobManagerTest) Test_Start() {
+	defer func() {
+		require.Nil(t.T(), recover())
+	}()
+
+	manager := NewJobManager()
+	_ = manager.RegisterJob("job", &Job{
+		Command: func(logFunc JobLogFunc) error {
+			logFunc("alive!", logging.INFO)
+			return nil
+		},
+		ErrorHandler: DefaultJobErrorHandler(),
+		PanicHandler: DefaultJobPanicHandler(),
+	})
+	manager.Start()
+}
+
 func (t *JobManagerTest) Test_log() {
 	defer func() {
 		require.Nil(t.T(), recover())

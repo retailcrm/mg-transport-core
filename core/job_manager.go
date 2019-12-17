@@ -34,7 +34,21 @@ type Job struct {
 
 // JobManager controls jobs execution flow. Jobs can be added just for later use (e.g. JobManager can be used as
 // singleton), or jobs can be executed as regular jobs. Example initialization:
-// TODO example initialization
+// 	    manager := NewJobManager().
+// 			SetLogger(logger).
+// 			SetLogging(false)
+// 		_ = manager.RegisterJob("updateTokens", &Job{
+// 			Command: func(logFunc JobLogFunc) error {
+// 				// logic goes here...
+// 				logFunc("All tokens were updated successfully", logging.INFO)
+// 				return nil
+// 			},
+// 			ErrorHandler: DefaultJobErrorHandler(),
+// 			PanicHandler: DefaultJobPanicHandler(),
+// 			Interval:     time.Hour * 3,
+// 			Regular:      true,
+// 		})
+// 		manager.Start()
 type JobManager struct {
 	jobs          *sync.Map
 	enableLogging bool
@@ -227,6 +241,16 @@ func (j *JobManager) RunJobOnceSync(name string) error {
 	}
 
 	return fmt.Errorf("cannot find job `%s`", name)
+}
+
+// Start all jobs in the manager
+func (j *JobManager) Start() {
+	j.jobs.Range(func(key, value interface{}) bool {
+		name := key.(string)
+		job := value.(*Job)
+		job.run(name, j.log)
+		return true
+	})
 }
 
 // log logs via logger or as plaintext
