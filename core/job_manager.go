@@ -169,7 +169,7 @@ func (j *JobManager) UnregisterJob(name string) error {
 // FetchJob fetches already exist job
 func (j *JobManager) FetchJob(name string) (value *Job, ok bool) {
 	if i, ok := j.jobs.Load(name); ok {
-		if job, ok := j.asJob(i); ok {
+		if job, ok := i.(*Job); ok {
 			return job, ok
 		}
 	}
@@ -264,13 +264,4 @@ func (j *JobManager) log(format string, severity logging.Level, args ...interfac
 	case logging.DEBUG:
 		fmt.Print("[DEBUG] ", fmt.Sprintf(format, args...))
 	}
-}
-
-// asJob casts interface to a Job
-func (j *JobManager) asJob(v interface{}) (*Job, bool) {
-	if job, ok := v.(*Job); ok {
-		return job, ok
-	}
-
-	return &Job{}, false
 }
