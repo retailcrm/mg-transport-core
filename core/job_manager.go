@@ -274,6 +274,8 @@ func (j *JobManager) log(format string, severity logging.Level, args ...interfac
 		case logging.DEBUG:
 			j.logger.Debugf(format, args...)
 		}
+
+		return
 	}
 
 	switch severity {
