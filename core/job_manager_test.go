@@ -27,8 +27,9 @@ type JobTest struct {
 
 type JobManagerTest struct {
 	suite.Suite
-	manager    *JobManager
-	runnerFlag bool
+	manager        *JobManager
+	runnerFlag     chan bool
+	syncRunnerFlag bool
 }
 
 func TestJob(t *testing.T) {
@@ -137,7 +138,6 @@ func (t *JobTest) clear() {
 }
 
 func (t *JobTest) onceJob() {
-	t.clear()
 	t.job = &Job{
 		Command: func(logFunc JobLogFunc) error {
 			t.executedChan <- true
@@ -151,7 +151,6 @@ func (t *JobTest) onceJob() {
 }
 
 func (t *JobTest) onceErrorJob() {
-	t.clear()
 	t.job = &Job{
 		Command: func(logFunc JobLogFunc) error {
 			t.executedChan <- true
@@ -165,7 +164,6 @@ func (t *JobTest) onceErrorJob() {
 }
 
 func (t *JobTest) oncePanicJob() {
-	t.clear()
 	t.job = &Job{
 		Command: func(logFunc JobLogFunc) error {
 			t.executedChan <- true
@@ -179,7 +177,6 @@ func (t *JobTest) oncePanicJob() {
 }
 
 func (t *JobTest) regularJob() {
-	t.clear()
 	rand.Seed(time.Now().UnixNano())
 	t.job = &Job{
 		Command: func(logFunc JobLogFunc) error {
@@ -195,7 +192,6 @@ func (t *JobTest) regularJob() {
 }
 
 func (t *JobTest) regularSyncJob() {
-	t.clear()
 	rand.Seed(time.Now().UnixNano())
 	t.job = &Job{
 		Command: func(logFunc JobLogFunc) error {
@@ -259,7 +255,6 @@ func (t *JobTest) Test_getWrappedFuncPanic() {
 // 		require.Nil(t.T(), recover())
 // 	}()
 //
-// 	t.clear()
 // 	t.regularJob()
 // 	t.job.run("job", t.testLogFunc())
 // 	time.Sleep(time.Millisecond * 5)
@@ -289,12 +284,23 @@ func (t *JobTest) Test_getWrappedFuncPanic() {
 // 	assert.NotEqual(t.T(), first, second)
 // }
 
+func (t *JobTest) Test_run() {
+	defer func() {
+		require.Nil(t.T(), recover())
+	}()
+
+	t.regularJob()
+	t.job.run("job", t.testLogFunc())
+	time.Sleep(time.Millisecond * 5)
+	t.job.stop()
+	require.True(t.T(), t.executed(time.Millisecond, false))
+}
+
 func (t *JobTest) Test_runOnce() {
 	defer func() {
 		require.Nil(t.T(), recover())
 	}()
 
-	t.clear()
 	t.regularJob()
 	t.job.runOnce("job", t.testLogFunc())
 	time.Sleep(time.Millisecond * 5)
@@ -304,23 +310,20 @@ func (t *JobTest) Test_runOnce() {
 	select {
 	case c := <-t.randomNumber:
 		first = c
-		t.randomNumber = make(chan int)
 	case <-time.After(time.Millisecond * 2):
 		first = 0
 	}
 
-	require.NotEqual(t.T(), 0, first)
 	second := 0
 
 	select {
 	case c := <-t.randomNumber:
 		second = c
-		t.randomNumber = make(chan int)
 	case <-time.After(time.Millisecond * 2):
 		second = 0
 	}
 
-	assert.Equal(t.T(), 0, second)
+	assert.NotEqual(t.T(), first, second)
 }
 
 func (t *JobTest) Test_runOnceSync() {
@@ -337,6 +340,19 @@ func (t *JobTest) Test_runOnceSync() {
 
 func (t *JobManagerTest) SetupSuite() {
 	t.manager = NewJobManager()
+}
+
+func (t *JobManagerTest) ranFlag() bool {
+	if t.runnerFlag == nil {
+		return false
+	}
+
+	select {
+	case c := <-t.runnerFlag:
+		return c
+	case <-time.After(time.Millisecond):
+		return false
+	}
 }
 
 func (t *JobManagerTest) Test_SetLogger() {
@@ -367,11 +383,22 @@ func (t *JobManagerTest) Test_RegisterJob() {
 	require.NotNil(t.T(), t.manager.jobs)
 	err := t.manager.RegisterJob("job", &Job{
 		Command: func(log JobLogFunc) error {
-			t.runnerFlag = true
+			t.runnerFlag <- true
 			return nil
 		},
 		ErrorHandler: DefaultJobErrorHandler(),
 		PanicHandler: DefaultJobPanicHandler(),
+	})
+	assert.NoError(t.T(), err)
+	err = t.manager.RegisterJob("job_regular", &Job{
+		Command: func(log JobLogFunc) error {
+			t.runnerFlag <- true
+			return nil
+		},
+		ErrorHandler: DefaultJobErrorHandler(),
+		PanicHandler: DefaultJobPanicHandler(),
+		Regular:      true,
+		Interval:     time.Millisecond,
 	})
 	assert.NoError(t.T(), err)
 }
@@ -417,16 +444,77 @@ func (t *JobManagerTest) Test_UpdateJob() {
 	assert.NoError(t.T(), err)
 }
 
-func (t *JobManagerTest) Test_RunOnceSync() {
+func (t *JobManagerTest) Test_RunJobDoesntExist() {
 	require.NotNil(t.T(), t.manager.jobs)
-	t.runnerFlag = false
-	err := t.manager.RunJobOnceSync("job")
-	require.NoError(t.T(), err)
-	assert.True(t.T(), t.runnerFlag)
+	err := t.manager.RunJob("doesn't exist")
+	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
 }
+
+func (t *JobManagerTest) Test_RunJob() {
+	require.NotNil(t.T(), t.manager.jobs)
+	t.runnerFlag = make(chan bool)
+	err := t.manager.RunJob("job_regular")
+	require.NoError(t.T(), err)
+	time.Sleep(time.Millisecond * 5)
+	assert.True(t.T(), <-t.runnerFlag)
+	err = t.manager.StopJob("job_regular")
+	require.NoError(t.T(), err)
+}
+
+func (t *JobManagerTest) Test_RunJobOnceDoesntExist() {
+	require.NotNil(t.T(), t.manager.jobs)
+	err := t.manager.RunJobOnce("doesn't exist")
+	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
+}
+
+// func (t *JobManagerTest) Test_RunJobOnce() {
+// 	require.NotNil(t.T(), t.manager.jobs)
+// 	t.runnerFlag = make(chan bool)
+// 	err := t.manager.RunJobOnce("job")
+// 	require.NoError(t.T(), err)
+// 	assert.True(t.T(), t.ranFlag())
+// }
+
+func (t *JobManagerTest) Test_RunJobOnceSyncDoesntExist() {
+	require.NotNil(t.T(), t.manager.jobs)
+	err := t.manager.RunJobOnceSync("doesn't exist")
+	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
+}
+
+// func (t *JobManagerTest) Test_RunJobOnceSync() {
+// 	require.NotNil(t.T(), t.manager.jobs)
+// 	t.runnerFlag = make(chan bool)
+// 	err := t.manager.RunJobOnceSync("job")
+// 	require.NoError(t.T(), err)
+// 	go func() {
+// 		assert.True(t.T(), t.ranFlag())
+// 	}()
+// }
 
 func (t *JobManagerTest) Test_UnregisterJobDoesntExist() {
 	require.NotNil(t.T(), t.manager.jobs)
 	err := t.manager.UnregisterJob("doesn't exist")
 	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
+}
+
+func (t *JobManagerTest) Test_log() {
+	defer func() {
+		require.Nil(t.T(), recover())
+	}()
+
+	testLog := func() {
+		t.manager.log("test", logging.CRITICAL)
+		t.manager.log("test", logging.ERROR)
+		t.manager.log("test", logging.WARNING)
+		t.manager.log("test", logging.NOTICE)
+		t.manager.log("test", logging.INFO)
+		t.manager.log("test", logging.DEBUG)
+	}
+	t.manager.SetLogging(false)
+	testLog()
+	t.manager.SetLogging(true)
+	t.manager.logger = nil
+	testLog()
+	t.manager.logger = NewLogger("test", logging.DEBUG, DefaultLogFormatter())
+	testLog()
 }

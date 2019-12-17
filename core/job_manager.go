@@ -57,11 +57,11 @@ func (j *Job) getWrappedFunc(name string, log JobLogFunc) func() {
 }
 
 // getWrappedTimerFunc returns job timer func to run in the separate goroutine
-func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func() {
-	return func() {
+func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func(chan bool) {
+	return func(stopChannel chan bool) {
 		for range time.NewTicker(j.Interval).C {
 			select {
-			case <-j.stopChannel:
+			case <-stopChannel:
 				return
 			default:
 				j.getWrappedFunc(name, log)()
@@ -74,7 +74,7 @@ func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func() {
 func (j *Job) run(name string, log JobLogFunc) *Job {
 	if j.Regular && j.Interval > 0 && !j.active {
 		j.stopChannel = make(chan bool)
-		go j.getWrappedTimerFunc(name, log)()
+		go j.getWrappedTimerFunc(name, log)(j.stopChannel)
 		j.active = true
 	}
 
@@ -84,8 +84,10 @@ func (j *Job) run(name string, log JobLogFunc) *Job {
 // stop running job
 func (j *Job) stop() *Job {
 	if j.active && j.stopChannel != nil {
-		j.stopChannel <- true
-		j.active = false
+		go func() {
+			j.stopChannel <- true
+			j.active = false
+		}()
 	}
 
 	return j

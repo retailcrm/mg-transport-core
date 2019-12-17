@@ -7,6 +7,6 @@ go:
 before_install:
   - go mod tidy
 script:
-  - go test ./... -v -cpu 2 -timeout 1m -race -cover -coverprofile=coverage.txt -covermode=atomic
+  - go test ./... -v -cpu 2 -timeout 2m -race -cover -coverprofile=coverage.txt -covermode=atomic
 after_success:
   - bash <(curl -s https://codecov.io/bash)
