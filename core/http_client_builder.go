@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/op/go-logging"
 	"github.com/pkg/errors"
 )
 
@@ -46,7 +45,7 @@ type HTTPClientBuilder struct {
 	httpClient    *http.Client
 	httpTransport *http.Transport
 	dialer        *net.Dialer
-	logger        *logging.Logger
+	logger        LoggerInterface
 	built         bool
 	logging       bool
 	timeout       time.Duration
@@ -70,7 +69,7 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 }
 
 // WithLogger sets provided logger into HTTPClientBuilder
-func (b *HTTPClientBuilder) WithLogger(logger *logging.Logger) *HTTPClientBuilder {
+func (b *HTTPClientBuilder) WithLogger(logger LoggerInterface) *HTTPClientBuilder {
 	if logger != nil {
 		b.logger = logger
 	}

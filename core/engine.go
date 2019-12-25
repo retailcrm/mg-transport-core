@@ -19,7 +19,7 @@ type Engine struct {
 	Utils
 	ginEngine    *gin.Engine
 	httpClient   *http.Client
-	Logger       *logging.Logger
+	Logger       LoggerInterface
 	csrf         *CSRF
 	jobManager   *JobManager
 	Sessions     sessions.Store

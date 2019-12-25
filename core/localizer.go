@@ -39,6 +39,23 @@ func NewLocalizer(locale language.Tag, bundle *i18n.Bundle, matcher language.Mat
 	return localizer
 }
 
+// NewLocalizerFS returns localizer instance with specified parameters. *packr.Box should be used instead of directory.
+// Usage:
+//      NewLocalizerFS(language.English, DefaultLocalizerBundle(), DefaultLocalizerMatcher(), translationsBox)
+// TODO This code should be covered with tests.
+func NewLocalizerFS(locale language.Tag, bundle *i18n.Bundle, matcher language.Matcher, translationsBox *packr.Box) *Localizer {
+	localizer := &Localizer{
+		i18n:            nil,
+		LocaleBundle:    bundle,
+		LocaleMatcher:   matcher,
+		TranslationsBox: translationsBox,
+	}
+	localizer.SetLanguage(locale)
+	localizer.LoadTranslations()
+
+	return localizer
+}
+
 // DefaultLocalizerBundle returns new localizer bundle with English as default language
 func DefaultLocalizerBundle() *i18n.Bundle {
 	return i18n.NewBundle(language.English)

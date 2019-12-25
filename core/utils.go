@@ -17,7 +17,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/op/go-logging"
 	v5 "github.com/retailcrm/api-client-go/v5"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 )
@@ -27,12 +26,12 @@ type Utils struct {
 	IsDebug      bool
 	TokenCounter uint32
 	ConfigAWS    ConfigAWS
-	Logger       *logging.Logger
+	Logger       LoggerInterface
 	slashRegex   *regexp.Regexp
 }
 
 // NewUtils will create new Utils instance
-func NewUtils(awsConfig ConfigAWS, logger *logging.Logger, debug bool) *Utils {
+func NewUtils(awsConfig ConfigAWS, logger LoggerInterface, debug bool) *Utils {
 	return &Utils{
 		IsDebug:      debug,
 		ConfigAWS:    awsConfig,
