@@ -3,6 +3,7 @@ package core
 import (
 	"html/template"
 	"net/http"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gobuffalo/packr/v2"
@@ -19,7 +20,8 @@ type Engine struct {
 	Utils
 	ginEngine    *gin.Engine
 	httpClient   *http.Client
-	Logger       LoggerInterface
+	logger       LoggerInterface
+	mutex        sync.RWMutex
 	csrf         *CSRF
 	jobManager   *JobManager
 	Sessions     sessions.Store
@@ -37,7 +39,8 @@ func New() *Engine {
 		Sentry:    Sentry{},
 		Utils:     Utils{},
 		ginEngine: nil,
-		Logger:    nil,
+		logger:    nil,
+		mutex:     sync.RWMutex{},
 		prepared:  false,
 	}
 }
@@ -84,10 +87,10 @@ func (e *Engine) Prepare() *Engine {
 	e.createDB(e.Config.GetDBConfig())
 	e.createRavenClient(e.Config.GetSentryDSN())
 	e.resetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
-	e.Logger = NewLogger(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter)
+	e.SetLogger(NewLogger(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
 	e.Sentry.Localizer = &e.Localizer
-	e.Utils.Logger = e.Logger
-	e.Sentry.Logger = e.Logger
+	e.Utils.Logger = e.Logger()
+	e.Sentry.Logger = e.Logger()
 	e.prepared = true
 
 	return e
@@ -138,17 +141,40 @@ func (e *Engine) Router() *gin.Engine {
 // JobManager will return singleton JobManager from Engine
 func (e *Engine) JobManager() *JobManager {
 	if e.jobManager == nil {
-		e.jobManager = NewJobManager().SetLogger(e.Logger).SetLogging(e.Config.IsDebug())
+		e.jobManager = NewJobManager().SetLogger(e.Logger()).SetLogging(e.Config.IsDebug())
 	}
 
 	return e.jobManager
+}
+
+// Logger returns current logger in goroutine-safe way
+func (e *Engine) Logger() LoggerInterface {
+	e.mutex.RLock()
+	defer e.mutex.RUnlock()
+	return e.logger
+}
+
+// UnsafeLogger returns current logger in goroutine-unsafe way. Using this method you can cause race condition.
+func (e *Engine) UnsafeLogger() LoggerInterface {
+	return e.logger
+}
+
+func (e *Engine) SetLogger(l LoggerInterface) *Engine {
+	if l == nil {
+		return e
+	}
+
+	e.mutex.Lock()
+	defer e.mutex.Unlock()
+	e.logger = l
+	return e
 }
 
 // BuildHTTPClient builds HTTP client with provided configuration
 func (e *Engine) BuildHTTPClient(replaceDefault ...bool) *Engine {
 	if e.Config.GetHTTPClientConfig() != nil {
 		client, err := NewHTTPClientBuilder().
-			WithLogger(e.Logger).
+			WithLogger(e.Logger()).
 			SetLogging(e.Config.IsDebug()).
 			FromEngine(e).Build(replaceDefault...)
 

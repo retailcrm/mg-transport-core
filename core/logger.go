@@ -28,9 +28,10 @@ type LoggerInterface interface {
 }
 
 // Logger component. Uses github.com/op/go-logging under the hood.
+// This logger utilises sync.RWMutex functionality in order to avoid race conditions (in some cases it is useful).
 type Logger struct {
 	logger *logging.Logger
-	mutex  *sync.RWMutex
+	mutex  sync.RWMutex
 }
 
 // NewLogger will create new goroutine-safe logger with specified formatter.
@@ -39,7 +40,6 @@ type Logger struct {
 func NewLogger(transportCode string, logLevel logging.Level, logFormat logging.Formatter) *Logger {
 	return &Logger{
 		logger: newInheritedLogger(transportCode, logLevel, logFormat),
-		mutex:  &sync.RWMutex{},
 	}
 }
 
