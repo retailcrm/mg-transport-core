@@ -125,13 +125,14 @@ func (l *Logger) Warning(args ...interface{}) {
 	l.logger.Warning(args...)
 }
 
+// Warningf logs a message using WARNING as log level.
 func (l *Logger) Warningf(format string, args ...interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()
 	l.logger.Warningf(format, args...)
 }
 
-// Warningf logs a message using WARNING as log level.
+// Notice logs a message using NOTICE as log level.
 func (l *Logger) Notice(args ...interface{}) {
 	l.mutex.Lock()
 	defer l.mutex.Unlock()

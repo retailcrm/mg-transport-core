@@ -159,6 +159,7 @@ func (e *Engine) UnsafeLogger() LoggerInterface {
 	return e.logger
 }
 
+// SetLogger sets provided logger instance to engine
 func (e *Engine) SetLogger(l LoggerInterface) *Engine {
 	if l == nil {
 		return e
