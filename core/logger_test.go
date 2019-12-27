@@ -31,6 +31,10 @@ func Test_Logger(t *testing.T) {
 	suite.Run(t, new(LoggerTest))
 }
 
+func (t *LoggerTest) SetupSuite() {
+	t.logger = NewLogger("code", logging.DEBUG, DefaultLogFormatter()).Exclusive()
+}
+
 // TODO Cover Fatal and Fatalf (implementation below is no-op)
 // func (t *LoggerTest) Test_Fatal() {
 // 	if os.Getenv("FLAG") == "1" {
@@ -64,7 +68,7 @@ func (t *LoggerTest) Test_Panicf() {
 
 func (t *LoggerTest) Test_Critical() {
 	defer func() {
-		if v := recover(); v == nil {
+		if v := recover(); v != nil {
 			t.T().Fatal(v)
 		}
 	}()
@@ -73,7 +77,7 @@ func (t *LoggerTest) Test_Critical() {
 
 func (t *LoggerTest) Test_Criticalf() {
 	defer func() {
-		if v := recover(); v == nil {
+		if v := recover(); v != nil {
 			t.T().Fatal(v)
 		}
 	}()
@@ -82,7 +86,7 @@ func (t *LoggerTest) Test_Criticalf() {
 
 func (t *LoggerTest) Test_Warning() {
 	defer func() {
-		if v := recover(); v == nil {
+		if v := recover(); v != nil {
 			t.T().Fatal(v)
 		}
 	}()
@@ -91,7 +95,7 @@ func (t *LoggerTest) Test_Warning() {
 
 func (t *LoggerTest) Test_Notice() {
 	defer func() {
-		if v := recover(); v == nil {
+		if v := recover(); v != nil {
 			t.T().Fatal(v)
 		}
 	}()
@@ -100,7 +104,7 @@ func (t *LoggerTest) Test_Notice() {
 
 func (t *LoggerTest) Test_Info() {
 	defer func() {
-		if v := recover(); v == nil {
+		if v := recover(); v != nil {
 			t.T().Fatal(v)
 		}
 	}()
@@ -109,7 +113,7 @@ func (t *LoggerTest) Test_Info() {
 
 func (t *LoggerTest) Test_Debug() {
 	defer func() {
-		if v := recover(); v == nil {
+		if v := recover(); v != nil {
 			t.T().Fatal(v)
 		}
 	}()

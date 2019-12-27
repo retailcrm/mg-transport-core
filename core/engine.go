@@ -147,15 +147,8 @@ func (e *Engine) JobManager() *JobManager {
 	return e.jobManager
 }
 
-// Logger returns current logger in goroutine-safe way
+// Logger returns current logger
 func (e *Engine) Logger() LoggerInterface {
-	e.mutex.RLock()
-	defer e.mutex.RUnlock()
-	return e.logger
-}
-
-// UnsafeLogger returns current logger in goroutine-unsafe way. Using this method you can cause race condition.
-func (e *Engine) UnsafeLogger() LoggerInterface {
 	return e.logger
 }
 

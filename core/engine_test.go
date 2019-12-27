@@ -187,17 +187,6 @@ func (e *EngineTest) Test_WithFilesystemSessions() {
 	assert.NotNil(e.T(), e.engine.Sessions)
 }
 
-func (e *EngineTest) Test_UnsafeLogger() {
-	origLogger := e.engine.logger
-	defer func() {
-		e.engine.logger = origLogger
-	}()
-	e.engine.logger = nil
-	assert.Nil(e.T(), e.engine.UnsafeLogger())
-	e.engine.logger = &Logger{}
-	assert.IsType(e.T(), &Logger{}, e.engine.UnsafeLogger())
-}
-
 func (e *EngineTest) Test_SetLogger() {
 	origLogger := e.engine.logger
 	defer func() {
