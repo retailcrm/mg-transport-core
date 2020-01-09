@@ -324,10 +324,10 @@ func (t *JobManagerTest) ranFlag() bool {
 func (t *JobManagerTest) Test_SetLogger() {
 	t.manager.logger = nil
 	t.manager.SetLogger(NewLogger("test", logging.ERROR, DefaultLogFormatter()))
-	assert.IsType(t.T(), &logging.Logger{}, t.manager.logger)
+	assert.IsType(t.T(), &Logger{}, t.manager.logger)
 
 	t.manager.SetLogger(nil)
-	assert.IsType(t.T(), &logging.Logger{}, t.manager.logger)
+	assert.IsType(t.T(), &Logger{}, t.manager.logger)
 }
 
 func (t *JobManagerTest) Test_SetLogging() {

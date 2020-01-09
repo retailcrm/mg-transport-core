@@ -13,7 +13,6 @@ import (
 
 	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
-	"github.com/op/go-logging"
 )
 
 // ErrorHandlerFunc will handle errors
@@ -39,7 +38,7 @@ type Sentry struct {
 	Stacktrace   bool
 	DefaultError string
 	Localizer    *Localizer
-	Logger       *logging.Logger
+	Logger       LoggerInterface
 	Client       *raven.Client
 }
 
@@ -57,7 +56,7 @@ type SentryTaggedScalar struct {
 }
 
 // NewSentry constructor
-func NewSentry(sentryDSN string, defaultError string, taggedTypes SentryTaggedTypes, logger *logging.Logger, localizer *Localizer) *Sentry {
+func NewSentry(sentryDSN string, defaultError string, taggedTypes SentryTaggedTypes, logger LoggerInterface, localizer *Localizer) *Sentry {
 	sentry := &Sentry{
 		DefaultError: defaultError,
 		TaggedTypes:  taggedTypes,

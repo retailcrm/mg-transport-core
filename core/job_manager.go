@@ -52,7 +52,7 @@ type Job struct {
 type JobManager struct {
 	jobs          *sync.Map
 	enableLogging bool
-	logger        *logging.Logger
+	logger        LoggerInterface
 }
 
 // getWrappedFunc wraps job into function
@@ -143,7 +143,7 @@ func DefaultJobPanicHandler() JobPanicHandler {
 }
 
 // SetLogger sets logger into JobManager
-func (j *JobManager) SetLogger(logger *logging.Logger) *JobManager {
+func (j *JobManager) SetLogger(logger LoggerInterface) *JobManager {
 	if logger != nil {
 		j.logger = logger
 	}

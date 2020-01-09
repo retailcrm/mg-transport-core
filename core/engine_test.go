@@ -173,27 +173,6 @@ func (e *EngineTest) Test_BuildHTTPClient() {
 	assert.NotNil(e.T(), e.engine.httpClient)
 }
 
-func (e *EngineTest) Test_SetHTTPClient() {
-	var err error
-
-	e.engine.httpClient = nil
-	e.engine.httpClient, err = NewHTTPClientBuilder().Build()
-
-	assert.NoError(e.T(), err)
-	assert.NotNil(e.T(), e.engine.httpClient)
-}
-
-func (e *EngineTest) Test_HTTPClient() {
-	var err error
-
-	e.engine.httpClient = nil
-	assert.NotNil(e.T(), e.engine.HTTPClient())
-
-	e.engine.httpClient, err = NewHTTPClientBuilder().Build()
-	assert.NoError(e.T(), err)
-	assert.NotNil(e.T(), e.engine.httpClient)
-}
-
 func (e *EngineTest) Test_WithCookieSessions() {
 	e.engine.Sessions = nil
 	e.engine.WithCookieSessions(4)
@@ -206,6 +185,44 @@ func (e *EngineTest) Test_WithFilesystemSessions() {
 	e.engine.WithFilesystemSessions(os.TempDir(), 4)
 
 	assert.NotNil(e.T(), e.engine.Sessions)
+}
+
+func (e *EngineTest) Test_SetLogger() {
+	origLogger := e.engine.logger
+	defer func() {
+		e.engine.logger = origLogger
+	}()
+	e.engine.logger = &Logger{}
+	e.engine.SetLogger(nil)
+	assert.NotNil(e.T(), e.engine.logger)
+}
+
+func (e *EngineTest) Test_SetHTTPClient() {
+	origClient := e.engine.httpClient
+	defer func() {
+		e.engine.httpClient = origClient
+	}()
+	e.engine.httpClient = nil
+	httpClient, err := NewHTTPClientBuilder().Build()
+	require.NoError(e.T(), err)
+	assert.NotNil(e.T(), httpClient)
+	e.engine.SetHTTPClient(&http.Client{})
+	require.NotNil(e.T(), e.engine.httpClient)
+	e.engine.SetHTTPClient(nil)
+	assert.NotNil(e.T(), e.engine.httpClient)
+}
+
+func (e *EngineTest) Test_HTTPClient() {
+	origClient := e.engine.httpClient
+	defer func() {
+		e.engine.httpClient = origClient
+	}()
+	e.engine.httpClient = nil
+	require.Same(e.T(), http.DefaultClient, e.engine.HTTPClient())
+	httpClient, err := NewHTTPClientBuilder().Build()
+	require.NoError(e.T(), err)
+	e.engine.httpClient = httpClient
+	assert.Same(e.T(), httpClient, e.engine.HTTPClient())
 }
 
 func (e *EngineTest) Test_InitCSRF_Fail() {
