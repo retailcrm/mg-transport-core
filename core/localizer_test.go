@@ -55,7 +55,10 @@ func (l *LocalizerTest) Test_SetLocale() {
 		require.Nil(l.T(), recover())
 	}()
 
+	l.localizer.SetLocale("es")
+	assert.Equal(l.T(), "Mensaje de prueba", l.localizer.GetLocalizedMessage("message"))
 	l.localizer.SetLocale("en")
+	assert.Equal(l.T(), "Test message", l.localizer.GetLocalizedMessage("message"))
 }
 
 func (l *LocalizerTest) Test_LocalizationMiddleware() {
