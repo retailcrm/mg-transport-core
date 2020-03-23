@@ -34,13 +34,7 @@ func (e *EngineTest) SetupTest() {
 	db, _, err = sqlmock.New()
 	require.NoError(e.T(), err)
 
-	if _, err := os.Stat(testTranslationsDir); err != nil && os.IsNotExist(err) {
-		err := os.Mkdir(testTranslationsDir, os.ModePerm)
-		require.Nil(e.T(), err)
-		data := []byte("message: Test message\nmessage_template: Test message with {{.data}}")
-		err = ioutil.WriteFile(testLangFile, data, os.ModePerm)
-		require.Nil(e.T(), err)
-	}
+	createTestLangFiles(e.T())
 
 	e.engine.Config = Config{
 		Version:  "1",

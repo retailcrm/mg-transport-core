@@ -9,7 +9,9 @@ import (
 	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
+	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/op/go-logging"
+	"golang.org/x/text/language"
 )
 
 // Engine struct
@@ -33,8 +35,11 @@ type Engine struct {
 // New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or engine.ConfigureRouter(...) with callback)
 func New() *Engine {
 	return &Engine{
-		Config:    nil,
-		Localizer: Localizer{},
+		Config: nil,
+		Localizer: Localizer{
+			i18nStorage:   map[language.Tag]*i18n.Localizer{},
+			bundleStorage: map[language.Tag]*i18n.Bundle{},
+		},
 		ORM:       ORM{},
 		Sentry:    Sentry{},
 		Utils:     Utils{},
@@ -75,9 +80,6 @@ func (e *Engine) Prepare() *Engine {
 	}
 	if e.LogFormatter == nil {
 		e.LogFormatter = DefaultLogFormatter()
-	}
-	if e.LocaleBundle == nil {
-		e.LocaleBundle = DefaultLocalizerBundle()
 	}
 	if e.LocaleMatcher == nil {
 		e.LocaleMatcher = DefaultLocalizerMatcher()
