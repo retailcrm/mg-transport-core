@@ -232,6 +232,13 @@ func (l *Localizer) SetLocale(al string) {
 	l.SetLanguage(l.matchByString(al))
 }
 
+// Preload provided languages (so they will not be loaded every time in middleware)
+func (l *Localizer) Preload(tags []language.Tag) {
+	for _, tag := range tags {
+		l.getLocalizer(tag)
+	}
+}
+
 // SetLanguage will change language using language tag
 func (l *Localizer) SetLanguage(tag language.Tag) {
 	l.LanguageTag = tag

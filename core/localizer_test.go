@@ -62,6 +62,7 @@ func (l *LocalizerTest) Test_SetLocale() {
 }
 
 func (l *LocalizerTest) Test_LocalizationMiddleware() {
+	l.localizer.Preload([]language.Tag{language.English, language.Spanish, language.Russian})
 	middlewareFunc := l.localizer.LocalizationMiddleware()
 	require.NotNil(l.T(), middlewareFunc)
 
