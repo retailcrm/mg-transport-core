@@ -14,6 +14,13 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// DefaultLanguages for transports
+var DefaultLanguages = []language.Tag{
+	language.English,
+	language.Russian,
+	language.Spanish,
+}
+
 // LocalizerContextKey is a key which is used to store localizer in gin.Context key-value storage
 const LocalizerContextKey = "localizer"
 
@@ -72,11 +79,7 @@ func LocalizerBundle(tag language.Tag) *i18n.Bundle {
 
 // DefaultLocalizerMatcher returns matcher with English, Russian and Spanish tags
 func DefaultLocalizerMatcher() language.Matcher {
-	return language.NewMatcher([]language.Tag{
-		language.English,
-		language.Russian,
-		language.Spanish,
-	})
+	return language.NewMatcher(DefaultLanguages)
 }
 
 // LocalizationMiddleware returns gin.HandlerFunc which will set localizer language by Accept-Language header
