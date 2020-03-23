@@ -9,9 +9,7 @@ import (
 	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"github.com/op/go-logging"
-	"golang.org/x/text/language"
 )
 
 // Engine struct
@@ -37,8 +35,8 @@ func New() *Engine {
 	return &Engine{
 		Config: nil,
 		Localizer: Localizer{
-			i18nStorage:   map[language.Tag]*i18n.Localizer{},
-			bundleStorage: map[language.Tag]*i18n.Bundle{},
+			i18nStorage:   sync.Map{},
+			bundleStorage: sync.Map{},
 		},
 		ORM:       ORM{},
 		Sentry:    Sentry{},

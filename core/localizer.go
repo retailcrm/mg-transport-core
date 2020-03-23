@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"io/ioutil"
 	"path"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gobuffalo/packd"
@@ -18,8 +19,8 @@ const LocalizerContextKey = "localizer"
 
 // Localizer struct
 type Localizer struct {
-	i18nStorage      map[language.Tag]*i18n.Localizer
-	bundleStorage    map[language.Tag]*i18n.Bundle
+	i18nStorage      sync.Map
+	bundleStorage    sync.Map
 	TranslationsBox  *packr.Box
 	LocaleMatcher    language.Matcher
 	LanguageTag      language.Tag
@@ -31,8 +32,8 @@ type Localizer struct {
 //      NewLocalizer(language.English, DefaultLocalizerMatcher(), "translations")
 func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPath string) *Localizer {
 	localizer := &Localizer{
-		i18nStorage:      map[language.Tag]*i18n.Localizer{},
-		bundleStorage:    map[language.Tag]*i18n.Bundle{},
+		i18nStorage:      sync.Map{},
+		bundleStorage:    sync.Map{},
 		LocaleMatcher:    matcher,
 		TranslationsPath: translationsPath,
 	}
@@ -48,8 +49,8 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 // TODO This code should be covered with tests.
 func NewLocalizerFS(locale language.Tag, matcher language.Matcher, translationsBox *packr.Box) *Localizer {
 	localizer := &Localizer{
-		i18nStorage:     map[language.Tag]*i18n.Localizer{},
-		bundleStorage:   map[language.Tag]*i18n.Bundle{},
+		i18nStorage:     sync.Map{},
+		bundleStorage:   sync.Map{},
 		LocaleMatcher:   matcher,
 		TranslationsBox: translationsBox,
 	}
@@ -116,14 +117,24 @@ func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 	}
 }
 
-// getLocaleBundle returns locale bundle or default locale bundle
+// getLocaleBundle returns current locale bundle and creates it if needed
 func (l *Localizer) getLocaleBundle() *i18n.Bundle {
-	if _, ok := l.bundleStorage[l.LanguageTag]; !ok {
-		l.LanguageTag = language.English
-		l.bundleStorage[language.English] = DefaultLocalizerBundle()
+	return l.getLocaleBundleByTag(l.LanguageTag)
+}
+
+// getLocaleBundleByTag returns locale bundle by language tag or creates it
+func (l *Localizer) getLocaleBundleByTag(tag language.Tag) *i18n.Bundle {
+	var bundle *i18n.Bundle
+
+	if item, ok := l.bundleStorage.Load(tag); !ok {
+		bundle = i18n.NewBundle(tag)
+		l.loadTranslationsToBundle(bundle)
+		l.bundleStorage.Store(tag, bundle)
+	} else {
+		bundle = item.(*i18n.Bundle)
 	}
 
-	return l.bundleStorage[l.LanguageTag]
+	return bundle
 }
 
 // LoadTranslations will load all translation files from translations directory or from embedded box
@@ -195,17 +206,15 @@ func (l *Localizer) loadFromFS(i18nBundle *i18n.Bundle) error {
 
 // getLocalizer returns *i18n.Localizer with provided language tag. It will be created if not exist
 func (l *Localizer) getLocalizer(tag language.Tag) *i18n.Localizer {
-	if _, ok := l.i18nStorage[tag]; !ok {
-		if _, ok := l.bundleStorage[tag]; !ok {
-			bundle := i18n.NewBundle(tag)
-			l.loadTranslationsToBundle(bundle)
-			l.bundleStorage[tag] = bundle
-		}
+	var localizer *i18n.Localizer
 
-		l.i18nStorage[tag] = i18n.NewLocalizer(l.bundleStorage[tag], tag.String())
+	if item, ok := l.i18nStorage.Load(tag); !ok {
+		l.i18nStorage.Store(tag, i18n.NewLocalizer(l.getLocaleBundleByTag(tag), tag.String()))
+	} else {
+		localizer = item.(*i18n.Localizer)
 	}
 
-	return l.i18nStorage[tag]
+	return localizer
 }
 
 func (l *Localizer) matchByString(al string) language.Tag {
