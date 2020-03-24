@@ -37,8 +37,8 @@ func New() *Engine {
 	return &Engine{
 		Config: nil,
 		Localizer: Localizer{
-			i18nStorage:   sync.Map{},
-			bundleStorage: sync.Map{},
+			i18nStorage:   &sync.Map{},
+			bundleStorage: &sync.Map{},
 		},
 		PreloadLanguages: []language.Tag{},
 		ORM:              ORM{},

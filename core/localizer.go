@@ -26,8 +26,8 @@ const LocalizerContextKey = "localizer"
 
 // Localizer struct
 type Localizer struct {
-	i18nStorage      sync.Map
-	bundleStorage    sync.Map
+	i18nStorage      *sync.Map
+	bundleStorage    *sync.Map
 	TranslationsBox  *packr.Box
 	LocaleMatcher    language.Matcher
 	LanguageTag      language.Tag
@@ -39,8 +39,8 @@ type Localizer struct {
 //      NewLocalizer(language.English, DefaultLocalizerMatcher(), "translations")
 func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPath string) *Localizer {
 	localizer := &Localizer{
-		i18nStorage:      sync.Map{},
-		bundleStorage:    sync.Map{},
+		i18nStorage:      &sync.Map{},
+		bundleStorage:    &sync.Map{},
 		LocaleMatcher:    matcher,
 		TranslationsPath: translationsPath,
 	}
@@ -56,8 +56,8 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 // TODO This code should be covered with tests.
 func NewLocalizerFS(locale language.Tag, matcher language.Matcher, translationsBox *packr.Box) *Localizer {
 	localizer := &Localizer{
-		i18nStorage:     sync.Map{},
-		bundleStorage:   sync.Map{},
+		i18nStorage:     &sync.Map{},
+		bundleStorage:   &sync.Map{},
 		LocaleMatcher:   matcher,
 		TranslationsBox: translationsBox,
 	}
