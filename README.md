@@ -20,22 +20,36 @@ import (
 )
 
 func main() {
+    // Create new core.Engine instance
     app := core.New()
+
+    // Load configuration
     app.Config = core.NewConfig("config.yml")
+
+    // Set default error translation key (will be returned if something goes wrong)
     app.DefaultError = "unknown_error"
+
+    // Set translations path
     app.TranslationsPath = "./translations"
+
+    // Preload some translations so they will not be loaded for every request
+    app.PreloadLanguages = core.DefaultLanguages
     
+    // Configure gin.Engine inside core.Engine
     app.ConfigureRouter(func(engine *gin.Engine) {
         engine.Static("/static", "./static")
         engine.HTMLRender = app.CreateRenderer(
+]           // Insert templates here. Custom functions also can be provided.
+            // Default transl function will be injected automatically
             func(renderer *core.Renderer) {
-                // insert templates here. Example:
+                // Push method will load template from FS or from binary
                 r.Push("home", "templates/layout.html", "templates/home.html")
             }, 
             template.FuncMap{},
         )
     })
     
+    // Start application or fail if something gone wrong (e.g. port is already in use)
     if err := app.Prepare().Run(); err != nil {
         fmt.Printf("Fatal error: %s", err.Error())
         os.Exit(1)
@@ -68,14 +82,18 @@ func main() {
     app := core.New()
     app.Config = core.NewConfig("config.yml")
     app.DefaultError = "unknown_error"
+
+    // Now translations will be loaded from packr.Box
     app.TranslationsBox = translations
+    app.PreloadLanguages = core.DefaultLanguages
     
     app.ConfigureRouter(func(engine *gin.Engine) {
+        // gin.Engine can use packr.Box as http.FileSystem
         engine.StaticFS("/static", static)
         engine.HTMLRender = app.CreateRendererFS(
             templates, 
             func(renderer *core.Renderer) {
-                // insert templates here. Example:
+                // Same Push method here, but without relative directory.
                 r.Push("home", "layout.html", "home.html")
             }, 
             template.FuncMap{},
