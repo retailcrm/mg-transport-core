@@ -2,7 +2,7 @@ package core
 
 import (
 	"github.com/gin-gonic/gin/binding"
-	"gopkg.in/go-playground/validator.v9"
+	"github.com/go-playground/validator/v10"
 )
 
 // init here will register `validatecrmurl` function for gin validator
