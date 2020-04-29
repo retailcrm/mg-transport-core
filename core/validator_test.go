@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/go-playground/validator.v9"
 )
 
 type ValidatorSuite struct {
@@ -23,7 +23,7 @@ func (s *ValidatorSuite) SetupSuite() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		s.engine = v
 	} else {
-		s.T().Fatal("cannot obtain validation engine")
+		s.T().Fatalf("cannot obtain validation engine: %#v", v)
 	}
 }
 
