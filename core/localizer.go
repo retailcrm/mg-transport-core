@@ -232,6 +232,10 @@ func (l *Localizer) getLocalizer(tag language.Tag) *i18n.Localizer {
 
 func (l *Localizer) matchByString(al string) language.Tag {
 	tag, _ := language.MatchStrings(l.LocaleMatcher, al)
+	if tag == language.Und {
+		return language.English
+	}
+
 	return tag
 }
 
