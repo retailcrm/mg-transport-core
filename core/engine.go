@@ -37,9 +37,8 @@ func New() *Engine {
 	return &Engine{
 		Config: nil,
 		Localizer: Localizer{
-			i18nStorage:   &sync.Map{},
-			bundleStorage: &sync.Map{},
-			loadMutex:     &sync.RWMutex{},
+			i18nStorage: &sync.Map{},
+			loadMutex:   &sync.RWMutex{},
 		},
 		PreloadLanguages: []language.Tag{},
 		ORM:              ORM{},

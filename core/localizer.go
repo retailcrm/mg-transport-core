@@ -30,7 +30,6 @@ const LocalizerContextKey = "localizer"
 // Localizer struct
 type Localizer struct {
 	i18nStorage      *sync.Map
-	bundleStorage    *sync.Map
 	TranslationsBox  *packr.Box
 	loadMutex        *sync.RWMutex
 	LocaleMatcher    language.Matcher
@@ -44,7 +43,6 @@ type Localizer struct {
 func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPath string) *Localizer {
 	localizer := &Localizer{
 		i18nStorage:      &sync.Map{},
-		bundleStorage:    &sync.Map{},
 		LocaleMatcher:    matcher,
 		TranslationsPath: translationsPath,
 		loadMutex:        &sync.RWMutex{},
@@ -62,7 +60,6 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 func NewLocalizerFS(locale language.Tag, matcher language.Matcher, translationsBox *packr.Box) *Localizer {
 	localizer := &Localizer{
 		i18nStorage:     &sync.Map{},
-		bundleStorage:   &sync.Map{},
 		LocaleMatcher:   matcher,
 		TranslationsBox: translationsBox,
 		loadMutex:       &sync.RWMutex{},
@@ -101,7 +98,6 @@ func (l *Localizer) LocalizationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clone := &Localizer{
 			i18nStorage:      l.i18nStorage,
-			bundleStorage:    l.bundleStorage,
 			TranslationsBox:  l.TranslationsBox,
 			LocaleMatcher:    l.LocaleMatcher,
 			LanguageTag:      l.LanguageTag,
@@ -133,20 +129,14 @@ func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 
 // getLocaleBundle returns current locale bundle and creates it if needed
 func (l *Localizer) getLocaleBundle() *i18n.Bundle {
-	return l.getLocaleBundleByTag(l.LanguageTag)
+	return l.createLocaleBundleByTag(l.LanguageTag)
 }
 
-// getLocaleBundleByTag returns locale bundle by language tag or creates it
-func (l *Localizer) getLocaleBundleByTag(tag language.Tag) *i18n.Bundle {
-	var bundle *i18n.Bundle
-
-	if item, ok := l.bundleStorage.Load(tag); !ok {
-		bundle = i18n.NewBundle(tag)
-		l.loadTranslationsToBundle(bundle)
-		l.bundleStorage.Store(tag, bundle)
-	} else {
-		bundle = item.(*i18n.Bundle)
-	}
+// createLocaleBundleByTag creates locale bundle by language tag
+func (l *Localizer) createLocaleBundleByTag(tag language.Tag) *i18n.Bundle {
+	bundle := i18n.NewBundle(tag)
+	bundle.RegisterUnmarshalFunc("yml", yaml.Unmarshal)
+	l.loadTranslationsToBundle(bundle)
 
 	return bundle
 }
@@ -155,14 +145,11 @@ func (l *Localizer) getLocaleBundleByTag(tag language.Tag) *i18n.Bundle {
 func (l *Localizer) LoadTranslations() {
 	defer l.loadMutex.Unlock()
 	l.loadMutex.Lock()
-	l.getLocaleBundle().RegisterUnmarshalFunc("yml", yaml.Unmarshal)
-	l.loadTranslationsToBundle(l.getLocaleBundle())
+	l.getCurrentLocalizer()
 }
 
 // loadTranslationsToBundle loads translations to provided bundle
 func (l *Localizer) loadTranslationsToBundle(i18nBundle *i18n.Bundle) {
-	i18nBundle.RegisterUnmarshalFunc("yml", yaml.Unmarshal)
-
 	switch {
 	case l.TranslationsPath != "":
 		if err := l.loadFromDirectory(i18nBundle); err != nil {
@@ -229,7 +216,7 @@ func (l *Localizer) getLocalizer(tag language.Tag) *i18n.Localizer {
 	}
 
 	if item, ok := l.i18nStorage.Load(tag); !ok {
-		l.i18nStorage.Store(tag, i18n.NewLocalizer(l.getLocaleBundleByTag(tag), tag.String()))
+		l.i18nStorage.Store(tag, i18n.NewLocalizer(l.createLocaleBundleByTag(tag), tag.String()))
 	} else {
 		localizer = item.(*i18n.Localizer)
 	}
@@ -274,12 +261,14 @@ func (l *Localizer) SetLanguage(tag language.Tag) {
 	}
 
 	l.LanguageTag = tag
-	l.FetchLanguage()
+	l.LoadTranslations()
 }
 
 // FetchLanguage will load language from tag
+//
+// Deprecated: Use `(*core.Localizer).LoadTranslations()` instead
 func (l *Localizer) FetchLanguage() {
-	l.getCurrentLocalizer()
+	l.LoadTranslations()
 }
 
 // GetLocalizedMessage will return localized message by it's ID. It doesn't use `Must` prefix in order to keep BC.
@@ -303,7 +292,7 @@ func (l *Localizer) Localize(messageID string) (string, error) {
 
 // LocalizedTemplateMessage will return localized message with specified data, or error if message wasn't found
 // It uses text/template syntax: https://golang.org/pkg/text/template/
-func (l *Localizer) LocalizedTemplateMessage(messageID string, templateData map[string]interface{}) (string, error) {
+func (l *Localizer) LocalizeTemplateMessage(messageID string, templateData map[string]interface{}) (string, error) {
 	return l.getCurrentLocalizer().Localize(&i18n.LocalizeConfig{
 		MessageID:    messageID,
 		TemplateData: templateData,
