@@ -29,6 +29,7 @@ type Localizer struct {
 	i18nStorage      *sync.Map
 	bundleStorage    *sync.Map
 	TranslationsBox  *packr.Box
+	loadMutex        *sync.RWMutex
 	LocaleMatcher    language.Matcher
 	LanguageTag      language.Tag
 	TranslationsPath string
@@ -43,6 +44,7 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 		bundleStorage:    &sync.Map{},
 		LocaleMatcher:    matcher,
 		TranslationsPath: translationsPath,
+		loadMutex:        &sync.RWMutex{},
 	}
 	localizer.SetLanguage(locale)
 	localizer.LoadTranslations()
@@ -60,6 +62,7 @@ func NewLocalizerFS(locale language.Tag, matcher language.Matcher, translationsB
 		bundleStorage:   &sync.Map{},
 		LocaleMatcher:   matcher,
 		TranslationsBox: translationsBox,
+		loadMutex:       &sync.RWMutex{},
 	}
 	localizer.SetLanguage(locale)
 	localizer.LoadTranslations()
@@ -83,6 +86,10 @@ func DefaultLocalizerMatcher() language.Matcher {
 }
 
 // LocalizationMiddleware returns gin.HandlerFunc which will set localizer language by Accept-Language header
+// Result Localizer instance will share it's internal data (translations, bundles, etc) with instance which was used
+// to append middleware to gin.
+// Because of that all Localizer instances from this middleware will share *same* mutex. This mutex is used to wrap
+// i18n.Bundle methods (those aren't goroutine-safe to use).
 // Usage:
 //      engine := gin.New()
 //      localizer := NewLocalizer("en", DefaultLocalizerBundle(), DefaultLocalizerMatcher(), "translations")
@@ -96,6 +103,7 @@ func (l *Localizer) LocalizationMiddleware() gin.HandlerFunc {
 			LocaleMatcher:    l.LocaleMatcher,
 			LanguageTag:      l.LanguageTag,
 			TranslationsPath: l.TranslationsPath,
+			loadMutex:        l.loadMutex,
 		}
 		clone.SetLocale(c.GetHeader("Accept-Language"))
 		c.Set(LocalizerContextKey, clone)
@@ -142,6 +150,8 @@ func (l *Localizer) getLocaleBundleByTag(tag language.Tag) *i18n.Bundle {
 
 // LoadTranslations will load all translation files from translations directory or from embedded box
 func (l *Localizer) LoadTranslations() {
+	defer l.loadMutex.Unlock()
+	l.loadMutex.Lock()
 	l.getLocaleBundle().RegisterUnmarshalFunc("yml", yaml.Unmarshal)
 	l.loadTranslationsToBundle(l.getLocaleBundle())
 }
