@@ -21,6 +21,9 @@ var DefaultLanguages = []language.Tag{
 	language.Spanish,
 }
 
+// DefaultLanguage is a base language which will be chosen if current language is unspecified
+var DefaultLanguage = language.English
+
 // LocalizerContextKey is a key which is used to store localizer in gin.Context key-value storage
 const LocalizerContextKey = "localizer"
 
@@ -72,7 +75,7 @@ func NewLocalizerFS(locale language.Tag, matcher language.Matcher, translationsB
 
 // DefaultLocalizerBundle returns new localizer bundle with English as default language
 func DefaultLocalizerBundle() *i18n.Bundle {
-	return i18n.NewBundle(language.English)
+	return i18n.NewBundle(DefaultLanguage)
 }
 
 // LocalizerBundle returns new localizer bundle provided language as default
@@ -221,6 +224,10 @@ func (l *Localizer) loadFromFS(i18nBundle *i18n.Bundle) error {
 func (l *Localizer) getLocalizer(tag language.Tag) *i18n.Localizer {
 	var localizer *i18n.Localizer
 
+	if l.isUnd(tag) {
+		tag = DefaultLanguage
+	}
+
 	if item, ok := l.i18nStorage.Load(tag); !ok {
 		l.i18nStorage.Store(tag, i18n.NewLocalizer(l.getLocaleBundleByTag(tag), tag.String()))
 	} else {
@@ -232,11 +239,15 @@ func (l *Localizer) getLocalizer(tag language.Tag) *i18n.Localizer {
 
 func (l *Localizer) matchByString(al string) language.Tag {
 	tag, _ := language.MatchStrings(l.LocaleMatcher, al)
-	if tag == language.Und {
-		return language.English
+	if l.isUnd(tag) {
+		return DefaultLanguage
 	}
 
 	return tag
+}
+
+func (l *Localizer) isUnd(tag language.Tag) bool {
+	return tag == language.Und || tag.IsRoot()
 }
 
 // getCurrentLocalizer returns *i18n.Localizer with current language tag
@@ -258,6 +269,10 @@ func (l *Localizer) Preload(tags []language.Tag) {
 
 // SetLanguage will change language using language tag
 func (l *Localizer) SetLanguage(tag language.Tag) {
+	if l.isUnd(tag) {
+		tag = DefaultLanguage
+	}
+
 	l.LanguageTag = tag
 	l.FetchLanguage()
 }
