@@ -263,15 +263,29 @@ func (l *Localizer) FetchLanguage() {
 	l.getCurrentLocalizer()
 }
 
-// GetLocalizedMessage will return localized message by it's ID
+// GetLocalizedMessage will return localized message by it's ID. It doesn't use `Must` prefix in order to keep BC.
 func (l *Localizer) GetLocalizedMessage(messageID string) string {
 	return l.getCurrentLocalizer().MustLocalize(&i18n.LocalizeConfig{MessageID: messageID})
 }
 
-// GetLocalizedTemplateMessage will return localized message with specified data
+// GetLocalizedTemplateMessage will return localized message with specified data. It doesn't use `Must` prefix in order to keep BC.
 // It uses text/template syntax: https://golang.org/pkg/text/template/
 func (l *Localizer) GetLocalizedTemplateMessage(messageID string, templateData map[string]interface{}) string {
 	return l.getCurrentLocalizer().MustLocalize(&i18n.LocalizeConfig{
+		MessageID:    messageID,
+		TemplateData: templateData,
+	})
+}
+
+// Localize will return localized message by it's ID, or error if message wasn't found
+func (l *Localizer) Localize(messageID string) (string, error) {
+	return l.getCurrentLocalizer().Localize(&i18n.LocalizeConfig{MessageID: messageID})
+}
+
+// LocalizedTemplateMessage will return localized message with specified data, or error if message wasn't found
+// It uses text/template syntax: https://golang.org/pkg/text/template/
+func (l *Localizer) LocalizedTemplateMessage(messageID string, templateData map[string]interface{}) (string, error) {
+	return l.getCurrentLocalizer().Localize(&i18n.LocalizeConfig{
 		MessageID:    messageID,
 		TemplateData: templateData,
 	})

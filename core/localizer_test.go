@@ -2,11 +2,15 @@ package core
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"path"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -61,8 +65,8 @@ func (l *LocalizerTest) Test_SetLocale() {
 	assert.Equal(l.T(), "Test message", l.localizer.GetLocalizedMessage("message"))
 }
 
-func (l *LocalizerTest) Test_LocalizationMiddleware() {
-	l.localizer.Preload([]language.Tag{language.English, language.Spanish, language.Russian})
+func (l *LocalizerTest) Test_LocalizationMiddleware_Context() {
+	l.localizer.Preload(DefaultLanguages)
 	middlewareFunc := l.localizer.LocalizationMiddleware()
 	require.NotNil(l.T(), middlewareFunc)
 
@@ -93,6 +97,49 @@ func (l *LocalizerTest) Test_LocalizationMiddleware() {
 	assert.Equal(l.T(), "Test message", enLocalizer.GetLocalizedMessage("message"))
 	assert.Equal(l.T(), "Mensaje de prueba", esLocalizer.GetLocalizedMessage("message"))
 	assert.Equal(l.T(), "Тестовое сообщение", ruLocalizer.GetLocalizedMessage("message"))
+}
+
+func (l *LocalizerTest) Test_LocalizationMiddleware_Httptest() {
+	var wg sync.WaitGroup
+	rand.Seed(time.Now().UnixNano())
+	l.localizer.Preload(DefaultLanguages)
+	langMsgMap := map[language.Tag]string{
+		language.English: "Test message",
+		language.Russian: "Тестовое сообщение",
+		language.Spanish: "Mensaje de prueba",
+	}
+
+	fw := gin.New()
+	fw.Use(l.localizer.LocalizationMiddleware())
+	fw.GET("/test", func(c *gin.Context) {
+		loc := MustGetContextLocalizer(c)
+		c.String(http.StatusOK, loc.GetLocalizedMessage("message"))
+	})
+
+	for i := 0; i < 1000; i++ {
+		wg.Add(1)
+		go func(m map[language.Tag]string, wg *sync.WaitGroup) {
+			var tag language.Tag
+			switch rand.Intn(3-1) + 1 {
+			case 1:
+				tag = language.English
+			case 2:
+				tag = language.Russian
+			case 3:
+				tag = language.Spanish
+			}
+
+			req, err := http.NewRequest(http.MethodGet, "/test", nil)
+			require.NoError(l.T(), err)
+			req.Header.Add("Accept-Language", tag.String())
+			rr := httptest.NewRecorder()
+			fw.ServeHTTP(rr, req)
+			assert.Equal(l.T(), m[tag], rr.Body.String())
+			wg.Done()
+		}(langMsgMap, &wg)
+	}
+
+	wg.Wait()
 }
 
 func (l *LocalizerTest) Test_LocalizationFuncMap() {
