@@ -96,6 +96,17 @@ func (e *EngineTest) Test_Prepare() {
 	e.engine.TranslationsPath = testTranslationsDir
 	e.engine.Prepare()
 	assert.True(e.T(), e.engine.prepared)
+	assert.NotNil(e.T(), e.engine.Config)
+	assert.NotEmpty(e.T(), e.engine.DefaultError)
+	assert.NotEmpty(e.T(), e.engine.LogFormatter)
+	assert.NotEmpty(e.T(), e.engine.LocaleMatcher)
+	assert.False(e.T(), e.engine.isUnd(e.engine.Localizer.LanguageTag))
+	assert.NotNil(e.T(), e.engine.DB)
+	assert.NotNil(e.T(), e.engine.Client)
+	assert.NotNil(e.T(), e.engine.logger)
+	assert.NotNil(e.T(), e.engine.Sentry.Localizer)
+	assert.NotNil(e.T(), e.engine.Sentry.Logger)
+	assert.NotNil(e.T(), e.engine.Utils.Logger)
 }
 
 func (e *EngineTest) Test_initGin_Release() {

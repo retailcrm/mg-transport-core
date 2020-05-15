@@ -86,6 +86,10 @@ func (e *Engine) Prepare() *Engine {
 		e.LocaleMatcher = DefaultLocalizerMatcher()
 	}
 
+	if e.isUnd(e.Localizer.LanguageTag) {
+		e.Localizer.LanguageTag = DefaultLanguage
+	}
+
 	e.LoadTranslations()
 
 	if len(e.PreloadLanguages) > 0 {
