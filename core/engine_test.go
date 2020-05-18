@@ -34,13 +34,7 @@ func (e *EngineTest) SetupTest() {
 	db, _, err = sqlmock.New()
 	require.NoError(e.T(), err)
 
-	if _, err := os.Stat(testTranslationsDir); err != nil && os.IsNotExist(err) {
-		err := os.Mkdir(testTranslationsDir, os.ModePerm)
-		require.Nil(e.T(), err)
-		data := []byte("message: Test message\nmessage_template: Test message with {{.data}}")
-		err = ioutil.WriteFile(testLangFile, data, os.ModePerm)
-		require.Nil(e.T(), err)
-	}
+	createTestLangFiles(e.T())
 
 	e.engine.Config = Config{
 		Version:  "1",
@@ -102,6 +96,17 @@ func (e *EngineTest) Test_Prepare() {
 	e.engine.TranslationsPath = testTranslationsDir
 	e.engine.Prepare()
 	assert.True(e.T(), e.engine.prepared)
+	assert.NotNil(e.T(), e.engine.Config)
+	assert.NotEmpty(e.T(), e.engine.DefaultError)
+	assert.NotEmpty(e.T(), e.engine.LogFormatter)
+	assert.NotEmpty(e.T(), e.engine.LocaleMatcher)
+	assert.False(e.T(), e.engine.isUnd(e.engine.Localizer.LanguageTag))
+	assert.NotNil(e.T(), e.engine.DB)
+	assert.NotNil(e.T(), e.engine.Client)
+	assert.NotNil(e.T(), e.engine.logger)
+	assert.NotNil(e.T(), e.engine.Sentry.Localizer)
+	assert.NotNil(e.T(), e.engine.Sentry.Logger)
+	assert.NotNil(e.T(), e.engine.Utils.Logger)
 }
 
 func (e *EngineTest) Test_initGin_Release() {

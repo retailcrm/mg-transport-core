@@ -10,6 +10,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/op/go-logging"
+	"golang.org/x/text/language"
 )
 
 // Engine struct
@@ -18,30 +19,35 @@ type Engine struct {
 	ORM
 	Sentry
 	Utils
-	ginEngine    *gin.Engine
-	httpClient   *http.Client
-	logger       LoggerInterface
-	mutex        sync.RWMutex
-	csrf         *CSRF
-	jobManager   *JobManager
-	Sessions     sessions.Store
-	Config       ConfigInterface
-	LogFormatter logging.Formatter
-	prepared     bool
+	ginEngine        *gin.Engine
+	httpClient       *http.Client
+	logger           LoggerInterface
+	mutex            sync.RWMutex
+	csrf             *CSRF
+	jobManager       *JobManager
+	PreloadLanguages []language.Tag
+	Sessions         sessions.Store
+	Config           ConfigInterface
+	LogFormatter     logging.Formatter
+	prepared         bool
 }
 
 // New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or engine.ConfigureRouter(...) with callback)
 func New() *Engine {
 	return &Engine{
-		Config:    nil,
-		Localizer: Localizer{},
-		ORM:       ORM{},
-		Sentry:    Sentry{},
-		Utils:     Utils{},
-		ginEngine: nil,
-		logger:    nil,
-		mutex:     sync.RWMutex{},
-		prepared:  false,
+		Config: nil,
+		Localizer: Localizer{
+			i18nStorage: &sync.Map{},
+			loadMutex:   &sync.RWMutex{},
+		},
+		PreloadLanguages: []language.Tag{},
+		ORM:              ORM{},
+		Sentry:           Sentry{},
+		Utils:            Utils{},
+		ginEngine:        nil,
+		logger:           nil,
+		mutex:            sync.RWMutex{},
+		prepared:         false,
 	}
 }
 
@@ -76,14 +82,20 @@ func (e *Engine) Prepare() *Engine {
 	if e.LogFormatter == nil {
 		e.LogFormatter = DefaultLogFormatter()
 	}
-	if e.LocaleBundle == nil {
-		e.LocaleBundle = DefaultLocalizerBundle()
-	}
 	if e.LocaleMatcher == nil {
 		e.LocaleMatcher = DefaultLocalizerMatcher()
 	}
 
+	if e.isUnd(e.Localizer.LanguageTag) {
+		e.Localizer.LanguageTag = DefaultLanguage
+	}
+
 	e.LoadTranslations()
+
+	if len(e.PreloadLanguages) > 0 {
+		e.Localizer.Preload(e.PreloadLanguages)
+	}
+
 	e.createDB(e.Config.GetDBConfig())
 	e.createRavenClient(e.Config.GetSentryDSN())
 	e.resetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
