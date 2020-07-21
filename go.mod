@@ -33,7 +33,6 @@ require (
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
 	golang.org/x/sys v0.0.0-20200428200454-593003d681fa // indirect
 	golang.org/x/text v0.3.2
-	gopkg.in/go-playground/validator.v9 v9.30.2 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/yaml.v2 v2.2.8
 )

@@ -1,11 +1,8 @@
 package core
 
 import (
-	"errors"
 	"testing"
 
-	"github.com/getsentry/raven-go"
-	pkgErrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -167,29 +164,6 @@ func (s *SentryTest) TestSentry_ErrorResponseHandler() {
 
 func (s *SentryTest) TestSentry_ErrorCaptureHandler() {
 	assert.NotNil(s.T(), s.sentry.ErrorCaptureHandler())
-}
-
-func TestSentry_newRavenStackTrace_Fail(t *testing.T) {
-	defer func() {
-		assert.NotNil(t, recover())
-	}()
-
-	newRavenStackTrace(nil, errors.New("error"), 0)
-}
-
-func TestSentry_newRavenStackTrace(t *testing.T) {
-	st := newRavenStackTrace(&raven.Client{}, errors.New("error"), 0)
-
-	require.NotNil(t, st)
-	assert.NotEmpty(t, st.Frames)
-}
-
-func TestSentry_newRavenStackTrace_ErrorsPkg(t *testing.T) {
-	err := pkgErrors.New("error")
-	st := newRavenStackTrace(&raven.Client{}, err, 0)
-
-	require.NotNil(t, st)
-	assert.NotEmpty(t, st.Frames)
 }
 
 func TestSentry_Suite(t *testing.T) {
