@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-type ravenMockProvider struct {
+type ravenMockTransformer struct {
 	mock.Mock
 }
 
-func (r *ravenMockProvider) Stack() Stacktrace {
+func (r *ravenMockTransformer) Stack() Stacktrace {
 	args := r.Called()
 	return args.Get(0).(Stacktrace)
 }
@@ -35,15 +35,15 @@ func (s *RavenStacktraceBuilderSuite) callers() Stacktrace {
 }
 
 func (s *RavenStacktraceBuilderSuite) Test_BuildEmpty() {
-	testProvider := new(ravenMockProvider)
-	testProvider.On("Stack", mock.Anything).Return(Stacktrace{})
+	testTransformer := new(ravenMockTransformer)
+	testTransformer.On("Stack", mock.Anything).Return(Stacktrace{})
 
 	assert.Nil(s.T(), NewRavenStacktraceBuilder(testProvider).Build(3, []string{}))
 }
 
 func (s *RavenStacktraceBuilderSuite) Test_BuildActual() {
-	testProvider := new(ravenMockProvider)
-	testProvider.On("Stack", mock.Anything).Return(s.callers())
+	testTransformer := new(ravenMockTransformer)
+	testTransformer.On("Stack", mock.Anything).Return(s.callers())
 	stack := NewRavenStacktraceBuilder(testProvider).Build(3, []string{})
 
 	require.NotNil(s.T(), stack)

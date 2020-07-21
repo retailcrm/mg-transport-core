@@ -33,28 +33,28 @@ func (e *errorWithCause) Cause() error {
 }
 
 type PkgErrorsStackProviderSuite struct {
-	provider *PkgErrorsStackProvider
+	transformer *PkgErrorsStackTransformer
 	suite.Suite
 }
 
 func (s *PkgErrorsStackProviderSuite) SetupSuite() {
-	s.provider = &PkgErrorsStackProvider{}
+	s.transformer = &PkgErrorsStackTransformer{}
 }
 
 func (s *PkgErrorsStackProviderSuite) Test_Nil() {
-	s.provider.stack = nil
-	assert.Empty(s.T(), s.provider.Stack())
+	s.transformer.stack = nil
+	assert.Empty(s.T(), s.transformer.Stack())
 }
 
 func (s *PkgErrorsStackProviderSuite) Test_Empty() {
-	s.provider.stack = pkgErrors.StackTrace{}
-	assert.Empty(s.T(), s.provider.Stack())
+	s.transformer.stack = pkgErrors.StackTrace{}
+	assert.Empty(s.T(), s.transformer.Stack())
 }
 
 func (s *PkgErrorsStackProviderSuite) Test_Full() {
 	testErr := pkgErrors.New("test")
-	s.provider.stack = testErr.(PkgErrorTraceable).StackTrace()
-	assert.NotEmpty(s.T(), s.provider.Stack())
+	s.transformer.stack = testErr.(PkgErrorTraceable).StackTrace()
+	assert.NotEmpty(s.T(), s.transformer.Stack())
 }
 
 type PkgErrorsBuilderSuite struct {

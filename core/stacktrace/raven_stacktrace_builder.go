@@ -13,24 +13,24 @@ type Frame uintptr
 // Stacktrace is stack of Frames
 type Stacktrace []Frame
 
-// RavenStackProvider is an interface for any component, which will provide stacktrace data
-type RavenStackProvider interface {
+// RavenStackTransformer is an interface for any component, which will transform some unknown stacktrace data to stacktrace.Stacktrace
+type RavenStackTransformer interface {
 	Stack() Stacktrace
 }
 
 // RavenStacktraceBuilder builds *raven.Stacktrace for any generic stack data
 type RavenStacktraceBuilder struct {
-	provider RavenStackProvider
+	transformer RavenStackTransformer
 }
 
 // NewRavenStacktraceBuilder is a RavenStacktraceBuilder constructor
-func NewRavenStacktraceBuilder(p RavenStackProvider) *RavenStacktraceBuilder {
-	return (&RavenStacktraceBuilder{}).SetProvider(p)
+func NewRavenStacktraceBuilder(p RavenStackTransformer) *RavenStacktraceBuilder {
+	return (&RavenStacktraceBuilder{}).SetTransformer(p)
 }
 
-// SetProvider sets provider into stacktrace builder
-func (b *RavenStacktraceBuilder) SetProvider(p RavenStackProvider) *RavenStacktraceBuilder {
-	b.provider = p
+// SetTransformer sets stack transformer into stacktrace builder
+func (b *RavenStacktraceBuilder) SetTransformer(p RavenStackTransformer) *RavenStacktraceBuilder {
+	b.transformer = p
 	return b
 }
 
@@ -38,7 +38,7 @@ func (b *RavenStacktraceBuilder) SetProvider(p RavenStackProvider) *RavenStacktr
 func (b *RavenStacktraceBuilder) Build(context int, appPackagePrefixes []string) *raven.Stacktrace {
 	// This code is borrowed from github.com/getsentry/raven-go.NewStacktrace().
 	var frames []*raven.StacktraceFrame
-	for _, f := range b.provider.Stack() {
+	for _, f := range b.transformer.Stack() {
 		frame := b.convertFrame(f, context, appPackagePrefixes)
 		if frame != nil {
 			frames = append(frames, frame)

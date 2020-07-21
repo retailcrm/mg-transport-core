@@ -14,18 +14,18 @@ type PkgErrorTraceable interface {
 	StackTrace() pkgErrors.StackTrace
 }
 
-// PkgErrorsStackProvider provides stack from github.com/pkg/errors error to RavenStacktraceBuilder
-type PkgErrorsStackProvider struct {
+// PkgErrorsStackTransformer transforms stack data from github.com/pkg/errors error to stacktrace.Stacktrace
+type PkgErrorsStackTransformer struct {
 	stack pkgErrors.StackTrace
 }
 
-// NewPkgErrorsStackProvider is a PkgErrorsStackProvider constructor
-func NewPkgErrorsStackProvider(stack pkgErrors.StackTrace) *PkgErrorsStackProvider {
-	return &PkgErrorsStackProvider{stack: stack}
+// NewPkgErrorsStackTransformer is a PkgErrorsStackTransformer constructor
+func NewPkgErrorsStackTransformer(stack pkgErrors.StackTrace) *PkgErrorsStackTransformer {
+	return &PkgErrorsStackTransformer{stack: stack}
 }
 
 // Stack returns stacktrace (which is []uintptr internally, each uintptc is a pc)
-func (p *PkgErrorsStackProvider) Stack() Stacktrace {
+func (p *PkgErrorsStackTransformer) Stack() Stacktrace {
 	if p.stack == nil {
 		return Stacktrace{}
 	}
@@ -61,7 +61,7 @@ func (b *PkgErrorsBuilder) Build() StackBuilderInterface {
 	}
 
 	if len(stack) > 0 {
-		b.stack = NewRavenStacktraceBuilder(NewPkgErrorsStackProvider(stack)).Build(3, b.client.IncludePaths())
+		b.stack = NewRavenStacktraceBuilder(NewPkgErrorsStackTransformer(stack)).Build(3, b.client.IncludePaths())
 	} else {
 		b.buildErr = UnfeasibleBuilder
 	}
