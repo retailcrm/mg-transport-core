@@ -313,9 +313,9 @@ func GetContextLocalizer(c *gin.Context) (*Localizer, bool) {
 	if item, ok := c.Get(LocalizerContextKey); ok {
 		if localizer, ok := item.(*Localizer); ok {
 			return localizer, true
-		} else {
-			return nil, false
 		}
+
+		return nil, false
 	} else {
 		return nil, false
 	}
