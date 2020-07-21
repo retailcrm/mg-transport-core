@@ -10,6 +10,6 @@ before_install:
 script:
   - go test ./... -v -cpu 2 -timeout 2m -race -cover -coverprofile=coverage.txt -covermode=atomic
   - go get -v -u github.com/axw/gocov/gocov
-  - gocov convert $(ROOT_DIR)/coverage.out | gocov report
+  - gocov convert ./coverage.txt | gocov report
 after_success:
   - bash <(curl -s https://codecov.io/bash)
