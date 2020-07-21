@@ -38,13 +38,13 @@ func (s *RavenStacktraceBuilderSuite) Test_BuildEmpty() {
 	testTransformer := new(ravenMockTransformer)
 	testTransformer.On("Stack", mock.Anything).Return(Stacktrace{})
 
-	assert.Nil(s.T(), NewRavenStacktraceBuilder(testProvider).Build(3, []string{}))
+	assert.Nil(s.T(), NewRavenStacktraceBuilder(testTransformer).Build(3, []string{}))
 }
 
 func (s *RavenStacktraceBuilderSuite) Test_BuildActual() {
 	testTransformer := new(ravenMockTransformer)
 	testTransformer.On("Stack", mock.Anything).Return(s.callers())
-	stack := NewRavenStacktraceBuilder(testProvider).Build(3, []string{})
+	stack := NewRavenStacktraceBuilder(testTransformer).Build(3, []string{})
 
 	require.NotNil(s.T(), stack)
 	assert.NotEmpty(s.T(), stack.Frames)
