@@ -290,7 +290,7 @@ func (l *Localizer) Localize(messageID string) (string, error) {
 	return l.getCurrentLocalizer().Localize(&i18n.LocalizeConfig{MessageID: messageID})
 }
 
-// LocalizedTemplateMessage will return localized message with specified data, or error if message wasn't found
+// LocalizeTemplateMessage will return localized message with specified data, or error if message wasn't found
 // It uses text/template syntax: https://golang.org/pkg/text/template/
 func (l *Localizer) LocalizeTemplateMessage(messageID string, templateData map[string]interface{}) (string, error) {
 	return l.getCurrentLocalizer().Localize(&i18n.LocalizeConfig{

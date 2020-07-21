@@ -45,7 +45,7 @@ type PkgErrorsBuilder struct {
 // Build stacktrace
 func (b *PkgErrorsBuilder) Build() StackBuilderInterface {
 	if !isPkgErrors(b.err) {
-		b.buildErr = UnfeasibleBuilder
+		b.buildErr = ErrUnfeasibleBuilder
 		return b
 	}
 
@@ -63,7 +63,7 @@ func (b *PkgErrorsBuilder) Build() StackBuilderInterface {
 	if len(stack) > 0 {
 		b.stack = NewRavenStacktraceBuilder(NewPkgErrorsStackTransformer(stack)).Build(3, b.client.IncludePaths())
 	} else {
-		b.buildErr = UnfeasibleBuilder
+		b.buildErr = ErrUnfeasibleBuilder
 	}
 
 	return b

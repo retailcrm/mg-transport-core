@@ -17,7 +17,7 @@ type UnwrapBuilder struct {
 // Build stacktrace
 func (b *UnwrapBuilder) Build() StackBuilderInterface {
 	if _, ok := b.err.(Unwrappable); !ok {
-		b.buildErr = UnfeasibleBuilder
+		b.buildErr = ErrUnfeasibleBuilder
 		return b
 	}
 
@@ -42,7 +42,7 @@ func (b *UnwrapBuilder) Build() StackBuilderInterface {
 	}
 
 	if len(frames) <= 1 {
-		b.buildErr = UnfeasibleBuilder
+		b.buildErr = ErrUnfeasibleBuilder
 		return b
 	}
 

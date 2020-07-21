@@ -5,8 +5,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// UnfeasibleBuilder will be returned if builder for stacktrace was chosen incorrectly
-var UnfeasibleBuilder = errors.New("unfeasible builder for this error type")
+// ErrUnfeasibleBuilder will be returned if builder for stacktrace was chosen incorrectly
+var ErrUnfeasibleBuilder = errors.New("unfeasible builder for this error type")
 
 // StackBuilderInterface is an interface for every stacktrace builder
 type StackBuilderInterface interface {

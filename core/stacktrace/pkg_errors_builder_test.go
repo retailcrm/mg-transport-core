@@ -72,7 +72,7 @@ func (s *PkgErrorsBuilderSuite) Test_Stackless() {
 	s.builder.SetError(errors.New("simple"))
 	stack, err := s.builder.Build().GetResult()
 	require.Error(s.T(), err)
-	assert.Equal(s.T(), UnfeasibleBuilder, err)
+	assert.Equal(s.T(), ErrUnfeasibleBuilder, err)
 	assert.Empty(s.T(), stack)
 }
 

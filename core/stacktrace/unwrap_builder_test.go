@@ -62,14 +62,14 @@ func (s *UnwrapBuilderSuite) TestBuild_Nil() {
 	if stack != nil {
 		assert.Empty(s.T(), stack.Frames)
 	}
-	assert.Equal(s.T(), UnfeasibleBuilder, err)
+	assert.Equal(s.T(), ErrUnfeasibleBuilder, err)
 }
 
 func (s *UnwrapBuilderSuite) TestBuild_NoUnwrap() {
 	s.builder.SetError(newSimpleError("fake"))
 	stack, buildErr := s.builder.Build().GetResult()
 	require.Error(s.T(), buildErr)
-	require.Equal(s.T(), UnfeasibleBuilder, buildErr)
+	require.Equal(s.T(), ErrUnfeasibleBuilder, buildErr)
 	assert.Empty(s.T(), stack)
 }
 
