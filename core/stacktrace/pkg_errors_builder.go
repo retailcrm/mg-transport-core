@@ -1,19 +1,55 @@
 package stacktrace
 
 import (
-	"path"
-	"runtime"
-
-	"github.com/getsentry/raven-go"
-	"github.com/pkg/errors"
+	pkgErrors "github.com/pkg/errors"
 )
 
+// PkgErrorCauseable is an interface for checking Cause() method existence in the error
+type PkgErrorCauseable interface {
+	Cause() error
+}
+
+// PkgErrorTraceable is an interface for checking StackTrace() method existence in the error
+type PkgErrorTraceable interface {
+	StackTrace() pkgErrors.StackTrace
+}
+
+// PkgErrorsStackProvider provides stack from github.com/pkg/errors error to RavenStacktraceBuilder
+type PkgErrorsStackProvider struct {
+	stack pkgErrors.StackTrace
+}
+
+// NewPkgErrorsStackProvider is a PkgErrorsStackProvider constructor
+func NewPkgErrorsStackProvider(stack pkgErrors.StackTrace) *PkgErrorsStackProvider {
+	return &PkgErrorsStackProvider{stack: stack}
+}
+
+// Stack returns stacktrace (which is []uintptr internally, each uintptc is a pc)
+func (p *PkgErrorsStackProvider) Stack() Stacktrace {
+	if p.stack == nil {
+		return Stacktrace{}
+	}
+
+	result := make(Stacktrace, len(p.stack))
+	for i, frame := range p.stack {
+		result[i] = Frame(uintptr(frame) - 1)
+	}
+	return result
+}
+
+// PkgErrorsBuilder builds stacktrace with data from github.com/pkg/errors error
 type PkgErrorsBuilder struct {
 	AbstractStackBuilder
 }
 
+// Build stacktrace
 func (b *PkgErrorsBuilder) Build() StackBuilderInterface {
-	var stack errors.StackTrace
+	if !isPkgErrors(b.err) {
+		b.buildErr = UnfeasibleBuilder
+		return b
+	}
+
+	var stack pkgErrors.StackTrace
 	err := b.err
 
 	for err != nil {
@@ -25,7 +61,7 @@ func (b *PkgErrorsBuilder) Build() StackBuilderInterface {
 	}
 
 	if len(stack) > 0 {
-		b.stack = b.convertStack(stack, 3, b.client.IncludePaths())
+		b.stack = NewRavenStacktraceBuilder(NewPkgErrorsStackProvider(stack)).Build(3, b.client.IncludePaths())
 	} else {
 		b.buildErr = UnfeasibleBuilder
 	}
@@ -35,9 +71,7 @@ func (b *PkgErrorsBuilder) Build() StackBuilderInterface {
 
 // getErrorCause will try to extract original error from wrapper - it is used only if stacktrace is not present
 func (b *PkgErrorsBuilder) getErrorCause(err error) error {
-	causeable, ok := err.(interface {
-		Cause() error
-	})
+	causeable, ok := err.(PkgErrorCauseable)
 	if !ok {
 		return nil
 	}
@@ -45,46 +79,10 @@ func (b *PkgErrorsBuilder) getErrorCause(err error) error {
 }
 
 // getErrorStackTrace will try to extract stacktrace from error using StackTrace method (default errors doesn't have it)
-func (b *PkgErrorsBuilder) getErrorStack(err error) errors.StackTrace {
-	traceable, ok := err.(interface {
-		StackTrace() errors.StackTrace
-	})
+func (b *PkgErrorsBuilder) getErrorStack(err error) pkgErrors.StackTrace {
+	traceable, ok := err.(PkgErrorTraceable)
 	if !ok {
 		return nil
 	}
 	return traceable.StackTrace()
-}
-
-// convertStackTrace converts github.com/pkg/errors.StackTrace to github.com/getsentry/raven-go.Stacktrace
-func (b *PkgErrorsBuilder) convertStack(st errors.StackTrace, context int, appPackagePrefixes []string) *raven.Stacktrace {
-	// This code is borrowed from github.com/getsentry/raven-go.NewStacktrace().
-	var frames []*raven.StacktraceFrame
-	for _, f := range st {
-		frame := b.convertFrame(f, context, appPackagePrefixes)
-		if frame != nil {
-			frames = append(frames, frame)
-		}
-	}
-	if len(frames) == 0 {
-		return nil
-	}
-	for i, j := 0, len(frames)-1; i < j; i, j = i+1, j-1 {
-		frames[i], frames[j] = frames[j], frames[i]
-	}
-	return &raven.Stacktrace{Frames: frames}
-}
-
-// convertFrame converts single frame from github.com/pkg/errors.Frame to github.com/pkg/errors.Frame
-func (b *PkgErrorsBuilder) convertFrame(f errors.Frame, context int, appPackagePrefixes []string) *raven.StacktraceFrame {
-	// This code is borrowed from github.com/pkg/errors.Frame.
-	pc := uintptr(f) - 1
-	fn := runtime.FuncForPC(pc)
-	var file string
-	var line int
-	if fn != nil {
-		file, line = fn.FileLine(pc)
-	} else {
-		file = "unknown"
-	}
-	return raven.NewStacktraceFrame(pc, path.Dir(file), file, line, context, appPackagePrefixes)
 }
