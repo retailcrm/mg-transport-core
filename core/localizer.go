@@ -314,11 +314,9 @@ func GetContextLocalizer(c *gin.Context) (*Localizer, bool) {
 		if localizer, ok := item.(*Localizer); ok {
 			return localizer, true
 		}
-
-		return nil, false
-	} else {
-		return nil, false
 	}
+
+	return nil, false
 }
 
 // MustGetContextLocalizer returns Localizer instance if it exists in provided context. Panics otherwise.
