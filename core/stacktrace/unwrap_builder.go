@@ -27,7 +27,7 @@ func (b *UnwrapBuilder) Build() StackBuilderInterface {
 	for err != nil {
 		frames = append(frames, raven.NewStacktraceFrame(
 			0,
-			"<wrapped>",
+			"<message>: "+err.Error(),
 			"<wrapped>",
 			0,
 			3,

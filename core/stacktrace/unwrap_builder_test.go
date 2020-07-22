@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// simpleError is a simplest error implementation possible. The only reason why it's here is
+// simpleError is a simplest error implementation possible. The only reason why it's here is tests.
 type simpleError struct {
 	msg string
 }

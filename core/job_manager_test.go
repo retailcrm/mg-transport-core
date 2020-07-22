@@ -452,7 +452,7 @@ func (t *JobManagerTest) Test_RunJobOnce() {
 	require.NotNil(t.T(), t.manager.jobs)
 	go func() { t.runnerFlag <- false }()
 	err := t.manager.RunJobOnce("job")
-	time.Sleep(200 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 	require.NoError(t.T(), err)
 	assert.True(t.T(), t.ranFlag())
 }

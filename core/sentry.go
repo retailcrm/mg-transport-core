@@ -227,7 +227,9 @@ func (s *Sentry) ErrorCaptureHandler() ErrorHandlerFunc {
 
 		for _, err := range c.Errors {
 			if s.Stacktrace {
-				stack, buildErr := stacktrace.GetStackBuilderByErrorType(err.Err).SetClient(s.Client).Build().GetResult()
+				stackBuilder := stacktrace.GetStackBuilderByErrorType(err.Err)
+				stackBuilder.SetClient(s.Client)
+				stack, buildErr := stackBuilder.Build().GetResult()
 				if buildErr != nil {
 					go s.Client.CaptureErrorAndWait(buildErr, tags)
 					stack = stacktrace.GenericStack(s.Client)
