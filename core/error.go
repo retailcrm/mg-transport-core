@@ -7,6 +7,11 @@ type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
+// ErrorsResponse struct
+type ErrorsResponse struct {
+	Error []string `json:"error"`
+}
+
 // GetErrorResponse returns ErrorResponse with specified status code
 // Usage (with gin):
 //      context.JSON(GetErrorResponse(http.StatusPaymentRequired, "Not enough money"))
