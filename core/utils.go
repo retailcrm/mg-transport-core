@@ -255,3 +255,13 @@ func ReplaceMarkdownSymbols(s string) string {
 func DefaultCurrencies() map[string]string {
 	return defaultCurrencies
 }
+
+// GetCurrencySymbol returns currency symbol by it's ISO 4127 code.
+// It returns provided currency code in uppercase if currency symbol cannot be found
+func GetCurrencySymbol(code string) string {
+	if i, ok := DefaultCurrencies()[strings.ToLower(code)]; ok {
+		return i
+	}
+
+	return strings.ToUpper(code)
+}
