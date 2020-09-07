@@ -250,6 +250,8 @@ func TestUtils_GetCurrencySymbol(t *testing.T) {
 
 		assert.NotEqual(t, strings.ToUpper(code), GetCurrencySymbol(code))
 	}
+
+	assert.Equal(t, "XAG", GetCurrencySymbol("xag"))
 }
 
 func TestUtils_ReplaceMarkdownSymbols(t *testing.T) {
