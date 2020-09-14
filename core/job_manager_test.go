@@ -309,6 +309,21 @@ func (t *JobManagerTest) SetupSuite() {
 	t.manager = NewJobManager()
 }
 
+func (t *JobManagerTest) WaitForJob() bool {
+	c := make(chan bool)
+	go func() {
+		t.runnerWG.Wait()
+		c <- true
+	}()
+
+	select {
+	case <-c:
+		return true
+	case <-time.After(time.Second):
+		return false
+	}
+}
+
 func (t *JobManagerTest) Test_SetLogger() {
 	t.manager.logger = nil
 	t.manager.SetLogger(NewLogger("test", logging.ERROR, DefaultLogFormatter()))
@@ -429,7 +444,7 @@ func (t *JobManagerTest) Test_RunJob() {
 	time.Sleep(time.Millisecond)
 	err = t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
-	t.runnerWG.Wait()
+	assert.True(t.T(), t.WaitForJob(), "Job was not executed in time")
 }
 
 func (t *JobManagerTest) Test_RunJobOnceDoesntExist() {
@@ -448,7 +463,7 @@ func (t *JobManagerTest) Test_RunJobOnce() {
 	time.Sleep(time.Millisecond)
 	err = t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
-	t.runnerWG.Wait()
+	assert.True(t.T(), t.WaitForJob(), "Job was not executed in time")
 }
 
 func (t *JobManagerTest) Test_RunJobOnceSyncDoesntExist() {
