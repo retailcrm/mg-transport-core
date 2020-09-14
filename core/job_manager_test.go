@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"sync"
 	"testing"
 	"time"
 
@@ -28,7 +29,7 @@ type JobTest struct {
 type JobManagerTest struct {
 	suite.Suite
 	manager        *JobManager
-	runnerFlag     chan bool
+	runnerWG       sync.WaitGroup
 	syncRunnerFlag bool
 }
 
@@ -308,19 +309,6 @@ func (t *JobManagerTest) SetupSuite() {
 	t.manager = NewJobManager()
 }
 
-func (t *JobManagerTest) ranFlag() bool {
-	if t.runnerFlag == nil {
-		return false
-	}
-
-	select {
-	case c := <-t.runnerFlag:
-		return c
-	case <-time.After(time.Millisecond):
-		return false
-	}
-}
-
 func (t *JobManagerTest) Test_SetLogger() {
 	t.manager.logger = nil
 	t.manager.SetLogger(NewLogger("test", logging.ERROR, DefaultLogFormatter()))
@@ -349,7 +337,7 @@ func (t *JobManagerTest) Test_RegisterJob() {
 	require.NotNil(t.T(), t.manager.jobs)
 	err := t.manager.RegisterJob("job", &Job{
 		Command: func(log JobLogFunc) error {
-			t.runnerFlag <- true
+			t.runnerWG.Done()
 			return nil
 		},
 		ErrorHandler: DefaultJobErrorHandler(),
@@ -358,7 +346,7 @@ func (t *JobManagerTest) Test_RegisterJob() {
 	assert.NoError(t.T(), err)
 	err = t.manager.RegisterJob("job_regular", &Job{
 		Command: func(log JobLogFunc) error {
-			t.runnerFlag <- true
+			t.runnerWG.Done()
 			return nil
 		},
 		ErrorHandler: DefaultJobErrorHandler(),
@@ -433,13 +421,15 @@ func (t *JobManagerTest) Test_RunJobDoesntExist() {
 
 func (t *JobManagerTest) Test_RunJob() {
 	require.NotNil(t.T(), t.manager.jobs)
-	t.runnerFlag = make(chan bool)
-	err := t.manager.RunJob("job_regular")
+	err := t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
-	time.Sleep(time.Millisecond * 5)
-	assert.True(t.T(), <-t.runnerFlag)
+	t.runnerWG.Add(1)
+	err = t.manager.RunJob("job_regular")
+	require.NoError(t.T(), err)
+	time.Sleep(time.Millisecond)
 	err = t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
+	t.runnerWG.Wait()
 }
 
 func (t *JobManagerTest) Test_RunJobOnceDoesntExist() {
@@ -450,11 +440,15 @@ func (t *JobManagerTest) Test_RunJobOnceDoesntExist() {
 
 func (t *JobManagerTest) Test_RunJobOnce() {
 	require.NotNil(t.T(), t.manager.jobs)
-	go func() { t.runnerFlag <- false }()
-	err := t.manager.RunJobOnce("job")
-	time.Sleep(400 * time.Millisecond)
+	err := t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
-	assert.True(t.T(), t.ranFlag())
+	t.runnerWG.Add(1)
+	err = t.manager.RunJobOnce("job_regular")
+	require.NoError(t.T(), err)
+	time.Sleep(time.Millisecond)
+	err = t.manager.StopJob("job_regular")
+	require.NoError(t.T(), err)
+	t.runnerWG.Wait()
 }
 
 func (t *JobManagerTest) Test_RunJobOnceSyncDoesntExist() {

@@ -27,6 +27,7 @@ type Job struct {
 	ErrorHandler JobErrorHandler
 	PanicHandler JobPanicHandler
 	Interval     time.Duration
+	writeLock    sync.RWMutex
 	Regular      bool
 	active       bool
 	stopChannel  chan bool
@@ -86,10 +87,18 @@ func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func(chan bool) {
 
 // run job
 func (j *Job) run(name string, log JobLogFunc) *Job {
+	j.writeLock.RLock()
+
 	if j.Regular && j.Interval > 0 && !j.active {
+		j.writeLock.RUnlock()
+		defer j.writeLock.Unlock()
+		j.writeLock.Lock()
+
 		j.stopChannel = make(chan bool)
 		go j.getWrappedTimerFunc(name, log)(j.stopChannel)
 		j.active = true
+	} else {
+		j.writeLock.RUnlock()
 	}
 
 	return j
@@ -97,11 +106,18 @@ func (j *Job) run(name string, log JobLogFunc) *Job {
 
 // stop running job
 func (j *Job) stop() *Job {
+	j.writeLock.RLock()
+
 	if j.active && j.stopChannel != nil {
+		j.writeLock.RUnlock()
 		go func() {
+			defer j.writeLock.Unlock()
+			j.writeLock.Lock()
 			j.stopChannel <- true
 			j.active = false
 		}()
+	} else {
+		j.writeLock.RUnlock()
 	}
 
 	return j
