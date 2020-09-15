@@ -444,6 +444,7 @@ func (t *JobManagerTest) Test_RunJob() {
 	time.Sleep(time.Millisecond)
 	err = t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
+	time.Sleep(time.Millisecond * 100)
 	assert.True(t.T(), t.WaitForJob(), "Job was not executed in time")
 }
 
@@ -463,6 +464,7 @@ func (t *JobManagerTest) Test_RunJobOnce() {
 	time.Sleep(time.Millisecond)
 	err = t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
+	time.Sleep(time.Millisecond * 100)
 	assert.True(t.T(), t.WaitForJob(), "Job was not executed in time")
 }
 
