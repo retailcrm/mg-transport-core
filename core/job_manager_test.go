@@ -434,7 +434,12 @@ func (t *JobManagerTest) Test_RunJobDoesntExist() {
 	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
 }
 
-func (t *JobManagerTest) Test_RunJob() {
+func (t *JobManagerTest) Test_RunJob_RunJobOnce() {
+	t.runJob()
+	t.runJobOnce()
+}
+
+func (t *JobManagerTest) runJob() {
 	require.NotNil(t.T(), t.manager.jobs)
 	err := t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
@@ -444,17 +449,10 @@ func (t *JobManagerTest) Test_RunJob() {
 	time.Sleep(time.Millisecond)
 	err = t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
-	time.Sleep(time.Millisecond * 200)
 	assert.True(t.T(), t.WaitForJob(), "Job was not executed in time")
 }
 
-func (t *JobManagerTest) Test_RunJobOnceDoesntExist() {
-	require.NotNil(t.T(), t.manager.jobs)
-	err := t.manager.RunJobOnce("doesn't exist")
-	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
-}
-
-func (t *JobManagerTest) Test_RunJobOnce() {
+func (t *JobManagerTest) runJobOnce() {
 	require.NotNil(t.T(), t.manager.jobs)
 	err := t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
@@ -464,8 +462,13 @@ func (t *JobManagerTest) Test_RunJobOnce() {
 	time.Sleep(time.Millisecond)
 	err = t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
-	time.Sleep(time.Millisecond * 200)
 	assert.True(t.T(), t.WaitForJob(), "Job was not executed in time")
+}
+
+func (t *JobManagerTest) Test_RunJobOnceDoesntExist() {
+	require.NotNil(t.T(), t.manager.jobs)
+	err := t.manager.RunJobOnce("doesn't exist")
+	assert.EqualError(t.T(), err, "cannot find job `doesn't exist`")
 }
 
 func (t *JobManagerTest) Test_RunJobOnceSyncDoesntExist() {
