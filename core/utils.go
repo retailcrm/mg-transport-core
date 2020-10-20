@@ -21,6 +21,58 @@ import (
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 )
 
+var defaultCurrencies = map[string]string{
+	"rub": "₽",
+	"uah": "₴",
+	"byn": "Br",
+	"kzt": "₸",
+	"usd": "$",
+	"eur": "€",
+	"prb": "PRB",
+	"mdl": "L",
+	"kgs": "с",
+	"pln": "zł",
+	"azn": "₼",
+	"amd": "֏",
+	"thb": "฿",
+	"aed": "AED",
+	"nok": "kr",
+	"cad": "C$",
+	"czk": "Kč",
+	"sek": "kr",
+	"dkk": "kr",
+	"ron": "lei",
+	"uzs": "So'm",
+	"aud": "$",
+	"chf": "₣",
+	"inr": "₹",
+	"bgn": "лв",
+	"ngn": "₦",
+	"huf": "ƒ",
+	"ils": "₪",
+	"try": "₺",
+	"stn": "₡",
+	"ars": "$",
+	"bob": "Bs",
+	"ves": "Bs",
+	"gtq": "Q",
+	"hnl": "L",
+	"dop": "RD$",
+	"cop": "COL$",
+	"crc": "₡",
+	"cup": "$MN",
+	"mxn": "NP$",
+	"nio": "C$",
+	"pab": "B/",
+	"pyg": "₲",
+	"pen": "S/",
+	"svc": "₡",
+	"uyu": "$U",
+	"clp": "Ch$",
+	"gel": "₾",
+	"gbp": "£",
+}
+
 // Utils service object
 type Utils struct {
 	IsDebug      bool
@@ -201,12 +253,15 @@ func ReplaceMarkdownSymbols(s string) string {
 
 // DefaultCurrencies will return default currencies list for all bots
 func DefaultCurrencies() map[string]string {
-	return map[string]string{
-		"rub": "₽",
-		"uah": "₴",
-		"byr": "Br",
-		"kzt": "₸",
-		"usd": "$",
-		"eur": "€",
+	return defaultCurrencies
+}
+
+// GetCurrencySymbol returns currency symbol by it's ISO 4127 code.
+// It returns provided currency code in uppercase if currency symbol cannot be found
+func GetCurrencySymbol(code string) string {
+	if i, ok := DefaultCurrencies()[strings.ToLower(code)]; ok {
+		return i
 	}
+
+	return strings.ToUpper(code)
 }

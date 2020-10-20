@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -239,6 +240,18 @@ func TestUtils_GetEntitySHA1(t *testing.T) {
 	hash, err := GetEntitySHA1(entity)
 	require.NoError(t, err)
 	assert.Equal(t, "751b56fb98c9fd803140e8287b4236675554a668", hash)
+}
+
+func TestUtils_GetCurrencySymbol(t *testing.T) {
+	for code, _ := range DefaultCurrencies() {
+		if strings.ToUpper(code) == defaultCurrencies[code] {
+			continue
+		}
+
+		assert.NotEqual(t, strings.ToUpper(code), GetCurrencySymbol(code))
+	}
+
+	assert.Equal(t, "XAG", GetCurrencySymbol("xag"))
 }
 
 func TestUtils_ReplaceMarkdownSymbols(t *testing.T) {
