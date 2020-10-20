@@ -435,24 +435,6 @@ func (t *JobManagerTest) Test_RunJobDoesntExist() {
 }
 
 func (t *JobManagerTest) Test_RunJob_RunJobOnce() {
-	t.runJob()
-	t.runJobOnce()
-}
-
-func (t *JobManagerTest) runJob() {
-	require.NotNil(t.T(), t.manager.jobs)
-	err := t.manager.StopJob("job_regular")
-	require.NoError(t.T(), err)
-	t.runnerWG.Add(1)
-	err = t.manager.RunJob("job_regular")
-	require.NoError(t.T(), err)
-	time.Sleep(time.Millisecond)
-	err = t.manager.StopJob("job_regular")
-	require.NoError(t.T(), err)
-	assert.True(t.T(), t.WaitForJob(), "Job was not executed in time")
-}
-
-func (t *JobManagerTest) runJobOnce() {
 	require.NotNil(t.T(), t.manager.jobs)
 	err := t.manager.StopJob("job_regular")
 	require.NoError(t.T(), err)
