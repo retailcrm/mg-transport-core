@@ -101,6 +101,7 @@ func (e *Engine) Prepare() *Engine {
 	e.resetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
 	e.SetLogger(NewLogger(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
 	e.Sentry.Localizer = &e.Localizer
+	e.Sentry.Stacktrace = true
 	e.Utils.Logger = e.Logger()
 	e.Sentry.Logger = e.Logger()
 	e.prepared = true
