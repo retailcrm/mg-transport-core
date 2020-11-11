@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -61,6 +62,7 @@ func (r ravenPacket) getRequest() (*raven.Http, bool) {
 }
 
 type ravenClientMock struct {
+	raven.Client
 	captured []ravenPacket
 	mu       sync.RWMutex
 	wg       sync.WaitGroup
@@ -92,7 +94,7 @@ func (r *ravenClientMock) CaptureMessageAndWait(message string, tags map[string]
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	defer r.wg.Done()
-	eventID := string(rand.Uint64())
+	eventID := strconv.FormatUint(rand.Uint64(), 10)
 	r.captured = append(r.captured, ravenPacket{
 		EventID:    eventID,
 		Message:    message,
