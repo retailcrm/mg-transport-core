@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -72,6 +73,15 @@ func (t *HTTPClientBuilderTest) Test_SetSSLVerification() {
 
 	t.builder.SetSSLVerification(false)
 	assert.True(t.T(), t.builder.httpTransport.TLSClientConfig.InsecureSkipVerify)
+}
+
+func (t *HTTPClientBuilderTest) Test_SetCertPool() {
+	t.builder.SetCertPool(nil)
+	assert.Nil(t.T(), t.builder.httpTransport.TLSClientConfig.RootCAs)
+
+	pool := x509.NewCertPool()
+	t.builder.SetCertPool(pool)
+	assert.Equal(t.T(), pool, t.builder.httpTransport.TLSClientConfig.RootCAs)
 }
 
 func (t *HTTPClientBuilderTest) Test_FromConfigNil() {
@@ -148,15 +158,20 @@ func (t *HTTPClientBuilderTest) Test_logf() {
 }
 
 func (t *HTTPClientBuilderTest) Test_Build() {
+	timeout := time.Duration(10)
+	pool := x509.NewCertPool()
 	client, err := t.builder.
-		SetTimeout(10).
+		SetTimeout(timeout).
 		SetMockAddress("api_mock:3004").
 		AddMockedDomain("google.com").
+		SetCertPool(pool).
 		Build(true)
 
 	assert.NoError(t.T(), err)
 	assert.NotNil(t.T(), client)
 	assert.Equal(t.T(), client, http.DefaultClient)
+	assert.Equal(t.T(), timeout*time.Second, client.Timeout)
+	assert.Equal(t.T(), pool, client.Transport.(*http.Transport).TLSClientConfig.RootCAs)
 }
 
 func (t *HTTPClientBuilderTest) Test_RestoreDefault() {

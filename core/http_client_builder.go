@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"net/http"
@@ -44,6 +45,7 @@ var DefaultTransport = http.DefaultTransport
 type HTTPClientBuilder struct {
 	httpClient    *http.Client
 	httpTransport *http.Transport
+	certsPool     *x509.CertPool
 	dialer        *net.Dialer
 	logger        LoggerInterface
 	built         bool
@@ -78,10 +80,10 @@ func (b *HTTPClientBuilder) WithLogger(logger LoggerInterface) *HTTPClientBuilde
 }
 
 // SetTimeout sets timeout for http client
-func (b *HTTPClientBuilder) SetTimeout(timeout time.Duration) *HTTPClientBuilder {
-	timeout = timeout * time.Second
-	b.timeout = timeout
-	b.httpClient.Timeout = timeout
+func (b *HTTPClientBuilder) SetTimeout(seconds time.Duration) *HTTPClientBuilder {
+	seconds = seconds * time.Second
+	b.timeout = seconds
+	b.httpClient.Timeout = seconds
 	return b
 }
 
@@ -110,6 +112,17 @@ func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder 
 	}
 
 	b.httpTransport.TLSClientConfig.InsecureSkipVerify = !enabled
+
+	return b
+}
+
+// SetSSLVerification enables or disables SSL certificates verification in client
+func (b *HTTPClientBuilder) SetCertPool(pool *x509.CertPool) *HTTPClientBuilder {
+	if b.httpTransport.TLSClientConfig == nil {
+		b.httpTransport.TLSClientConfig = &tls.Config{}
+	}
+
+	b.httpTransport.TLSClientConfig.RootCAs = pool
 
 	return b
 }

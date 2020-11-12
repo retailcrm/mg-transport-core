@@ -2,6 +2,7 @@ package core
 
 import (
 	"bytes"
+	"crypto/x509"
 	"database/sql"
 	"html/template"
 	"io/ioutil"
@@ -173,7 +174,7 @@ func (e *EngineTest) Test_BuildHTTPClient() {
 			SSLVerification: boolPtr(true),
 		},
 	}
-	e.engine.BuildHTTPClient()
+	e.engine.BuildHTTPClient(x509.NewCertPool())
 
 	assert.NotNil(e.T(), e.engine.httpClient)
 }

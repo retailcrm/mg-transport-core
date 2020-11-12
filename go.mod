@@ -5,7 +5,7 @@ go 1.12
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
 	github.com/aws/aws-sdk-go v1.25.14
-	github.com/certifi/gocertifi v0.0.0-20190905060710-a5e0173ced67 // indirect
+	github.com/certifi/gocertifi v0.0.0-20200922220541-2c3bb06c6054
 	github.com/denisenkom/go-mssqldb v0.0.0-20190830225923-3302f0226fbd // indirect
 	github.com/getsentry/raven-go v0.2.0
 	github.com/gin-contrib/multitemplate v0.0.0-20190914010127-bba2ccfe37ec
@@ -33,7 +33,6 @@ require (
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
 	golang.org/x/sys v0.0.0-20200428200454-593003d681fa // indirect
 	golang.org/x/text v0.3.2
-	golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/yaml.v2 v2.2.8
 )

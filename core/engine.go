@@ -1,6 +1,7 @@
 package core
 
 import (
+	"crypto/x509"
 	"html/template"
 	"net/http"
 	"sync"
@@ -178,12 +179,14 @@ func (e *Engine) SetLogger(l LoggerInterface) *Engine {
 }
 
 // BuildHTTPClient builds HTTP client with provided configuration
-func (e *Engine) BuildHTTPClient(replaceDefault ...bool) *Engine {
+func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *Engine {
 	if e.Config.GetHTTPClientConfig() != nil {
 		client, err := NewHTTPClientBuilder().
 			WithLogger(e.Logger()).
 			SetLogging(e.Config.IsDebug()).
-			FromEngine(e).Build(replaceDefault...)
+			SetCertPool(certs).
+			FromEngine(e).
+			Build(replaceDefault...)
 
 		if err != nil {
 			panic(err)
