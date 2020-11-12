@@ -157,6 +157,19 @@ func (l *LocalizerTest) Test_GetLocalizedMessage() {
 	assert.Equal(l.T(), "Test message", message)
 }
 
+func (l *LocalizerTest) Test_Clone() {
+	defer func() {
+		require.Nil(l.T(), recover())
+	}()
+
+	localizer := l.localizer.Clone()
+	localizer.SetLanguage(language.Russian)
+	
+	assert.NotEqual(l.T(), l.localizer.LanguageTag, localizer.LanguageTag)
+	assert.Equal(l.T(), "Test message", l.localizer.GetLocalizedMessage("message"))
+	assert.Equal(l.T(), "Тестовое сообщение", localizer.GetLocalizedMessage("message"))
+}
+
 func (l *LocalizerTest) Test_GetLocalizedTemplateMessage() {
 	defer func() {
 		require.Nil(l.T(), recover())

@@ -85,6 +85,23 @@ func DefaultLocalizerMatcher() language.Matcher {
 	return language.NewMatcher(DefaultLanguages)
 }
 
+// Clone *core.Localizer. Clone shares it's translations with the parent localizer. Language tag will not be shared.
+// Because of that you can change clone's language without affecting parent localizer.
+// This method should be used when LocalizationMiddleware is not feasible (outside of *gin.HandlerFunc).
+func (l *Localizer) Clone() *Localizer {
+	clone := &Localizer{
+		i18nStorage:      l.i18nStorage,
+		TranslationsBox:  l.TranslationsBox,
+		LocaleMatcher:    l.LocaleMatcher,
+		LanguageTag:      l.LanguageTag,
+		TranslationsPath: l.TranslationsPath,
+		loadMutex:        l.loadMutex,
+	}
+	clone.SetLanguage(DefaultLanguage)
+
+	return clone
+}
+
 // LocalizationMiddleware returns gin.HandlerFunc which will set localizer language by Accept-Language header
 // Result Localizer instance will share it's internal data (translations, bundles, etc) with instance which was used
 // to append middleware to gin.
@@ -92,18 +109,11 @@ func DefaultLocalizerMatcher() language.Matcher {
 // i18n.Bundle methods (those aren't goroutine-safe to use).
 // Usage:
 //      engine := gin.New()
-//      localizer := NewLocalizer("en", DefaultLocalizerBundle(), DefaultLocalizerMatcher(), "translations")
+//      localizer := NewLocalizer("en", DefaultLocalizerMatcher(), "translations")
 //      engine.Use(localizer.LocalizationMiddleware())
 func (l *Localizer) LocalizationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clone := &Localizer{
-			i18nStorage:      l.i18nStorage,
-			TranslationsBox:  l.TranslationsBox,
-			LocaleMatcher:    l.LocaleMatcher,
-			LanguageTag:      l.LanguageTag,
-			TranslationsPath: l.TranslationsPath,
-			loadMutex:        l.loadMutex,
-		}
+		clone := l.Clone()
 		clone.SetLocale(c.GetHeader("Accept-Language"))
 		c.Set(LocalizerContextKey, clone)
 	}
