@@ -155,7 +155,7 @@ func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuil
 
 // FromEngine fulfills mock configuration from ConfigInterface inside Engine
 func (b *HTTPClientBuilder) FromEngine(engine *Engine) *HTTPClientBuilder {
-	return b.FromConfig(engine.Config.GetHTTPClientConfig())
+	return b.FromConfig(engine.GetHTTPClientConfig())
 }
 
 // buildDialer initializes dialer with provided timeout

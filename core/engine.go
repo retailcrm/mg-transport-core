@@ -14,6 +14,15 @@ import (
 	"golang.org/x/text/language"
 )
 
+var boolTrue = true
+
+// DefaultHTTPClientConfig is a default config for HTTP client. It will be used by Engine for building HTTP client
+// if HTTP client config is not present in the configuration.
+var DefaultHTTPClientConfig = &HTTPClientConfig{
+	Timeout:         30,
+	SSLVerification: &boolTrue,
+}
+
 // Engine struct
 type Engine struct {
 	Localizer
@@ -180,22 +189,29 @@ func (e *Engine) SetLogger(l LoggerInterface) *Engine {
 
 // BuildHTTPClient builds HTTP client with provided configuration
 func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *Engine {
-	if e.Config.GetHTTPClientConfig() != nil {
-		client, err := NewHTTPClientBuilder().
-			WithLogger(e.Logger()).
-			SetLogging(e.Config.IsDebug()).
-			SetCertPool(certs).
-			FromEngine(e).
-			Build(replaceDefault...)
+	client, err := NewHTTPClientBuilder().
+		WithLogger(e.Logger()).
+		SetLogging(e.Config.IsDebug()).
+		SetCertPool(certs).
+		FromEngine(e).
+		Build(replaceDefault...)
 
-		if err != nil {
-			panic(err)
-		} else {
-			e.httpClient = client
-		}
+	if err != nil {
+		panic(err)
+	} else {
+		e.httpClient = client
 	}
 
 	return e
+}
+
+// GetHTTPClientConfig returns configuration for HTTP client
+func (e *Engine) GetHTTPClientConfig() *HTTPClientConfig {
+	if e.Config.GetHTTPClientConfig() != nil {
+		return e.Config.GetHTTPClientConfig()
+	}
+
+	return DefaultHTTPClientConfig
 }
 
 // SetHTTPClient sets HTTP client to engine
