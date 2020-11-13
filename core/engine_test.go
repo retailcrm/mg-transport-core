@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
@@ -177,6 +178,37 @@ func (e *EngineTest) Test_BuildHTTPClient() {
 	e.engine.BuildHTTPClient(x509.NewCertPool())
 
 	assert.NotNil(e.T(), e.engine.httpClient)
+	assert.NotNil(e.T(), e.engine.httpClient.Transport)
+
+	transport := e.engine.httpClient.Transport.(*http.Transport)
+	assert.NotNil(e.T(), transport.TLSClientConfig)
+	assert.NotNil(e.T(), transport.TLSClientConfig.RootCAs)
+}
+
+func (e *EngineTest) Test_BuildHTTPClient_NoConfig() {
+	e.engine.Config = &Config{}
+	e.engine.BuildHTTPClient(x509.NewCertPool())
+
+	assert.NotNil(e.T(), e.engine.httpClient)
+	assert.NotNil(e.T(), e.engine.httpClient.Transport)
+
+	transport := e.engine.httpClient.Transport.(*http.Transport)
+	assert.NotNil(e.T(), transport.TLSClientConfig)
+	assert.NotNil(e.T(), transport.TLSClientConfig.RootCAs)
+}
+
+func (e *EngineTest) Test_GetHTTPClientConfig() {
+	e.engine.Config = &Config{}
+	assert.Equal(e.T(), DefaultHTTPClientConfig, e.engine.GetHTTPClientConfig())
+
+	e.engine.Config = &Config{
+		HTTPClientConfig: &HTTPClientConfig{
+			Timeout:         10,
+			SSLVerification: boolPtr(true),
+		},
+	}
+	assert.NotEqual(e.T(), DefaultHTTPClientConfig, e.engine.GetHTTPClientConfig())
+	assert.Equal(e.T(), time.Duration(10), e.engine.GetHTTPClientConfig().Timeout)
 }
 
 func (e *EngineTest) Test_WithCookieSessions() {
