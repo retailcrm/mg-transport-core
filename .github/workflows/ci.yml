@@ -1,9 +1,12 @@
-name: tests
+name: ci
 
 on:
   push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '*.*'
   pull_request:
-    branches: [ $default-branch ]
 
 env:
   GO111MODULE: on
