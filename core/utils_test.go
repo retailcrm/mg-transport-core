@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	testCRMURL = "https://fake-uri.retailcrm.ru"
+	testCRMURL = "https://fake-uri.retailcrm.pro"
 	testMGURL  = "https://mg-url.example.com"
 )
 

@@ -1,11 +1,13 @@
 ## Message Gateway Transport Library
 [![Build Status](https://github.com/retailcrm/mg-transport-core/workflows/ci/badge.svg)](https://github.com/retailcrm/mg-transport-core/actions?query=workflow%3Aci)
-[![codecov](https://codecov.io/gh/retailcrm/mg-transport-core/branch/master/graph/badge.svg)](https://codecov.io/gh/retailcrm/mg-transport-core)
-[![pkg.go.dev](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/retailcrm/mg-transport-core/core)
+[![Coverage](https://codecov.io/gh/retailcrm/mg-transport-core/branch/master/graph/badge.svg?logo=codecov&logoColor=white)](https://codecov.io/gh/retailcrm/mg-transport-core)
+[![GitHub release](https://img.shields.io/github/release/retailcrm/mg-transport-core.svg?logo=github&logoColor=white)](https://github.com/retailcrm/mg-transport-core/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/retailcrm/mg-transport-core)](https://goreportcard.com/report/github.com/retailcrm/mg-transport-core)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/retailcrm/mg-transport-core/blob/master/LICENSE.md)    
+[![GoLang version](https://img.shields.io/badge/go->=1.12-blue.svg?logo=go&logoColor=white)](https://golang.org/dl/)
+[![pkg.go.dev](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/retailcrm/mg-transport-core/core)
 
-This library provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.   
+This library provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.
+
 Usage:
 ```go
 package main
@@ -61,7 +63,9 @@ func main() {
 ### Resource embedding
 [packr](https://github.com/gobuffalo/packr/tree/master/v2) can be used to provide resource embedding. In order to use packr you must follow
 [this instruction](https://github.com/gobuffalo/packr/tree/master/v2#library-installation), and provide boxes with templates,
-translations and assets to library. Example:
+translations and assets to library.
+
+Example:
 ```go
 package main
 
