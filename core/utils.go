@@ -108,7 +108,7 @@ func (u *Utils) GenerateToken() string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%d%d", time.Now().UnixNano(), c))))
 }
 
-// GetAPIClient will initialize retailCRM api client from url and key
+// GetAPIClient will initialize RetailCRM api client from url and key
 func (u *Utils) GetAPIClient(url, key string) (*v5.Client, int, error) {
 	client := v5.New(url, key)
 	client.Debug = u.IsDebug
