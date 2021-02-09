@@ -12,6 +12,18 @@ env:
   GO111MODULE: on
 
 jobs:
+  golangci:
+    name: lint
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v2
+      - name: Lint code with golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.36
+          only-new-issues: true
   tests:
     name: Tests
     runs-on: ubuntu-latest

@@ -2,12 +2,12 @@ package core
 
 import "net/http"
 
-// ErrorResponse struct
+// ErrorResponse struct.
 type ErrorResponse struct {
 	Error string `json:"error"`
 }
 
-// ErrorsResponse struct
+// ErrorsResponse struct.
 type ErrorsResponse struct {
 	Error []string `json:"error"`
 }

@@ -23,7 +23,7 @@ func (n *simpleError) Error() string {
 	return n.msg
 }
 
-// wrappableError is a simple implementation of wrappable error
+// wrappableError is a simple implementation of wrappable error.
 type wrappableError struct {
 	msg string
 	err error

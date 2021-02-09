@@ -4,10 +4,11 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
+
 	"github.com/retailcrm/mg-transport-core/core"
 )
 
-// Options for tool command
+// Options for tool command.
 type Options struct{}
 
 var (

@@ -23,7 +23,7 @@ var DefaultHTTPClientConfig = &HTTPClientConfig{
 	SSLVerification: &boolTrue,
 }
 
-// Engine struct
+// Engine struct.
 type Engine struct {
 	Localizer
 	ORM
@@ -42,7 +42,8 @@ type Engine struct {
 	prepared         bool
 }
 
-// New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or engine.ConfigureRouter(...) with callback)
+// New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or
+// engine.ConfigureRouter(...) with callback).
 func New() *Engine {
 	return &Engine{
 		Config: nil,
@@ -77,7 +78,7 @@ func (e *Engine) initGin() {
 	e.ginEngine = r
 }
 
-// Prepare engine for start
+// Prepare engine for start.
 func (e *Engine) Prepare() *Engine {
 	if e.prepared {
 		panic("engine already initialized")
@@ -119,7 +120,7 @@ func (e *Engine) Prepare() *Engine {
 	return e
 }
 
-// TemplateFuncMap combines func map for templates
+// TemplateFuncMap combines func map for templates.
 func (e *Engine) TemplateFuncMap(functions template.FuncMap) template.FuncMap {
 	funcMap := e.LocalizationFuncMap()
 
@@ -134,14 +135,14 @@ func (e *Engine) TemplateFuncMap(functions template.FuncMap) template.FuncMap {
 	return funcMap
 }
 
-// CreateRenderer with translation function
+// CreateRenderer with translation function.
 func (e *Engine) CreateRenderer(callback func(*Renderer), funcs template.FuncMap) Renderer {
 	renderer := NewRenderer(e.TemplateFuncMap(funcs))
 	callback(&renderer)
 	return renderer
 }
 
-// CreateRendererFS with translation function and packr box with templates data
+// CreateRendererFS with translation function and packr box with templates data.
 func (e *Engine) CreateRendererFS(box *packr.Box, callback func(*Renderer), funcs template.FuncMap) Renderer {
 	renderer := NewRenderer(e.TemplateFuncMap(funcs))
 	renderer.TemplatesBox = box
@@ -149,7 +150,7 @@ func (e *Engine) CreateRendererFS(box *packr.Box, callback func(*Renderer), func
 	return renderer
 }
 
-// Router will return current gin.Engine or panic if it's not present
+// Router will return current gin.Engine or panic if it's not present.
 func (e *Engine) Router() *gin.Engine {
 	if !e.prepared {
 		panic("prepare engine first")
@@ -161,7 +162,7 @@ func (e *Engine) Router() *gin.Engine {
 	return e.ginEngine
 }
 
-// JobManager will return singleton JobManager from Engine
+// JobManager will return singleton JobManager from Engine.
 func (e *Engine) JobManager() *JobManager {
 	if e.jobManager == nil {
 		e.jobManager = NewJobManager().SetLogger(e.Logger()).SetLogging(e.Config.IsDebug())
@@ -170,12 +171,12 @@ func (e *Engine) JobManager() *JobManager {
 	return e.jobManager
 }
 
-// Logger returns current logger
+// Logger returns current logger.
 func (e *Engine) Logger() LoggerInterface {
 	return e.logger
 }
 
-// SetLogger sets provided logger instance to engine
+// SetLogger sets provided logger instance to engine.
 func (e *Engine) SetLogger(l LoggerInterface) *Engine {
 	if l == nil {
 		return e
@@ -187,7 +188,7 @@ func (e *Engine) SetLogger(l LoggerInterface) *Engine {
 	return e
 }
 
-// BuildHTTPClient builds HTTP client with provided configuration
+// BuildHTTPClient builds HTTP client with provided configuration.
 func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *Engine {
 	client, err := NewHTTPClientBuilder().
 		WithLogger(e.Logger()).
@@ -205,7 +206,7 @@ func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *
 	return e
 }
 
-// GetHTTPClientConfig returns configuration for HTTP client
+// GetHTTPClientConfig returns configuration for HTTP client.
 func (e *Engine) GetHTTPClientConfig() *HTTPClientConfig {
 	if e.Config.GetHTTPClientConfig() != nil {
 		return e.Config.GetHTTPClientConfig()
@@ -214,7 +215,7 @@ func (e *Engine) GetHTTPClientConfig() *HTTPClientConfig {
 	return DefaultHTTPClientConfig
 }
 
-// SetHTTPClient sets HTTP client to engine
+// SetHTTPClient sets HTTP client to engine.
 func (e *Engine) SetHTTPClient(client *http.Client) *Engine {
 	if client != nil {
 		e.httpClient = client
@@ -223,7 +224,7 @@ func (e *Engine) SetHTTPClient(client *http.Client) *Engine {
 	return e
 }
 
-// HTTPClient returns inner http client or default http client
+// HTTPClient returns inner http client or default http client.
 func (e *Engine) HTTPClient() *http.Client {
 	if e.httpClient == nil {
 		return http.DefaultClient
@@ -292,7 +293,7 @@ func (e *Engine) GenerateCSRFMiddleware() gin.HandlerFunc {
 	return e.csrf.GenerateCSRFMiddleware()
 }
 
-// GetCSRFToken returns CSRF token from provided context
+// GetCSRFToken returns CSRF token from provided context.
 func (e *Engine) GetCSRFToken(c *gin.Context) string {
 	if e.csrf == nil {
 		panic("csrf is not initialized")
@@ -301,13 +302,13 @@ func (e *Engine) GetCSRFToken(c *gin.Context) string {
 	return e.csrf.CSRFFromContext(c)
 }
 
-// ConfigureRouter will call provided callback with current gin.Engine, or panic if engine is not present
+// ConfigureRouter will call provided callback with current gin.Engine, or panic if engine is not present.
 func (e *Engine) ConfigureRouter(callback func(*gin.Engine)) *Engine {
 	callback(e.Router())
 	return e
 }
 
-// Run gin.Engine loop, or panic if engine is not present
+// Run gin.Engine loop, or panic if engine is not present.
 func (e *Engine) Run() error {
 	return e.Router().Run(e.Config.GetHTTPConfig().Listen)
 }

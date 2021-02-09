@@ -8,22 +8,23 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+
 	"github.com/retailcrm/mg-transport-core/core/stacktrace"
 
 	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
 )
 
-// ErrorHandlerFunc will handle errors
+// ErrorHandlerFunc will handle errors.
 type ErrorHandlerFunc func(recovery interface{}, c *gin.Context)
 
-// SentryTaggedTypes list
+// SentryTaggedTypes list.
 type SentryTaggedTypes []SentryTagged
 
-// SentryTags list for SentryTaggedStruct. Format: name => property name
+// SentryTags list for SentryTaggedStruct. Format: name => property name.
 type SentryTags map[string]string
 
-// SentryTagged interface for both tagged scalar and struct
+// SentryTagged interface for both tagged scalar and struct.
 type SentryTagged interface {
 	BuildTags(interface{}) (map[string]string, error)
 	GetContextKey() string
@@ -31,7 +32,7 @@ type SentryTagged interface {
 	GetName() string
 }
 
-// Sentry struct. Holds SentryTaggedStruct list
+// Sentry struct. Holds SentryTaggedStruct list.
 type Sentry struct {
 	TaggedTypes  SentryTaggedTypes
 	Stacktrace   bool
@@ -41,20 +42,20 @@ type Sentry struct {
 	Client       stacktrace.RavenClientInterface
 }
 
-// SentryTaggedStruct holds information about type, it's key in gin.Context (for middleware), and it's properties
+// SentryTaggedStruct holds information about type, it's key in gin.Context (for middleware), and it's properties.
 type SentryTaggedStruct struct {
 	Type          reflect.Type
 	GinContextKey string
 	Tags          SentryTags
 }
 
-// SentryTaggedScalar variable from context
+// SentryTaggedScalar variable from context.
 type SentryTaggedScalar struct {
 	SentryTaggedStruct
 	Name string
 }
 
-// NewSentry constructor
+// NewSentry constructor.
 func NewSentry(sentryDSN string, defaultError string, taggedTypes SentryTaggedTypes, logger LoggerInterface, localizer *Localizer) *Sentry {
 	sentry := &Sentry{
 		DefaultError: defaultError,
@@ -67,7 +68,7 @@ func NewSentry(sentryDSN string, defaultError string, taggedTypes SentryTaggedTy
 	return sentry
 }
 
-// NewTaggedStruct constructor
+// NewTaggedStruct constructor.
 func NewTaggedStruct(sample interface{}, ginCtxKey string, tags map[string]string) *SentryTaggedStruct {
 	n := make(map[string]string)
 	for k, v := range tags {
@@ -81,7 +82,7 @@ func NewTaggedStruct(sample interface{}, ginCtxKey string, tags map[string]strin
 	}
 }
 
-// NewTaggedScalar constructor
+// NewTaggedScalar constructor.
 func NewTaggedScalar(sample interface{}, ginCtxKey string, name string) *SentryTaggedScalar {
 	return &SentryTaggedScalar{
 		SentryTaggedStruct: SentryTaggedStruct{
@@ -93,13 +94,13 @@ func NewTaggedScalar(sample interface{}, ginCtxKey string, name string) *SentryT
 	}
 }
 
-// createRavenClient will init raven.Client
+// createRavenClient will init raven.Client.
 func (s *Sentry) createRavenClient(sentryDSN string) {
 	client, _ := raven.New(sentryDSN)
 	s.Client = client
 }
 
-// combineGinErrorHandlers calls several error handlers simultaneously
+// combineGinErrorHandlers calls several error handlers simultaneously.
 func (s *Sentry) combineGinErrorHandlers(handlers ...ErrorHandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
@@ -117,7 +118,7 @@ func (s *Sentry) combineGinErrorHandlers(handlers ...ErrorHandlerFunc) gin.Handl
 	}
 }
 
-// ErrorMiddleware returns error handlers, attachable to gin.Engine
+// ErrorMiddleware returns error handlers, attachable to gin.Engine.
 func (s *Sentry) ErrorMiddleware() gin.HandlerFunc {
 	defaultHandlers := []ErrorHandlerFunc{
 		s.ErrorResponseHandler(),
@@ -132,7 +133,7 @@ func (s *Sentry) ErrorMiddleware() gin.HandlerFunc {
 	return s.combineGinErrorHandlers(defaultHandlers...)
 }
 
-// PanicLogger logs panic
+// PanicLogger logs panic.
 func (s *Sentry) PanicLogger() ErrorHandlerFunc {
 	return func(recovery interface{}, c *gin.Context) {
 		if recovery != nil {
@@ -146,7 +147,7 @@ func (s *Sentry) PanicLogger() ErrorHandlerFunc {
 	}
 }
 
-// ErrorLogger logs basic errors
+// ErrorLogger logs basic errors.
 func (s *Sentry) ErrorLogger() ErrorHandlerFunc {
 	return func(recovery interface{}, c *gin.Context) {
 		for _, err := range c.Errors {
@@ -159,7 +160,7 @@ func (s *Sentry) ErrorLogger() ErrorHandlerFunc {
 	}
 }
 
-// ErrorResponseHandler will be executed in case of any unexpected error
+// ErrorResponseHandler will be executed in case of any unexpected error.
 func (s *Sentry) ErrorResponseHandler() ErrorHandlerFunc {
 	return func(recovery interface{}, c *gin.Context) {
 		publicErrors := c.Errors.ByType(gin.ErrorTypePublic)
@@ -194,7 +195,7 @@ func (s *Sentry) ErrorResponseHandler() ErrorHandlerFunc {
 	}
 }
 
-// ErrorCaptureHandler will generate error data and send it to sentry
+// ErrorCaptureHandler will generate error data and send it to sentry.
 func (s *Sentry) ErrorCaptureHandler() ErrorHandlerFunc {
 	return func(recovery interface{}, c *gin.Context) {
 		tags := map[string]string{
@@ -248,23 +249,23 @@ func (s *Sentry) ErrorCaptureHandler() ErrorHandlerFunc {
 	}
 }
 
-// AddTag will add tag with property name which holds tag in object
+// AddTag will add tag with property name which holds tag in object.
 func (t *SentryTaggedStruct) AddTag(name string, property string) *SentryTaggedStruct {
 	t.Tags[property] = name
 	return t
 }
 
-// GetTags is Tags getter
+// GetTags is Tags getter.
 func (t *SentryTaggedStruct) GetTags() SentryTags {
 	return t.Tags
 }
 
-// GetContextKey is GinContextKey getter
+// GetContextKey is GinContextKey getter.
 func (t *SentryTaggedStruct) GetContextKey() string {
 	return t.GinContextKey
 }
 
-// GetName is useless for SentryTaggedStruct
+// GetName is useless for SentryTaggedStruct.
 func (t *SentryTaggedStruct) GetName() string {
 	return ""
 }
@@ -303,7 +304,7 @@ func (t *SentryTaggedStruct) GetProperty(v interface{}, property string) (name s
 	return
 }
 
-// BuildTags will extract tags for Sentry from specified object
+// BuildTags will extract tags for Sentry from specified object.
 func (t *SentryTaggedStruct) BuildTags(v interface{}) (tags map[string]string, err error) {
 	items := make(map[string]string)
 	for prop, name := range t.Tags {
@@ -319,7 +320,7 @@ func (t *SentryTaggedStruct) BuildTags(v interface{}) (tags map[string]string, e
 	return
 }
 
-// valueToString convert reflect.Value to string representation
+// valueToString convert reflect.Value to string representation.
 func (t *SentryTaggedStruct) valueToString(field reflect.Value) string {
 	k := field.Kind()
 	switch {
@@ -340,17 +341,17 @@ func (t *SentryTaggedStruct) valueToString(field reflect.Value) string {
 	}
 }
 
-// GetTags is useless for SentryTaggedScalar
+// GetTags is useless for SentryTaggedScalar.
 func (t *SentryTaggedScalar) GetTags() SentryTags {
 	return SentryTags{}
 }
 
-// GetContextKey is getter for GinContextKey
+// GetContextKey is getter for GinContextKey.
 func (t *SentryTaggedScalar) GetContextKey() string {
 	return t.GinContextKey
 }
 
-// GetName is getter for Name (tag name for scalar)
+// GetName is getter for Name (tag name for scalar).
 func (t *SentryTaggedScalar) GetName() string {
 	return t.Name
 }
@@ -377,7 +378,7 @@ func (t *SentryTaggedScalar) Get(v interface{}) (value string, err error) {
 	return
 }
 
-// BuildTags returns map with single item in this format: <tag name> => <scalar value>
+// BuildTags returns map with single item in this format: <tag name> => <scalar value>.
 func (t *SentryTaggedScalar) BuildTags(v interface{}) (items map[string]string, err error) {
 	items = make(map[string]string)
 	if value, e := t.Get(v); e == nil {

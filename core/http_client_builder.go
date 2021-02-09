@@ -12,10 +12,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// DefaultClient stores original http.DefaultClient
+// DefaultClient stores original http.DefaultClient.
 var DefaultClient = http.DefaultClient
 
-// DefaultTransport stores original http.DefaultTransport
+// DefaultTransport stores original http.DefaultTransport.
 var DefaultTransport = http.DefaultTransport
 
 // HTTPClientBuilder builds http client with mocks (if necessary) and timeout.
@@ -57,7 +57,7 @@ type HTTPClientBuilder struct {
 	mockedDomains []string
 }
 
-// NewHTTPClientBuilder returns HTTPClientBuilder with default values
+// NewHTTPClientBuilder returns HTTPClientBuilder with default values.
 func NewHTTPClientBuilder() *HTTPClientBuilder {
 	return &HTTPClientBuilder{
 		built:         false,
@@ -70,7 +70,7 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 	}
 }
 
-// WithLogger sets provided logger into HTTPClientBuilder
+// WithLogger sets provided logger into HTTPClientBuilder.
 func (b *HTTPClientBuilder) WithLogger(logger LoggerInterface) *HTTPClientBuilder {
 	if logger != nil {
 		b.logger = logger
@@ -79,7 +79,7 @@ func (b *HTTPClientBuilder) WithLogger(logger LoggerInterface) *HTTPClientBuilde
 	return b
 }
 
-// SetTimeout sets timeout for http client
+// SetTimeout sets timeout for http client.
 func (b *HTTPClientBuilder) SetTimeout(seconds time.Duration) *HTTPClientBuilder {
 	seconds = seconds * time.Second
 	b.timeout = seconds
@@ -87,25 +87,25 @@ func (b *HTTPClientBuilder) SetTimeout(seconds time.Duration) *HTTPClientBuilder
 	return b
 }
 
-// SetMockAddress sets mock address
+// SetMockAddress sets mock address.
 func (b *HTTPClientBuilder) SetMockAddress(address string) *HTTPClientBuilder {
 	b.mockAddress = address
 	return b
 }
 
-// AddMockedDomain adds new mocked domain
+// AddMockedDomain adds new mocked domain.
 func (b *HTTPClientBuilder) AddMockedDomain(domain string) *HTTPClientBuilder {
 	b.mockedDomains = append(b.mockedDomains, domain)
 	return b
 }
 
-// SetMockedDomains sets mocked domains from slice
+// SetMockedDomains sets mocked domains from slice.
 func (b *HTTPClientBuilder) SetMockedDomains(domains []string) *HTTPClientBuilder {
 	b.mockedDomains = domains
 	return b
 }
 
-// SetSSLVerification enables or disables SSL certificates verification in client
+// SetSSLVerification enables or disables SSL certificates verification in client.
 func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder {
 	if b.httpTransport.TLSClientConfig == nil {
 		b.httpTransport.TLSClientConfig = &tls.Config{}
@@ -116,7 +116,7 @@ func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder 
 	return b
 }
 
-// SetSSLVerification enables or disables SSL certificates verification in client
+// SetSSLVerification enables or disables SSL certificates verification in client.
 func (b *HTTPClientBuilder) SetCertPool(pool *x509.CertPool) *HTTPClientBuilder {
 	if b.httpTransport.TLSClientConfig == nil {
 		b.httpTransport.TLSClientConfig = &tls.Config{}
@@ -127,13 +127,13 @@ func (b *HTTPClientBuilder) SetCertPool(pool *x509.CertPool) *HTTPClientBuilder 
 	return b
 }
 
-// SetLogging enables or disables logging in mocks
+// SetLogging enables or disables logging in mocks.
 func (b *HTTPClientBuilder) SetLogging(flag bool) *HTTPClientBuilder {
 	b.logging = flag
 	return b
 }
 
-// FromConfig fulfills mock configuration from HTTPClientConfig
+// FromConfig fulfills mock configuration from HTTPClientConfig.
 func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuilder {
 	if config == nil {
 		return b
@@ -153,12 +153,12 @@ func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuil
 	return b
 }
 
-// FromEngine fulfills mock configuration from ConfigInterface inside Engine
+// FromEngine fulfills mock configuration from ConfigInterface inside Engine.
 func (b *HTTPClientBuilder) FromEngine(engine *Engine) *HTTPClientBuilder {
 	return b.FromConfig(engine.GetHTTPClientConfig())
 }
 
-// buildDialer initializes dialer with provided timeout
+// buildDialer initializes dialer with provided timeout.
 func (b *HTTPClientBuilder) buildDialer() *HTTPClientBuilder {
 	b.dialer = &net.Dialer{
 		Timeout:   b.timeout,
@@ -168,7 +168,7 @@ func (b *HTTPClientBuilder) buildDialer() *HTTPClientBuilder {
 	return b
 }
 
-// parseAddress parses address and returns error in case of error (port is necessary)
+// parseAddress parses address and returns error in case of error (port is necessary).
 func (b *HTTPClientBuilder) parseAddress() error {
 	if b.mockAddress == "" {
 		return nil
@@ -184,7 +184,7 @@ func (b *HTTPClientBuilder) parseAddress() error {
 	return nil
 }
 
-// buildMocks builds mocks for http client
+// buildMocks builds mocks for http client.
 func (b *HTTPClientBuilder) buildMocks() error {
 	if b.dialer == nil {
 		return errors.New("dialer must be built first")
@@ -229,7 +229,7 @@ func (b *HTTPClientBuilder) buildMocks() error {
 	return nil
 }
 
-// logf prints logs via Engine or via fmt.Printf
+// logf prints logs via Engine or via fmt.Printf.
 func (b *HTTPClientBuilder) logf(format string, args ...interface{}) {
 	if b.logging {
 		if b.logger != nil {
@@ -240,7 +240,7 @@ func (b *HTTPClientBuilder) logf(format string, args ...interface{}) {
 	}
 }
 
-// ReplaceDefault replaces default client and transport with generated ones
+// ReplaceDefault replaces default client and transport with generated ones.
 func (b *HTTPClientBuilder) ReplaceDefault() *HTTPClientBuilder {
 	if b.built {
 		http.DefaultClient = b.httpClient
@@ -250,7 +250,7 @@ func (b *HTTPClientBuilder) ReplaceDefault() *HTTPClientBuilder {
 	return b
 }
 
-// RestoreDefault restores default client and transport after replacement
+// RestoreDefault restores default client and transport after replacement.
 func (b *HTTPClientBuilder) RestoreDefault() *HTTPClientBuilder {
 	http.DefaultClient = DefaultClient
 	http.DefaultTransport = DefaultTransport
@@ -258,7 +258,7 @@ func (b *HTTPClientBuilder) RestoreDefault() *HTTPClientBuilder {
 	return b
 }
 
-// Build builds client, pass true to replace http.DefaultClient with generated one
+// Build builds client, pass true to replace http.DefaultClient with generated one.
 func (b *HTTPClientBuilder) Build(replaceDefault ...bool) (*http.Client, error) {
 	if err := b.buildDialer().parseAddress(); err != nil {
 		return nil, err

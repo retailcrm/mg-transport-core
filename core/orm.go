@@ -4,16 +4,16 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
-	// PostgreSQL is an default
+	// PostgreSQL is an default.
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-// ORM struct
+// ORM struct.
 type ORM struct {
 	DB *gorm.DB
 }
 
-// NewORM will init new database connection
+// NewORM will init new database connection.
 func NewORM(config DatabaseConfig) *ORM {
 	orm := &ORM{}
 	orm.createDB(config)
@@ -36,7 +36,7 @@ func (orm *ORM) createDB(config DatabaseConfig) {
 	orm.DB = db
 }
 
-// CloseDB close database connection
+// CloseDB close database connection.
 func (orm *ORM) CloseDB() {
 	_ = orm.DB.Close()
 }

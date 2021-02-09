@@ -2,7 +2,7 @@ package core
 
 import (
 	// "os"
-	// "os/exec"
+	// "os/exec".
 	"testing"
 
 	"github.com/op/go-logging"

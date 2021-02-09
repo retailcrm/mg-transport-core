@@ -73,7 +73,7 @@ var defaultCurrencies = map[string]string{
 	"gbp": "£",
 }
 
-// Utils service object
+// Utils service object.
 type Utils struct {
 	IsDebug      bool
 	TokenCounter uint32
@@ -82,7 +82,7 @@ type Utils struct {
 	slashRegex   *regexp.Regexp
 }
 
-// NewUtils will create new Utils instance
+// NewUtils will create new Utils instance.
 func NewUtils(awsConfig ConfigAWS, logger LoggerInterface, debug bool) *Utils {
 	return &Utils{
 		IsDebug:      debug,
@@ -93,7 +93,7 @@ func NewUtils(awsConfig ConfigAWS, logger LoggerInterface, debug bool) *Utils {
 	}
 }
 
-// resetUtils
+// resetUtils.
 func (u *Utils) resetUtils(awsConfig ConfigAWS, debug bool, tokenCounter uint32) {
 	u.TokenCounter = tokenCounter
 	u.ConfigAWS = awsConfig
@@ -108,7 +108,7 @@ func (u *Utils) GenerateToken() string {
 	return fmt.Sprintf("%x", sha256.Sum256([]byte(fmt.Sprintf("%d%d", time.Now().UnixNano(), c))))
 }
 
-// GetAPIClient will initialize RetailCRM api client from url and key
+// GetAPIClient will initialize RetailCRM api client from url and key.
 func (u *Utils) GetAPIClient(url, key string) (*v5.Client, int, error) {
 	client := v5.New(url, key)
 	client.Debug = u.IsDebug
@@ -117,7 +117,6 @@ func (u *Utils) GetAPIClient(url, key string) (*v5.Client, int, error) {
 	if e != nil && e.Error() != "" {
 		u.Logger.Error(url, status, e.Error(), cr)
 		return nil, http.StatusInternalServerError, errors.New(e.Error())
-
 	}
 
 	if !cr.Success {
@@ -166,7 +165,7 @@ func (u *Utils) checkCredentials(credential []string) []string {
 	return rc
 }
 
-// UploadUserAvatar will upload avatar for user
+// UploadUserAvatar will upload avatar for user.
 func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
 	s3Config := &aws.Config{
 		Credentials: credentials.NewStaticCredentials(
@@ -206,12 +205,12 @@ func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
 	return
 }
 
-// RemoveTrailingSlash will remove slash at the end of any string
+// RemoveTrailingSlash will remove slash at the end of any string.
 func (u *Utils) RemoveTrailingSlash(crmURL string) string {
 	return u.slashRegex.ReplaceAllString(crmURL, ``)
 }
 
-// GetMGItemData will upload file to MG by URL and return information about attachable item
+// GetMGItemData will upload file to MG by URL and return information about attachable item.
 func GetMGItemData(client *v1.MgClient, url string, caption string) (v1.Item, int, error) {
 	item := v1.Item{}
 
@@ -230,7 +229,7 @@ func GetMGItemData(client *v1.MgClient, url string, caption string) (v1.Item, in
 	return item, st, err
 }
 
-// GetEntitySHA1 will serialize any value to JSON and return SHA1 hash of this JSON
+// GetEntitySHA1 will serialize any value to JSON and return SHA1 hash of this JSON.
 func GetEntitySHA1(v interface{}) (hash string, err error) {
 	res, _ := json.Marshal(v)
 
@@ -242,7 +241,7 @@ func GetEntitySHA1(v interface{}) (hash string, err error) {
 	return
 }
 
-// ReplaceMarkdownSymbols will remove markdown symbols from text
+// ReplaceMarkdownSymbols will remove markdown symbols from text.
 func ReplaceMarkdownSymbols(s string) string {
 	for _, v := range markdownSymbols {
 		s = strings.Replace(s, v, "\\"+v, -1)
@@ -251,13 +250,13 @@ func ReplaceMarkdownSymbols(s string) string {
 	return s
 }
 
-// DefaultCurrencies will return default currencies list for all bots
+// DefaultCurrencies will return default currencies list for all bots.
 func DefaultCurrencies() map[string]string {
 	return defaultCurrencies
 }
 
 // GetCurrencySymbol returns currency symbol by it's ISO 4127 code.
-// It returns provided currency code in uppercase if currency symbol cannot be found
+// It returns provided currency code in uppercase if currency symbol cannot be found.
 func GetCurrencySymbol(code string) string {
 	if i, ok := DefaultCurrencies()[strings.ToLower(code)]; ok {
 		return i

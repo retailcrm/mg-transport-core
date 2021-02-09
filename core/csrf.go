@@ -15,33 +15,33 @@ import (
 	"github.com/gorilla/sessions"
 )
 
-// CSRFErrorReason is a error reason type
+// CSRFErrorReason is a error reason type.
 type CSRFErrorReason uint8
 
-// CSRFTokenGetter func type
+// CSRFTokenGetter func type.
 type CSRFTokenGetter func(*gin.Context) string
 
-// CSRFAbortFunc is a callback which
+// CSRFAbortFunc is a callback which.
 type CSRFAbortFunc func(*gin.Context, CSRFErrorReason)
 
 const (
-	// CSRFErrorNoTokenInSession will be returned if token is not present in session
+	// CSRFErrorNoTokenInSession will be returned if token is not present in session.
 	CSRFErrorNoTokenInSession CSRFErrorReason = iota
 
-	// CSRFErrorCannotStoreTokenInSession will be returned if middleware cannot store token in session
+	// CSRFErrorCannotStoreTokenInSession will be returned if middleware cannot store token in session.
 	CSRFErrorCannotStoreTokenInSession
 
-	// CSRFErrorIncorrectTokenType will be returned if data type of token in session is not string
+	// CSRFErrorIncorrectTokenType will be returned if data type of token in session is not string.
 	CSRFErrorIncorrectTokenType
 
-	// CSRFErrorEmptyToken will be returned if token in session is empty
+	// CSRFErrorEmptyToken will be returned if token in session is empty.
 	CSRFErrorEmptyToken
 
-	// CSRFErrorTokenMismatch will be returned in case of invalid token
+	// CSRFErrorTokenMismatch will be returned in case of invalid token.
 	CSRFErrorTokenMismatch
 )
 
-// DefaultCSRFTokenGetter default getter
+// DefaultCSRFTokenGetter default getter.
 var DefaultCSRFTokenGetter = func(c *gin.Context) string {
 	r := c.Request
 
@@ -65,7 +65,7 @@ var DefaultCSRFTokenGetter = func(c *gin.Context) string {
 	return ""
 }
 
-// DefaultIgnoredMethods ignored methods for CSRF verifier middleware
+// DefaultIgnoredMethods ignored methods for CSRF verifier middleware.
 var DefaultIgnoredMethods = []string{"GET", "HEAD", "OPTIONS"}
 
 // CSRF struct. Provides CSRF token verification.
@@ -124,7 +124,7 @@ func NewCSRF(salt, secret, sessionName string, store sessions.Store, abortFunc C
 	return csrf
 }
 
-// strInSlice checks whether string exists in slice
+// strInSlice checks whether string exists in slice.
 func (x *CSRF) strInSlice(slice []string, v string) bool {
 	exists := false
 
@@ -138,7 +138,7 @@ func (x *CSRF) strInSlice(slice []string, v string) bool {
 	return exists
 }
 
-// generateCSRFToken generates new CSRF token
+// generateCSRFToken generates new CSRF token.
 func (x *CSRF) generateCSRFToken() string {
 	// nolint:gosec
 	h := sha1.New()
@@ -166,7 +166,7 @@ func (x *CSRF) generateSalt() string {
 	return string(salt)
 }
 
-// pseudoRandomString generates pseudo-random string with specified length
+// pseudoRandomString generates pseudo-random string with specified length.
 func (x *CSRF) pseudoRandomString(length int) string {
 	rand.Seed(time.Now().UnixNano())
 	data := make([]byte, length)
@@ -217,7 +217,7 @@ func (x *CSRF) GenerateCSRFMiddleware() gin.HandlerFunc {
 	}
 }
 
-// fillToken stores token in session and context
+// fillToken stores token in session and context.
 func (x *CSRF) fillToken(s *sessions.Session, c *gin.Context) error {
 	s.Values["csrf_token"] = x.generateCSRFToken()
 	c.Set("csrf_token", s.Values["csrf_token"])
@@ -265,7 +265,7 @@ func (x *CSRF) VerifyCSRFMiddleware(ignoredMethods []string) gin.HandlerFunc {
 	}
 }
 
-// GetCSRFErrorMessage returns generic error message for CSRFErrorReason in English (useful for logs)
+// GetCSRFErrorMessage returns generic error message for CSRFErrorReason in English (useful for logs).
 func GetCSRFErrorMessage(r CSRFErrorReason) string {
 	switch r {
 	case CSRFErrorNoTokenInSession:

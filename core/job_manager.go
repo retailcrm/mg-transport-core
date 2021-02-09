@@ -9,10 +9,10 @@ import (
 	"github.com/op/go-logging"
 )
 
-// JobFunc is empty func which should be executed in a parallel goroutine
+// JobFunc is empty func which should be executed in a parallel goroutine.
 type JobFunc func(JobLogFunc) error
 
-// JobLogFunc is a function which logs data from job
+// JobLogFunc is a function which logs data from job.
 type JobLogFunc func(string, logging.Level, ...interface{})
 
 // JobErrorHandler is a function to handle jobs errors. First argument is a job name.
@@ -56,7 +56,7 @@ type JobManager struct {
 	logger        LoggerInterface
 }
 
-// getWrappedFunc wraps job into function
+// getWrappedFunc wraps job into function.
 func (j *Job) getWrappedFunc(name string, log JobLogFunc) func() {
 	return func() {
 		defer func() {
@@ -71,7 +71,7 @@ func (j *Job) getWrappedFunc(name string, log JobLogFunc) func() {
 	}
 }
 
-// getWrappedTimerFunc returns job timer func to run in the separate goroutine
+// getWrappedTimerFunc returns job timer func to run in the separate goroutine.
 func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func(chan bool) {
 	return func(stopChannel chan bool) {
 		for range time.NewTicker(j.Interval).C {
@@ -85,7 +85,7 @@ func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func(chan bool) {
 	}
 }
 
-// run job
+// run job.
 func (j *Job) run(name string, log JobLogFunc) *Job {
 	j.writeLock.RLock()
 
@@ -104,7 +104,7 @@ func (j *Job) run(name string, log JobLogFunc) *Job {
 	return j
 }
 
-// stop running job
+// stop running job.
 func (j *Job) stop() *Job {
 	j.writeLock.RLock()
 
@@ -123,24 +123,24 @@ func (j *Job) stop() *Job {
 	return j
 }
 
-// runOnce run job once
+// runOnce run job once.
 func (j *Job) runOnce(name string, log JobLogFunc) *Job {
 	go j.getWrappedFunc(name, log)()
 	return j
 }
 
-// runOnceSync run job once in current goroutine
+// runOnceSync run job once in current goroutine.
 func (j *Job) runOnceSync(name string, log JobLogFunc) *Job {
 	j.getWrappedFunc(name, log)()
 	return j
 }
 
-// NewJobManager is a JobManager constructor
+// NewJobManager is a JobManager constructor.
 func NewJobManager() *JobManager {
 	return &JobManager{jobs: &sync.Map{}}
 }
 
-// DefaultJobErrorHandler returns default error handler for a job
+// DefaultJobErrorHandler returns default error handler for a job.
 func DefaultJobErrorHandler() JobErrorHandler {
 	return func(name string, err error, log JobLogFunc) {
 		if err != nil && name != "" {
@@ -149,7 +149,7 @@ func DefaultJobErrorHandler() JobErrorHandler {
 	}
 }
 
-// DefaultJobPanicHandler returns default panic handler for a job
+// DefaultJobPanicHandler returns default panic handler for a job.
 func DefaultJobPanicHandler() JobPanicHandler {
 	return func(name string, recoverValue interface{}, log JobLogFunc) {
 		if recoverValue != nil && name != "" {
@@ -158,7 +158,7 @@ func DefaultJobPanicHandler() JobPanicHandler {
 	}
 }
 
-// SetLogger sets logger into JobManager
+// SetLogger sets logger into JobManager.
 func (j *JobManager) SetLogger(logger LoggerInterface) *JobManager {
 	if logger != nil {
 		j.logger = logger
@@ -167,13 +167,13 @@ func (j *JobManager) SetLogger(logger LoggerInterface) *JobManager {
 	return j
 }
 
-// SetLogging enables or disables JobManager logging
+// SetLogging enables or disables JobManager logging.
 func (j *JobManager) SetLogging(enableLogging bool) *JobManager {
 	j.enableLogging = enableLogging
 	return j
 }
 
-// RegisterJob registers new job
+// RegisterJob registers new job.
 func (j *JobManager) RegisterJob(name string, job *Job) error {
 	if job == nil {
 		return errors.New("job shouldn't be nil")
@@ -198,7 +198,7 @@ func (j *JobManager) UnregisterJob(name string) error {
 	return fmt.Errorf("cannot find job `%s`", name)
 }
 
-// FetchJob fetches already exist job
+// FetchJob fetches already exist job.
 func (j *JobManager) FetchJob(name string) (value *Job, ok bool) {
 	if i, ok := j.jobs.Load(name); ok {
 		if job, ok := i.(*Job); ok {
@@ -209,7 +209,7 @@ func (j *JobManager) FetchJob(name string) (value *Job, ok bool) {
 	return &Job{}, false
 }
 
-// UpdateJob updates job
+// UpdateJob updates job.
 func (j *JobManager) UpdateJob(name string, job *Job) error {
 	if job, ok := j.FetchJob(name); ok {
 		_ = j.UnregisterJob(name)
@@ -259,7 +259,7 @@ func (j *JobManager) RunJobOnceSync(name string) error {
 	return fmt.Errorf("cannot find job `%s`", name)
 }
 
-// Start all jobs in the manager
+// Start all jobs in the manager.
 func (j *JobManager) Start() {
 	j.jobs.Range(func(key, value interface{}) bool {
 		name := key.(string)
@@ -269,7 +269,7 @@ func (j *JobManager) Start() {
 	})
 }
 
-// log logs via logger or as plaintext
+// log logs via logger or as plaintext.
 func (j *JobManager) log(format string, severity logging.Level, args ...interface{}) {
 	if !j.enableLogging {
 		return

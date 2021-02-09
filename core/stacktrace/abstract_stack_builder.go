@@ -5,10 +5,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-// ErrUnfeasibleBuilder will be returned if builder for stacktrace was chosen incorrectly
+// ErrUnfeasibleBuilder will be returned if builder for stacktrace was chosen incorrectly.
 var ErrUnfeasibleBuilder = errors.New("unfeasible builder for this error type")
 
-// StackBuilderInterface is an interface for every stacktrace builder
+// StackBuilderInterface is an interface for every stacktrace builder.
 type StackBuilderInterface interface {
 	SetClient(RavenClientInterface) StackBuilderInterface
 	SetError(error) StackBuilderInterface
@@ -16,7 +16,7 @@ type StackBuilderInterface interface {
 	GetResult() (*raven.Stacktrace, error)
 }
 
-// AbstractStackBuilder contains methods, which would be implemented in every builder anyway
+// AbstractStackBuilder contains methods, which would be implemented in every builder anyway.
 type AbstractStackBuilder struct {
 	err      error
 	buildErr error
@@ -30,7 +30,7 @@ func (a *AbstractStackBuilder) SetClient(client RavenClientInterface) StackBuild
 	return a
 }
 
-// SetError sets error in builder, which will be processed
+// SetError sets error in builder, which will be processed.
 func (a *AbstractStackBuilder) SetError(err error) StackBuilderInterface {
 	a.err = err
 	return a
@@ -46,7 +46,7 @@ func (a *AbstractStackBuilder) GetResult() (*raven.Stacktrace, error) {
 	return a.stack, a.buildErr
 }
 
-// FallbackToGeneric fallbacks to GenericStackBuilder method
+// FallbackToGeneric fallbacks to GenericStackBuilder method.
 func (a *AbstractStackBuilder) FallbackToGeneric() {
 	a.stack, a.err = GenericStack(a.client), nil
 }

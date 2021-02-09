@@ -4,17 +4,17 @@ import (
 	"github.com/getsentry/raven-go"
 )
 
-// Unwrappable is the interface for errors with Unwrap() method
+// Unwrappable is the interface for errors with Unwrap() method.
 type Unwrappable interface {
 	Unwrap() error
 }
 
-// UnwrapBuilder builds stacktrace from the chain of wrapped errors
+// UnwrapBuilder builds stacktrace from the chain of wrapped errors.
 type UnwrapBuilder struct {
 	AbstractStackBuilder
 }
 
-// Build stacktrace
+// Build stacktrace.
 func (b *UnwrapBuilder) Build() StackBuilderInterface {
 	if _, ok := b.err.(Unwrappable); !ok {
 		b.buildErr = ErrUnfeasibleBuilder

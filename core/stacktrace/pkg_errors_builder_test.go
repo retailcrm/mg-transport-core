@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-// errorWithCause has Cause() method, but doesn't have StackTrace() method
+// errorWithCause has Cause() method, but doesn't have StackTrace() method.
 type errorWithCause struct {
 	msg   string
 	cause error

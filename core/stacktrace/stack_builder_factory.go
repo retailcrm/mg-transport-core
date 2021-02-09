@@ -14,7 +14,7 @@ func GetStackBuilderByErrorType(err error) StackBuilderInterface {
 	return &GenericStackBuilder{AbstractStackBuilder{err: err}}
 }
 
-// isPkgErrors returns true if passed error might be github.com/pkg/errors error
+// isPkgErrors returns true if passed error might be github.com/pkg/errors error.
 func isPkgErrors(err error) bool {
 	_, okTraceable := err.(PkgErrorTraceable)
 	_, okCauseable := err.(PkgErrorCauseable)
