@@ -7,7 +7,7 @@ import (
 	"github.com/op/go-logging"
 )
 
-// LoggerInterface contains methods which should be present in logger implementation
+// LoggerInterface contains methods which should be present in logger implementation.
 type LoggerInterface interface {
 	Fatal(args ...interface{})
 	Fatalf(format string, args ...interface{})
@@ -28,7 +28,7 @@ type LoggerInterface interface {
 }
 
 // Logger component. Uses github.com/op/go-logging under the hood.
-// This logger can prevent any write operations (disabled by default, use .Exclusive() method to enable)
+// This logger can prevent any write operations (disabled by default, use .Exclusive() method to enable).
 type Logger struct {
 	logger *logging.Logger
 	mutex  *sync.RWMutex
@@ -55,14 +55,14 @@ func newInheritedLogger(transportCode string, logLevel logging.Level, logFormat 
 	return logger
 }
 
-// DefaultLogFormatter will return default formatter for logs
+// DefaultLogFormatter will return default formatter for logs.
 func DefaultLogFormatter() logging.Formatter {
 	return logging.MustStringFormatter(
 		`%{time:2006-01-02 15:04:05.000} %{level:.4s} => %{message}`,
 	)
 }
 
-// Exclusive makes logger goroutine-safe
+// Exclusive makes logger goroutine-safe.
 func (l *Logger) Exclusive() *Logger {
 	if l.mutex == nil {
 		l.mutex = &sync.RWMutex{}
@@ -71,14 +71,14 @@ func (l *Logger) Exclusive() *Logger {
 	return l
 }
 
-// lock locks logger
+// lock locks logger.
 func (l *Logger) lock() {
 	if l.mutex != nil {
 		l.mutex.Lock()
 	}
 }
 
-// unlock unlocks logger
+// unlock unlocks logger.
 func (l *Logger) unlock() {
 	if l.mutex != nil {
 		l.mutex.Unlock()

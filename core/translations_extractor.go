@@ -23,12 +23,12 @@ type TranslationsExtractor struct {
 	TranslationsPath string
 }
 
-// NewTranslationsExtractor constructor. Use "translate.{}.yml" as template if your translations are named like "translate.en.yml"
+// NewTranslationsExtractor constructor. Use "translate.{}.yml" as template if your translations are named like "translate.en.yml".
 func NewTranslationsExtractor(fileNameTemplate string) *TranslationsExtractor {
 	return &TranslationsExtractor{fileNameTemplate: fileNameTemplate}
 }
 
-// unmarshalToMap returns map with unmarshaled data or error
+// unmarshalToMap returns map with unmarshaled data or error.
 func (t *TranslationsExtractor) unmarshalToMap(in []byte) (map[string]interface{}, error) {
 	var dataMap map[string]interface{}
 
@@ -39,7 +39,7 @@ func (t *TranslationsExtractor) unmarshalToMap(in []byte) (map[string]interface{
 	return dataMap, nil
 }
 
-// loadYAMLBox loads YAML from box
+// loadYAMLBox loads YAML from box.
 func (t *TranslationsExtractor) loadYAMLBox(fileName string) (map[string]interface{}, error) {
 	var (
 		dataMap map[string]interface{}
@@ -54,7 +54,7 @@ func (t *TranslationsExtractor) loadYAMLBox(fileName string) (map[string]interfa
 	return t.unmarshalToMap(data)
 }
 
-// loadYAMLFile loads YAML from file
+// loadYAMLFile loads YAML from file.
 func (t *TranslationsExtractor) loadYAMLFile(fileName string) (map[string]interface{}, error) {
 	var (
 		dataMap map[string]interface{}
@@ -98,7 +98,7 @@ func (t *TranslationsExtractor) loadYAML(fileName string) (map[string]interface{
 	}
 }
 
-// GetMapKeys returns sorted map keys from map[string]interface{} - useful to check keys in several translation files
+// GetMapKeys returns sorted map keys from map[string]interface{} - useful to check keys in several translation files.
 func (t *TranslationsExtractor) GetMapKeys(data map[string]interface{}) []string {
 	keys := make([]string, len(data))
 
@@ -113,12 +113,12 @@ func (t *TranslationsExtractor) GetMapKeys(data map[string]interface{}) []string
 	return keys
 }
 
-// LoadLocale returns translation file data with provided locale
+// LoadLocale returns translation file data with provided locale.
 func (t *TranslationsExtractor) LoadLocale(locale string) (map[string]interface{}, error) {
 	return t.loadYAML(strings.Replace(t.fileNameTemplate, "{}", locale, 1))
 }
 
-// LoadLocaleKeys returns only sorted keys from translation file
+// LoadLocaleKeys returns only sorted keys from translation file.
 func (t *TranslationsExtractor) LoadLocaleKeys(locale string) ([]string, error) {
 	var (
 		data map[string]interface{}

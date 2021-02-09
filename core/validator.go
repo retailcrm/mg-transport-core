@@ -5,7 +5,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// init here will register `validatecrmurl` function for gin validator
+// init here will register `validatecrmurl` function for gin validator.
 func init() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		if err := v.RegisterValidation("validatecrmurl", validateCrmURL); err != nil {
@@ -14,7 +14,7 @@ func init() {
 	}
 }
 
-// validateCrmURL will validate CRM URL
+// validateCrmURL will validate CRM URL.
 func validateCrmURL(fl validator.FieldLevel) bool {
 	return regCommandName.Match([]byte(fl.Field().String()))
 }

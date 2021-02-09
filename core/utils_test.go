@@ -243,7 +243,7 @@ func TestUtils_GetEntitySHA1(t *testing.T) {
 }
 
 func TestUtils_GetCurrencySymbol(t *testing.T) {
-	for code, _ := range DefaultCurrencies() {
+	for code := range DefaultCurrencies() {
 		if strings.ToUpper(code) == defaultCurrencies[code] {
 			continue
 		}

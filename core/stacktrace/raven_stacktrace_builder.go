@@ -10,31 +10,31 @@ import (
 // Frame is a program counter inside a stack frame.
 type Frame uintptr
 
-// Stacktrace is stack of Frames
+// Stacktrace is stack of Frames.
 type Stacktrace []Frame
 
-// RavenStackTransformer is an interface for any component, which will transform some unknown stacktrace data to stacktrace.Stacktrace
+// RavenStackTransformer is an interface for any component, which will transform some unknown stacktrace data to stacktrace.Stacktrace.
 type RavenStackTransformer interface {
 	Stack() Stacktrace
 }
 
-// RavenStacktraceBuilder builds *raven.Stacktrace for any generic stack data
+// RavenStacktraceBuilder builds *raven.Stacktrace for any generic stack data.
 type RavenStacktraceBuilder struct {
 	transformer RavenStackTransformer
 }
 
-// NewRavenStacktraceBuilder is a RavenStacktraceBuilder constructor
+// NewRavenStacktraceBuilder is a RavenStacktraceBuilder constructor.
 func NewRavenStacktraceBuilder(p RavenStackTransformer) *RavenStacktraceBuilder {
 	return (&RavenStacktraceBuilder{}).SetTransformer(p)
 }
 
-// SetTransformer sets stack transformer into stacktrace builder
+// SetTransformer sets stack transformer into stacktrace builder.
 func (b *RavenStacktraceBuilder) SetTransformer(p RavenStackTransformer) *RavenStacktraceBuilder {
 	b.transformer = p
 	return b
 }
 
-// Build converts generic stacktrace to to github.com/getsentry/raven-go.Stacktrace
+// Build converts generic stacktrace to to github.com/getsentry/raven-go.Stacktrace.
 func (b *RavenStacktraceBuilder) Build(context int, appPackagePrefixes []string) *raven.Stacktrace {
 	// This code is borrowed from github.com/getsentry/raven-go.NewStacktrace().
 	var frames []*raven.StacktraceFrame
@@ -53,7 +53,7 @@ func (b *RavenStacktraceBuilder) Build(context int, appPackagePrefixes []string)
 	return &raven.Stacktrace{Frames: frames}
 }
 
-// convertFrame converts single generic stacktrace frame to github.com/pkg/errors.Frame
+// convertFrame converts single generic stacktrace frame to github.com/pkg/errors.Frame.
 func (b *RavenStacktraceBuilder) convertFrame(f Frame, context int, appPackagePrefixes []string) *raven.StacktraceFrame {
 	// This code is borrowed from github.com/pkg/errors.Frame.
 	pc := uintptr(f) - 1

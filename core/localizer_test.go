@@ -164,7 +164,7 @@ func (l *LocalizerTest) Test_Clone() {
 
 	localizer := l.localizer.Clone()
 	localizer.SetLanguage(language.Russian)
-	
+
 	assert.NotEqual(l.T(), l.localizer.LanguageTag, localizer.LanguageTag)
 	assert.Equal(l.T(), "Test message", l.localizer.GetLocalizedMessage("message"))
 	assert.Equal(l.T(), "Тестовое сообщение", localizer.GetLocalizedMessage("message"))
@@ -186,7 +186,7 @@ func (l *LocalizerTest) Test_BadRequestLocalized() {
 	assert.Equal(l.T(), "Test message", resp.(ErrorResponse).Error)
 }
 
-// getContextWithLang generates context with Accept-Language header
+// getContextWithLang generates context with Accept-Language header.
 func (l *LocalizerTest) getContextWithLang(tag language.Tag) *gin.Context {
 	urlInstance, _ := url.Parse("https://example.com")
 	headers := http.Header{}

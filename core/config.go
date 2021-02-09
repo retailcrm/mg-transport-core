@@ -21,7 +21,7 @@ var (
 	slashRegex = regexp.MustCompile(`/+$`)
 )
 
-// ConfigInterface settings data structure
+// ConfigInterface settings data structure.
 type ConfigInterface interface {
 	GetVersion() string
 	GetSentryDSN() string
@@ -35,14 +35,14 @@ type ConfigInterface interface {
 	IsDebug() bool
 }
 
-// InfoInterface transport settings data structure
+// InfoInterface transport settings data structure.
 type InfoInterface interface {
 	GetName() string
 	GetCode() string
 	GetLogoPath() string
 }
 
-// Config struct
+// Config struct.
 type Config struct {
 	Version          string            `yaml:"version"`
 	LogLevel         logging.Level     `yaml:"log_level"`
@@ -56,14 +56,14 @@ type Config struct {
 	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
 }
 
-// Info struct
+// Info struct.
 type Info struct {
 	Name     string `yaml:"name"`
 	Code     string `yaml:"code"`
 	LogoPath string `yaml:"logo_path"`
 }
 
-// ConfigAWS struct
+// ConfigAWS struct.
 type ConfigAWS struct {
 	AccessKeyID     string `yaml:"access_key_id"`
 	SecretAccessKey string `yaml:"secret_access_key"`
@@ -73,7 +73,7 @@ type ConfigAWS struct {
 	ContentType     string `yaml:"content_type"`
 }
 
-// DatabaseConfig struct
+// DatabaseConfig struct.
 type DatabaseConfig struct {
 	Connection         interface{} `yaml:"connection"`
 	Logging            bool        `yaml:"logging"`
@@ -83,7 +83,7 @@ type DatabaseConfig struct {
 	ConnectionLifetime int         `yaml:"connection_lifetime"`
 }
 
-// HTTPClientConfig struct
+// HTTPClientConfig struct.
 type HTTPClientConfig struct {
 	Timeout         time.Duration `yaml:"timeout"`
 	SSLVerification *bool         `yaml:"ssl_verification"`
@@ -91,7 +91,7 @@ type HTTPClientConfig struct {
 	MockedDomains   []string      `yaml:"mocked_domains"`
 }
 
-// HTTPServerConfig struct
+// HTTPServerConfig struct.
 type HTTPServerConfig struct {
 	Host   string `yaml:"host"`
 	Listen string `yaml:"listen"`
@@ -104,12 +104,12 @@ func NewConfig(path string) *Config {
 	return (&Config{}).LoadConfig(path)
 }
 
-// LoadConfig read & load configuration file
+// LoadConfig read & load configuration file.
 func (c *Config) LoadConfig(path string) *Config {
 	return c.LoadConfigFromData(c.GetConfigData(path))
 }
 
-// LoadConfigFromData loads config from byte sequence
+// LoadConfigFromData loads config from byte sequence.
 func (c *Config) LoadConfigFromData(data []byte) *Config {
 	if err := yaml.Unmarshal(data, c); err != nil {
 		panic(err)
@@ -118,7 +118,7 @@ func (c *Config) LoadConfigFromData(data []byte) *Config {
 	return c
 }
 
-// GetConfigData returns config file data in form of byte sequence
+// GetConfigData returns config file data in form of byte sequence.
 func (c *Config) GetConfigData(path string) []byte {
 	var err error
 
@@ -135,72 +135,72 @@ func (c *Config) GetConfigData(path string) []byte {
 	return source
 }
 
-// GetSentryDSN sentry connection dsn
+// GetSentryDSN sentry connection dsn.
 func (c Config) GetSentryDSN() string {
 	return c.SentryDSN
 }
 
-// GetVersion transport version
+// GetVersion transport version.
 func (c Config) GetVersion() string {
 	return c.Version
 }
 
-// GetLogLevel log level
+// GetLogLevel log level.
 func (c Config) GetLogLevel() logging.Level {
 	return c.LogLevel
 }
 
-// GetTransportInfo transport basic data
+// GetTransportInfo transport basic data.
 func (c Config) GetTransportInfo() InfoInterface {
 	return c.TransportInfo
 }
 
-// IsDebug debug flag
+// IsDebug debug flag.
 func (c Config) IsDebug() bool {
 	return c.Debug
 }
 
-// GetAWSConfig AWS configuration
+// GetAWSConfig AWS configuration.
 func (c Config) GetAWSConfig() ConfigAWS {
 	return c.ConfigAWS
 }
 
-// GetDBConfig database configuration
+// GetDBConfig database configuration.
 func (c Config) GetDBConfig() DatabaseConfig {
 	return c.Database
 }
 
-// GetHTTPConfig server configuration
+// GetHTTPConfig server configuration.
 func (c Config) GetHTTPConfig() HTTPServerConfig {
 	return c.HTTPServer
 }
 
-// GetUpdateInterval user data update interval
+// GetUpdateInterval user data update interval.
 func (c Config) GetUpdateInterval() int {
 	return c.UpdateInterval
 }
 
-// GetHTTPClientConfig returns http client config
+// GetHTTPClientConfig returns http client config.
 func (c Config) GetHTTPClientConfig() *HTTPClientConfig {
 	return c.HTTPClientConfig
 }
 
-// GetName transport name
+// GetName transport name.
 func (t Info) GetName() string {
 	return t.Name
 }
 
-// GetCode transport code
+// GetCode transport code.
 func (t Info) GetCode() string {
 	return t.Code
 }
 
-// GetLogoPath transport logo
+// GetLogoPath transport logo.
 func (t Info) GetLogoPath() string {
 	return t.LogoPath
 }
 
-// IsSSLVerificationEnabled returns SSL verification flag (default is true)
+// IsSSLVerificationEnabled returns SSL verification flag (default is true).
 func (h *HTTPClientConfig) IsSSLVerificationEnabled() bool {
 	if h.SSLVerification == nil {
 		return true

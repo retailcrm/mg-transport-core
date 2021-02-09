@@ -2,7 +2,7 @@ package core
 
 import "time"
 
-// Connection model
+// Connection model.
 type Connection struct {
 	ID        int    `gorm:"primary_key"`
 	ClientID  string `gorm:"column:client_id; type:varchar(70); not null; unique" json:"clientId,omitempty"`
@@ -16,7 +16,7 @@ type Connection struct {
 	Accounts  []Account `gorm:"foreignkey:ConnectionID"`
 }
 
-// Account model
+// Account model.
 type Account struct {
 	ID                  int    `gorm:"primary_key"`
 	ConnectionID        int    `gorm:"column:connection_id" json:"connectionId,omitempty"`
@@ -28,7 +28,7 @@ type Account struct {
 	UpdatedAt           time.Time
 }
 
-// User model
+// User model.
 type User struct {
 	ID           int    `gorm:"primary_key"`
 	ExternalID   string `gorm:"column:external_id; type:varchar(255); not null; unique"`
@@ -49,5 +49,5 @@ func (User) TableName() string {
 	return "mg_user"
 }
 
-// Accounts list
+// Accounts list.
 type Accounts []Account

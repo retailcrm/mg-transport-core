@@ -9,10 +9,10 @@ import (
 	"gopkg.in/gormigrate.v1"
 )
 
-// migrations default GORMigrate tool
+// migrations default GORMigrate tool.
 var migrations *Migrate
 
-// Migrate tool, decorates gormigrate.Migration in order to provide better interface & versioning
+// Migrate tool, decorates gormigrate.Migration in order to provide better interface & versioning.
 type Migrate struct {
 	db         *gorm.DB
 	first      *gormigrate.Migration
@@ -22,17 +22,17 @@ type Migrate struct {
 	prepared   bool
 }
 
-// MigrationInfo with migration info
+// MigrationInfo with migration info.
 type MigrationInfo struct {
 	ID string `gorm:"column:id; type:varchar(255)"`
 }
 
-// TableName for MigrationInfo
+// TableName for MigrationInfo.
 func (MigrationInfo) TableName() string {
 	return "migrations"
 }
 
-// Migrations returns default migrate
+// Migrations returns default migrate.
 func Migrations() *Migrate {
 	if migrations == nil {
 		migrations = &Migrate{
@@ -45,7 +45,7 @@ func Migrations() *Migrate {
 	return migrations
 }
 
-// Add GORMigrate to migrate
+// Add GORMigrate to migrate.
 func (m *Migrate) Add(migration *gormigrate.Migration) {
 	if migration == nil {
 		return
@@ -54,13 +54,13 @@ func (m *Migrate) Add(migration *gormigrate.Migration) {
 	m.migrations[migration.ID] = migration
 }
 
-// SetDB to migrate
+// SetDB to migrate.
 func (m *Migrate) SetDB(db *gorm.DB) *Migrate {
 	m.db = db
 	return m
 }
 
-// Migrate all, including schema initialization
+// Migrate all, including schema initialization.
 func (m *Migrate) Migrate() error {
 	if err := m.prepareMigrations(); err != nil {
 		return err
@@ -73,7 +73,7 @@ func (m *Migrate) Migrate() error {
 	return nil
 }
 
-// Rollback all migrations
+// Rollback all migrations.
 func (m *Migrate) Rollback() error {
 	if err := m.prepareMigrations(); err != nil {
 		return err
@@ -94,7 +94,7 @@ func (m *Migrate) Rollback() error {
 	return nil
 }
 
-// MigrateTo specified version
+// MigrateTo specified version.
 func (m *Migrate) MigrateTo(version string) error {
 	if err := m.prepareMigrations(); err != nil {
 		return err
@@ -111,7 +111,7 @@ func (m *Migrate) MigrateTo(version string) error {
 	}
 }
 
-// MigrateNextTo migrate to next version from specified version
+// MigrateNextTo migrate to next version from specified version.
 func (m *Migrate) MigrateNextTo(version string) error {
 	if err := m.prepareMigrations(); err != nil {
 		return err
@@ -132,7 +132,7 @@ func (m *Migrate) MigrateNextTo(version string) error {
 	}
 }
 
-// MigratePreviousTo migrate to previous version from specified version
+// MigratePreviousTo migrate to previous version from specified version.
 func (m *Migrate) MigratePreviousTo(version string) error {
 	if err := m.prepareMigrations(); err != nil {
 		return err
@@ -155,7 +155,7 @@ func (m *Migrate) MigratePreviousTo(version string) error {
 	}
 }
 
-// RollbackTo specified version
+// RollbackTo specified version.
 func (m *Migrate) RollbackTo(version string) error {
 	if err := m.prepareMigrations(); err != nil {
 		return err
@@ -164,7 +164,7 @@ func (m *Migrate) RollbackTo(version string) error {
 	return m.GORMigrate.RollbackTo(version)
 }
 
-// Current migration version
+// Current migration version.
 func (m *Migrate) Current() string {
 	var migrationInfo MigrationInfo
 
@@ -191,7 +191,7 @@ func (m *Migrate) Current() string {
 	return migrationInfo.ID
 }
 
-// NextFrom returns next version from passed version
+// NextFrom returns next version from passed version.
 func (m *Migrate) NextFrom(version string) (string, error) {
 	for key, ver := range m.versions {
 		if ver == version {
@@ -206,7 +206,7 @@ func (m *Migrate) NextFrom(version string) (string, error) {
 	return "", errors.New("cannot find specified migration")
 }
 
-// PreviousFrom returns previous version from passed version
+// PreviousFrom returns previous version from passed version.
 func (m *Migrate) PreviousFrom(version string) (string, error) {
 	for key, ver := range m.versions {
 		if ver == version {
@@ -221,12 +221,12 @@ func (m *Migrate) PreviousFrom(version string) (string, error) {
 	return "", errors.New("cannot find specified migration")
 }
 
-// Close db connection
+// Close db connection.
 func (m *Migrate) Close() error {
 	return m.db.Close()
 }
 
-// prepareMigrations prepare migrate
+// prepareMigrations prepare migrate.
 func (m *Migrate) prepareMigrations() error {
 	var (
 		keys       []string

@@ -14,20 +14,20 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// DefaultLanguages for transports
+// DefaultLanguages for transports.
 var DefaultLanguages = []language.Tag{
 	language.English,
 	language.Russian,
 	language.Spanish,
 }
 
-// DefaultLanguage is a base language which will be chosen if current language is unspecified
+// DefaultLanguage is a base language which will be chosen if current language is unspecified.
 var DefaultLanguage = language.English
 
-// LocalizerContextKey is a key which is used to store localizer in gin.Context key-value storage
+// LocalizerContextKey is a key which is used to store localizer in gin.Context key-value storage.
 const LocalizerContextKey = "localizer"
 
-// Localizer struct
+// Localizer struct.
 type Localizer struct {
 	i18nStorage      *sync.Map
 	TranslationsBox  *packr.Box
@@ -70,17 +70,17 @@ func NewLocalizerFS(locale language.Tag, matcher language.Matcher, translationsB
 	return localizer
 }
 
-// DefaultLocalizerBundle returns new localizer bundle with English as default language
+// DefaultLocalizerBundle returns new localizer bundle with English as default language.
 func DefaultLocalizerBundle() *i18n.Bundle {
 	return i18n.NewBundle(DefaultLanguage)
 }
 
-// LocalizerBundle returns new localizer bundle provided language as default
+// LocalizerBundle returns new localizer bundle provided language as default.
 func LocalizerBundle(tag language.Tag) *i18n.Bundle {
 	return i18n.NewBundle(tag)
 }
 
-// DefaultLocalizerMatcher returns matcher with English, Russian and Spanish tags
+// DefaultLocalizerMatcher returns matcher with English, Russian and Spanish tags.
 func DefaultLocalizerMatcher() language.Matcher {
 	return language.NewMatcher(DefaultLanguages)
 }
@@ -137,12 +137,12 @@ func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 	}
 }
 
-// getLocaleBundle returns current locale bundle and creates it if needed
+// getLocaleBundle returns current locale bundle and creates it if needed.
 func (l *Localizer) getLocaleBundle() *i18n.Bundle {
 	return l.createLocaleBundleByTag(l.LanguageTag)
 }
 
-// createLocaleBundleByTag creates locale bundle by language tag
+// createLocaleBundleByTag creates locale bundle by language tag.
 func (l *Localizer) createLocaleBundleByTag(tag language.Tag) *i18n.Bundle {
 	bundle := i18n.NewBundle(tag)
 	bundle.RegisterUnmarshalFunc("yml", yaml.Unmarshal)
@@ -151,14 +151,14 @@ func (l *Localizer) createLocaleBundleByTag(tag language.Tag) *i18n.Bundle {
 	return bundle
 }
 
-// LoadTranslations will load all translation files from translations directory or from embedded box
+// LoadTranslations will load all translation files from translations directory or from embedded box.
 func (l *Localizer) LoadTranslations() {
 	defer l.loadMutex.Unlock()
 	l.loadMutex.Lock()
 	l.getCurrentLocalizer()
 }
 
-// loadTranslationsToBundle loads translations to provided bundle
+// loadTranslationsToBundle loads translations to provided bundle.
 func (l *Localizer) loadTranslationsToBundle(i18nBundle *i18n.Bundle) {
 	switch {
 	case l.TranslationsPath != "":
@@ -174,7 +174,7 @@ func (l *Localizer) loadTranslationsToBundle(i18nBundle *i18n.Bundle) {
 	}
 }
 
-// LoadTranslations will load all translation files from translations directory
+// LoadTranslations will load all translation files from translations directory.
 func (l *Localizer) loadFromDirectory(i18nBundle *i18n.Bundle) error {
 	files, err := ioutil.ReadDir(l.TranslationsPath)
 	if err != nil {
@@ -190,7 +190,7 @@ func (l *Localizer) loadFromDirectory(i18nBundle *i18n.Bundle) error {
 	return nil
 }
 
-// LoadTranslations will load all translation files from embedded box
+// LoadTranslations will load all translation files from embedded box.
 func (l *Localizer) loadFromFS(i18nBundle *i18n.Bundle) error {
 	err := l.TranslationsBox.Walk(func(s string, file packd.File) error {
 		if fileInfo, err := file.FileInfo(); err == nil {
@@ -217,7 +217,7 @@ func (l *Localizer) loadFromFS(i18nBundle *i18n.Bundle) error {
 	return nil
 }
 
-// getLocalizer returns *i18n.Localizer with provided language tag. It will be created if not exist
+// getLocalizer returns *i18n.Localizer with provided language tag. It will be created if not exist.
 func (l *Localizer) getLocalizer(tag language.Tag) *i18n.Localizer {
 	var localizer *i18n.Localizer
 
@@ -247,24 +247,24 @@ func (l *Localizer) isUnd(tag language.Tag) bool {
 	return tag == language.Und || tag.IsRoot()
 }
 
-// getCurrentLocalizer returns *i18n.Localizer with current language tag
+// getCurrentLocalizer returns *i18n.Localizer with current language tag.
 func (l *Localizer) getCurrentLocalizer() *i18n.Localizer {
 	return l.getLocalizer(l.LanguageTag)
 }
 
-// SetLocale will change language for current localizer
+// SetLocale will change language for current localizer.
 func (l *Localizer) SetLocale(al string) {
 	l.SetLanguage(l.matchByString(al))
 }
 
-// Preload provided languages (so they will not be loaded every time in middleware)
+// Preload provided languages (so they will not be loaded every time in middleware).
 func (l *Localizer) Preload(tags []language.Tag) {
 	for _, tag := range tags {
 		l.getLocalizer(tag)
 	}
 }
 
-// SetLanguage will change language using language tag
+// SetLanguage will change language using language tag.
 func (l *Localizer) SetLanguage(tag language.Tag) {
 	if l.isUnd(tag) {
 		tag = DefaultLanguage
@@ -276,7 +276,7 @@ func (l *Localizer) SetLanguage(tag language.Tag) {
 
 // FetchLanguage will load language from tag
 //
-// Deprecated: Use `(*core.Localizer).LoadTranslations()` instead
+// Deprecated: Use `(*core.Localizer).LoadTranslations()` instead.
 func (l *Localizer) FetchLanguage() {
 	l.LoadTranslations()
 }
@@ -295,7 +295,7 @@ func (l *Localizer) GetLocalizedTemplateMessage(messageID string, templateData m
 	})
 }
 
-// Localize will return localized message by it's ID, or error if message wasn't found
+// Localize will return localized message by it's ID, or error if message wasn't found.
 func (l *Localizer) Localize(messageID string) (string, error) {
 	return l.getCurrentLocalizer().Localize(&i18n.LocalizeConfig{MessageID: messageID})
 }
@@ -309,12 +309,12 @@ func (l *Localizer) LocalizeTemplateMessage(messageID string, templateData map[s
 	})
 }
 
-// BadRequestLocalized is same as BadRequest(string), but passed string will be localized
+// BadRequestLocalized is same as BadRequest(string), but passed string will be localized.
 func (l *Localizer) BadRequestLocalized(err string) (int, interface{}) {
 	return BadRequest(l.GetLocalizedMessage(err))
 }
 
-// GetContextLocalizer returns localizer from context if it exist there
+// GetContextLocalizer returns localizer from context if it exist there.
 func GetContextLocalizer(c *gin.Context) (*Localizer, bool) {
 	if c == nil {
 		return nil, false
