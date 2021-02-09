@@ -78,7 +78,8 @@ func (b *PkgErrorsBuilder) getErrorCause(err error) error {
 	return causeable.Cause()
 }
 
-// getErrorStackTrace will try to extract stacktrace from error using StackTrace method (default errors doesn't have it).
+// getErrorStackTrace will try to extract stacktrace from error using StackTrace method
+// (default errors doesn't have it).
 func (b *PkgErrorsBuilder) getErrorStack(err error) pkgErrors.StackTrace {
 	traceable, ok := err.(PkgErrorTraceable)
 	if !ok {

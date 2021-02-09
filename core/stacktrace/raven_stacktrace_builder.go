@@ -13,7 +13,8 @@ type Frame uintptr
 // Stacktrace is stack of Frames.
 type Stacktrace []Frame
 
-// RavenStackTransformer is an interface for any component, which will transform some unknown stacktrace data to stacktrace.Stacktrace.
+// RavenStackTransformer is an interface for any component, which will transform some
+// unknown stacktrace data to stacktrace.Stacktrace.
 type RavenStackTransformer interface {
 	Stack() Stacktrace
 }

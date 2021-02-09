@@ -42,7 +42,8 @@ type Engine struct {
 	prepared         bool
 }
 
-// New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or engine.ConfigureRouter(...) with callback).
+// New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or
+// engine.ConfigureRouter(...) with callback).
 func New() *Engine {
 	return &Engine{
 		Config: nil,

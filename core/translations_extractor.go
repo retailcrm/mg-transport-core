@@ -23,7 +23,8 @@ type TranslationsExtractor struct {
 	TranslationsPath string
 }
 
-// NewTranslationsExtractor constructor. Use "translate.{}.yml" as template if your translations are named like "translate.en.yml".
+// NewTranslationsExtractor constructor. Use "translate.{}.yml" as template
+// if your translations are named like "translate.en.yml".
 func NewTranslationsExtractor(fileNameTemplate string) *TranslationsExtractor {
 	return &TranslationsExtractor{fileNameTemplate: fileNameTemplate}
 }
