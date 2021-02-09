@@ -14,6 +14,7 @@ env:
 jobs:
   golangci:
     name: lint
+    if: ${{ github.event == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out code into the Go module directory
@@ -22,7 +23,6 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.36
-          args: --new-from-rev=${{ github.base_ref || format('{0}~1', github.ref) }}
           only-new-issues: true
   tests:
     name: Tests
