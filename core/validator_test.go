@@ -54,10 +54,22 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 }
 
 func (s *ValidatorSuite) Test_ValidationSuccess() {
-	conn := Connection{
-		Key: "key",
-		URL: "https://test.retailcrm.pro",
+	domains := []string{
+		"https://asd.retailcrm.ru",
+		"https://test.retailcrm.pro",
+		"https://raisa.retailcrm.es",
+		"https://blabla.simla.com",
+		"https://blabla.simla.ru",
+		"https://blabla.simlachat.com",
+		"https://blabla.simlachat.ru",
 	}
-	err := s.engine.Struct(conn)
-	assert.NoError(s.T(), err, s.getError(err))
+
+	for _, domain := range domains {
+		conn := Connection{
+			Key: "key",
+			URL: domain,
+		}
+		err := s.engine.Struct(conn)
+		assert.NoError(s.T(), err, s.getError(err))
+	}
 }
