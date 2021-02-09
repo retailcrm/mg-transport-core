@@ -22,7 +22,8 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         with:
           version: v1.36
-          args: --new-from-rev=${{ github.base_ref || 'HEAD~' }}
+          args: --new-from-rev=${{ github.base_ref || format('{0}~1', github.ref) }}
+          only-new-issues: true
   tests:
     name: Tests
     runs-on: ubuntu-latest
