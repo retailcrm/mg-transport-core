@@ -54,15 +54,16 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 }
 
 func (s *ValidatorSuite) Test_ValidationSuccess() {
-
 	domains := []string{
 		"https://asd.retailcrm.ru",
 		"https://test.retailcrm.pro",
 		"https://raisa.retailcrm.es",
 		"https://blabla.simla.com",
+		"https://blabla.simla.ru",
 		"https://blabla.simlachat.com",
 		"https://blabla.simlachat.ru",
 	}
+
 	for _, domain := range domains {
 		conn := Connection{
 			Key: "key",
