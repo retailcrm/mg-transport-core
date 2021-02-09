@@ -17,7 +17,7 @@ var (
 	}
 	markdownSymbols = []string{"*", "_", "`", "["}
 	regCommandName  = regexp.MustCompile(
-		`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simlachat\.(com|ru))/?$`)
+		`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simlachat\.(com|ru)|simla\.com)/?$`)
 	slashRegex = regexp.MustCompile(`/+$`)
 )
 
