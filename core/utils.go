@@ -61,7 +61,6 @@ var defaultCurrencies = map[string]string{
 	"cop": "COL$",
 	"crc": "₡",
 	"cup": "$MN",
-	"mxn": "NP$",
 	"nio": "C$",
 	"pab": "B/",
 	"pyg": "₲",

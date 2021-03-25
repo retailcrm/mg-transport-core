@@ -252,6 +252,7 @@ func TestUtils_GetCurrencySymbol(t *testing.T) {
 	}
 
 	assert.Equal(t, "XAG", GetCurrencySymbol("xag"))
+	assert.Equal(t, "MXN", GetCurrencySymbol("mxn"))
 }
 
 func TestUtils_ReplaceMarkdownSymbols(t *testing.T) {
