@@ -1,6 +1,7 @@
 package core
 
 import (
+	"embed"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -43,9 +44,8 @@ func (t *TranslationsExtractorTest) SetupSuite() {
 	errWrite := ioutil.WriteFile("/tmp/translate.en.yml", data, os.ModePerm)
 	require.NoError(t.T(), errWrite)
 
-	t.extractor = NewTranslationsExtractor("translate.{}.yml")
+	t.extractor = NewTranslationsExtractor(embed.FS{},"translate.{}.yml")
 	t.extractor.TranslationsPath = "/tmp"
-	t.extractor.TranslationsBox = nil
 }
 
 func (t *TranslationsExtractorTest) Test_LoadLocale() {

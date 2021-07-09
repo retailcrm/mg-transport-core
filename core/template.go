@@ -1,16 +1,18 @@
 package core
 
 import (
+	"embed"
+	"fmt"
 	"html/template"
 
 	"github.com/gin-contrib/multitemplate"
-	"github.com/gobuffalo/packr/v2"
 )
 
 // Renderer wraps multitemplate.Renderer in order to make it easier to use.
 type Renderer struct {
 	multitemplate.Renderer
-	TemplatesBox *packr.Box
+	TemplatesFS embed.FS
+	TemplatesDir string
 	FuncMap      template.FuncMap
 	alreadyAdded map[string]*template.Template
 }
@@ -45,20 +47,16 @@ func (r *Renderer) Push(name string, files ...string) *template.Template {
 		return tpl
 	}
 
-	if r.TemplatesBox == nil {
-		return r.storeTemplate(name, r.AddFromFilesFuncs(name, r.FuncMap, files...))
-	}
-
-	return r.storeTemplate(name, r.addFromBox(name, r.FuncMap, files...))
+	return r.storeTemplate(name, r.addFromFS(name, r.FuncMap, files...))
 }
 
-// addFromBox adds embedded template.
-func (r *Renderer) addFromBox(name string, funcMap template.FuncMap, files ...string) *template.Template {
+// addFromFS adds embedded template.
+func (r *Renderer) addFromFS(name string, funcMap template.FuncMap, files ...string) *template.Template {
 	var filesData []string
 
-	for _, file := range files {
-		if data, err := r.TemplatesBox.FindString(file); err == nil {
-			filesData = append(filesData, data)
+	for _, fileName := range files {
+		if data, err := r.TemplatesFS.ReadFile(fmt.Sprintf("%s/%s", r.TemplatesDir, fileName)); err == nil {
+			filesData = append(filesData, string(data))
 		}
 	}
 
