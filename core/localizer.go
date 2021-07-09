@@ -56,7 +56,7 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 
 // NewLocalizerFS returns localizer instance with specified parameters.
 // Usage:
-//      NewLocalizerFS(language.English, DefaultLocalizerMatcher(), translations)
+//      NewLocalizerFS(language.English, DefaultLocalizerMatcher(), translationsFS, translationsDir)
 // TODO This code should be covered with tests.
 func NewLocalizerFS(
 	locale language.Tag, matcher language.Matcher, translationsFS embed.FS, translationsDir string,
