@@ -20,15 +20,15 @@ import (
 // Translations can be checked manually, or via external library like https://github.com/google/go-cmp
 type TranslationsExtractor struct {
 	fileNameTemplate string
-	translations embed.FS
-	translationsDir  string
+	TranslationsFS   embed.FS
+	TranslationsDir  string
 	TranslationsPath string
 }
 
 // NewTranslationsExtractor constructor. Use "translate.{}.yml" as template
 // if your translations are named like "translate.en.yml".
-func NewTranslationsExtractor(fileNameTemplate string, translations embed.FS, translationsDir string) *TranslationsExtractor {
-	return &TranslationsExtractor{translations: translations, translationsDir: translationsDir, fileNameTemplate: fileNameTemplate}
+func NewTranslationsExtractor(fileNameTemplate string) *TranslationsExtractor {
+	return &TranslationsExtractor{fileNameTemplate: fileNameTemplate}
 }
 
 // unmarshalToMap returns map with unmarshaled data or error.
@@ -50,7 +50,7 @@ func (t *TranslationsExtractor) loadYAMLFromFS(fileName string) (map[string]inte
 		err     error
 	)
 
-	if data, err = t.translations.ReadFile(fmt.Sprintf("%s/%s", t.translationsDir, fileName)); err != nil {
+	if data, err = t.TranslationsFS.ReadFile(fmt.Sprintf("%s/%s", t.TranslationsDir, fileName)); err != nil {
 		return dataMap, err
 	}
 

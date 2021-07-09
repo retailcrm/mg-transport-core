@@ -30,8 +30,8 @@ const LocalizerContextKey = "localizer"
 // Localizer struct.
 type Localizer struct {
 	i18nStorage      *sync.Map
-	TranslationsFS 	 embed.FS
-	TranslationsDir   string
+	TranslationsFS   embed.FS
+	TranslationsDir  string
 	loadMutex        *sync.RWMutex
 	LocaleMatcher    language.Matcher
 	LanguageTag      language.Tag
@@ -60,11 +60,11 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 // TODO This code should be covered with tests.
 func NewLocalizerFS(
 	locale language.Tag, matcher language.Matcher, translationsFS embed.FS, translationsDir string,
-	) *Localizer {
+) *Localizer {
 	localizer := &Localizer{
 		i18nStorage:     &sync.Map{},
 		LocaleMatcher:   matcher,
-		TranslationsFS:	 translationsFS,
+		TranslationsFS:  translationsFS,
 		TranslationsDir: translationsDir,
 		loadMutex:       &sync.RWMutex{},
 	}
@@ -95,7 +95,7 @@ func DefaultLocalizerMatcher() language.Matcher {
 func (l *Localizer) Clone() *Localizer {
 	clone := &Localizer{
 		i18nStorage:      l.i18nStorage,
-		TranslationsFS:	  l.TranslationsFS,
+		TranslationsFS:   l.TranslationsFS,
 		TranslationsDir:  l.TranslationsDir,
 		LocaleMatcher:    l.LocaleMatcher,
 		LanguageTag:      l.LanguageTag,
@@ -193,7 +193,7 @@ func (l *Localizer) loadFromDirectory(i18nBundle *i18n.Bundle) error {
 	return nil
 }
 
-// LoadTranslations will load all translation files from FS.
+// LoadTranslations will load all translation files from embed.FS by translations directory.
 func (l *Localizer) loadFromFS(i18nBundle *i18n.Bundle) error {
 	translationFiles, err := l.TranslationsFS.ReadDir(l.TranslationsDir)
 	if err != nil {

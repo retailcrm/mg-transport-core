@@ -11,7 +11,7 @@ import (
 // Renderer wraps multitemplate.Renderer in order to make it easier to use.
 type Renderer struct {
 	multitemplate.Renderer
-	TemplatesFS embed.FS
+	TemplatesFS  embed.FS
 	TemplatesDir string
 	FuncMap      template.FuncMap
 	alreadyAdded map[string]*template.Template
@@ -47,7 +47,11 @@ func (r *Renderer) Push(name string, files ...string) *template.Template {
 		return tpl
 	}
 
-	return r.storeTemplate(name, r.addFromFS(name, r.FuncMap, files...))
+	if _, err := r.TemplatesFS.ReadDir(r.TemplatesDir); err == nil {
+		return r.storeTemplate(name, r.addFromFS(name, r.FuncMap, files...))
+	}
+
+	return r.storeTemplate(name, r.AddFromFilesFuncs(name, r.FuncMap, files...))
 }
 
 // addFromFS adds embedded template.
