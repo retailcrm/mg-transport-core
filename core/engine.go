@@ -145,7 +145,7 @@ func (e *Engine) CreateRenderer(callback func(*Renderer), funcs template.FuncMap
 // CreateRendererFS with translation function and packr box with templates data.
 func (e *Engine) CreateRendererFS(
 	templatesFS embed.FS, templatesDir string, callback func(*Renderer), funcs template.FuncMap,
-	) Renderer {
+) Renderer {
 	renderer := NewRenderer(e.TemplateFuncMap(funcs))
 	renderer.TemplatesFS = templatesFS
 	renderer.TemplatesDir = templatesDir

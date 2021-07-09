@@ -18,7 +18,6 @@ import (
     "html/template"
 
     "github.com/gin-gonic/gin"
-    "github.com/gobuffalo/packr/v2"
     "github.com/retailcrm/mg-transport-core/core"
 )
 
@@ -35,6 +34,9 @@ func main() {
     // Set translations path
     app.TranslationsPath = "./translations"
 
+    // or set translations directory for embed.FS
+    app.TranslationsDir = "translate"
+    
     // Preload some translations so they will not be loaded for every request
     app.PreloadLanguages = core.DefaultLanguages
     
@@ -61,9 +63,7 @@ func main() {
 ```
 
 ### Resource embedding
-[packr](https://github.com/gobuffalo/packr/tree/master/v2) can be used to provide resource embedding. In order to use packr you must follow
-[this instruction](https://github.com/gobuffalo/packr/tree/master/v2#library-installation), and provide boxes with templates,
-translations and assets to library.
+[embed](https://golang.org/pkg/embed/) can be used to provide resource embedding. Go source files that import "embed" can use the //go:embed directive to initialize a variable of type string, []byte, or FS with the contents of files read from the package directory or subdirectories at compile time.
 
 Example:
 ```go
@@ -79,22 +79,35 @@ import (
     "github.com/retailcrm/mg-transport-core/core"
 )
 
+//go:embed static
+var Static embed.FS
+
+//go:embed translations
+var TranslationsFS embed.FS
+var TranslationsDir string
+
+//go:embed templates
+var TemplatesFS embed.FS
+var TemplatesDir string
+
+
 func main() {
-    static := packr.New("assets", "./static")
-    templates := packr.New("templates", "./templates")
-    translations := packr.New("translations", "./translate")
-    
     app := core.New()
     app.Config = core.NewConfig("config.yml")
     app.DefaultError = "unknown_error"
 
-    // Now translations will be loaded from packr.Box
-    app.TranslationsBox = translations
+    // Now translations will be loaded from embedded files in Go program
+    app.TranslationsFS = TranslationsFS
+    app.TranslationsDir = TranslationsDir
     app.PreloadLanguages = core.DefaultLanguages
     
     app.ConfigureRouter(func(engine *gin.Engine) {
-        // gin.Engine can use packr.Box as http.FileSystem
-        engine.StaticFS("/static", static)
+    	// To serve static files by gin need to convert fsys to a FileSystem implementation
+		
+    	// FS implements the io/fs package's FS interface,
+    	// so it can be used with any package that understands file systems,
+    	// including net/http, text/template, and html/template.
+        engine.StaticFS("/assets", http.FS(Static))
         engine.HTMLRender = app.CreateRendererFS(
             templates, 
             func(renderer *core.Renderer) {
