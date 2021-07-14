@@ -16,8 +16,6 @@ var (
 		"/api/integration-modules/{code}/edit",
 	}
 	markdownSymbols = []string{"*", "_", "`", "["}
-	regCommandName  = regexp.MustCompile(
-		`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simla(chat)?\.(com|ru))/?$`)
 	slashRegex = regexp.MustCompile(`/+$`)
 )
 
@@ -54,6 +52,7 @@ type Config struct {
 	ConfigAWS        ConfigAWS         `yaml:"config_aws"`
 	TransportInfo    Info              `yaml:"transport_info"`
 	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
+	DomainStores     []string          `yaml:"domainStores"`
 }
 
 // Info struct.
@@ -208,3 +207,8 @@ func (h *HTTPClientConfig) IsSSLVerificationEnabled() bool {
 
 	return *h.SSLVerification
 }
+
+func (c Config) GetDomainStores() []string {
+	return c.DomainStores
+}
+
