@@ -1,9 +1,6 @@
 package core
 
 import (
-	"encoding/json"
-	"github.com/h2non/gock"
-	"net/http"
 	"testing"
 
 	"github.com/gin-gonic/gin/binding"
@@ -23,8 +20,6 @@ func Test_Validator(t *testing.T) {
 }
 
 func (s *ValidatorSuite) SetupSuite() {
-	initValidator([]string{"https://example.com/domains.json"})
-
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		s.engine = v
 	} else {
@@ -54,38 +49,28 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 	validatorErrors := err.(validator.ValidationErrors)
 	assert.Equal(
 		s.T(),
-		"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validatecrmurl' tag",
+		"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmUrl' tag",
 		validatorErrors.Error())
 }
 
 func (s *ValidatorSuite) Test_ValidationSuccess() {
-	crmDomains := CrmDomains{
-		"",
-		[]Domain{{"asd.retailcrm.ru"},
-			{"test.retailcrm.pro"},
-			{"raisa.retailcrm.es"},
-			{"blabla.simla.com"},
-			{"blabla.simla.ru"},
-			{"blabla.simlachat.com"},
-			{"blabla.simlachat.ru"},
-		},
+	crmDomains := []string{
+		"https://asd.retailcrm.ru",
+		"https://test.retailcrm.pro",
+		"https://raisa.retailcrm.es",
+		"https://blabla.simla.com",
+		"https://blabla.simlachat.com",
+		"https://blabla.simlachat.ru",
+		"https://blabla.ecomlogic.com",
 	}
 
-	data, _ := json.Marshal(crmDomains)
-
-	for _, domain:= range crmDomains.Domains {
-		gock.New("https://example.com").
-			Get("/domains.json").
-			Reply(http.StatusOK).
-			BodyString(string(data))
-
+	for _, domain:= range crmDomains {
 		conn := Connection{
 			Key: "key",
-			URL: "https://" + domain.Domain,
+			URL: domain,
 		}
+
 		err := s.engine.Struct(conn)
 		assert.NoError(s.T(), err, s.getError(err))
-
-		gock.Off()
 	}
 }

@@ -8,23 +8,20 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
-var domainStores []string
-
-// init here will register `validatecrmurl` function for gin validator.
-func initValidator(DomainStores []string) {
-	domainStores = DomainStores
-
+// init here will register `validateCrmUrl` function for gin validator.
+func init() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		if err := v.RegisterValidation("validatecrmurl", validateCrmURL); err != nil {
+		if err := v.RegisterValidation("validateCrmUrl", validateCrmUrl); err != nil {
 			panic("cannot register crm url validator: " + err.Error())
 		}
 	}
 }
 
 // validateCrmURL will validate CRM URL.
-func validateCrmURL(fl validator.FieldLevel) bool {
+func validateCrmUrl(fl validator.FieldLevel) bool {
 	domainName := fl.Field().String()
 	result := isDomainValid(domainName)
 
@@ -42,7 +39,7 @@ func isDomainValid(crmUrl string) bool {
 		return false
 	}
 
-	var crmDomains = getValidDomains()
+	var crmDomains = getValidDomains(parseUrl.Hostname())
 
 	for _, domain := range crmDomains {
 		if domain.Domain == parseUrl.Hostname() {
@@ -75,15 +72,26 @@ func checkUrlString(parseUrl *url.URL) bool {
 	return true
 }
 
-func getValidDomains() []Domain {
-	var allDomains []Domain
+func getValidDomains(hostName string) []Domain {
+	subdomain := strings.Split(hostName, ".")[0]
 
-	for _, store := range domainStores {
-		storeDomains := getDomainsByStore(store, &http.Client{})
-		allDomains = append(allDomains[:], storeDomains[:]...)
+	crmDomains := getDomainsByStore("https://infra-data.retailcrm.tech/crm-domains.json", &http.Client{})
+
+	if nil != crmDomains {
+		crmDomains = addSubdomain(subdomain, crmDomains)
 	}
 
-	return allDomains
+	boxDomains := getDomainsByStore("https://infra-data.retailcrm.tech/box-domains.json", &http.Client{})
+
+	return append(crmDomains[:], boxDomains[:]...)
+}
+
+func addSubdomain(subdomain string, domains []Domain) []Domain {
+	for key, domain := range domains {
+		domains[key].Domain = subdomain + "." + domain.Domain
+	}
+
+	return domains
 }
 
 func getDomainsByStore(store string, client *http.Client) []Domain {
