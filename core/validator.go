@@ -25,7 +25,10 @@ func initValidator(DomainStores []string) {
 
 // validateCrmURL will validate CRM URL.
 func validateCrmURL(fl validator.FieldLevel) bool {
-	return isDomainValid(fl.Field().String())
+	domainName := fl.Field().String()
+	result := isDomainValid(domainName)
+
+	return result
 }
 
 func isDomainValid(crmUrl string) bool {

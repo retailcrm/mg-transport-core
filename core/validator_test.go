@@ -1,6 +1,9 @@
 package core
 
 import (
+	"encoding/json"
+	"github.com/h2non/gock"
+	"net/http"
 	"testing"
 
 	"github.com/gin-gonic/gin/binding"
@@ -20,6 +23,8 @@ func Test_Validator(t *testing.T) {
 }
 
 func (s *ValidatorSuite) SetupSuite() {
+	initValidator([]string{"https://example.com/domains.json"})
+
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		s.engine = v
 	} else {
@@ -54,22 +59,33 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 }
 
 func (s *ValidatorSuite) Test_ValidationSuccess() {
-	domains := []string{
-		"https://asd.retailcrm.ru",
-		"https://test.retailcrm.pro",
-		"https://raisa.retailcrm.es",
-		"https://blabla.simla.com",
-		"https://blabla.simla.ru",
-		"https://blabla.simlachat.com",
-		"https://blabla.simlachat.ru",
+	crmDomains := CrmDomains{
+		"",
+		[]Domain{{"asd.retailcrm.ru"},
+			{"test.retailcrm.pro"},
+			{"raisa.retailcrm.es"},
+			{"blabla.simla.com"},
+			{"blabla.simla.ru"},
+			{"blabla.simlachat.com"},
+			{"blabla.simlachat.ru"},
+		},
 	}
 
-	for _, domain := range domains {
+	data, _ := json.Marshal(crmDomains)
+
+	for _, domain:= range crmDomains.Domains {
+		gock.New("https://example.com").
+			Get("/domains.json").
+			Reply(http.StatusOK).
+			BodyString(string(data))
+
 		conn := Connection{
 			Key: "key",
-			URL: domain,
+			URL: "https://" + domain.Domain,
 		}
 		err := s.engine.Struct(conn)
 		assert.NoError(s.T(), err, s.getError(err))
+
+		gock.Off()
 	}
 }
