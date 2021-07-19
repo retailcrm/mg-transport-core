@@ -38,15 +38,45 @@ func isDomainValid(crmUrl string) bool {
 		return false
 	}
 
-	crmDomains := getValidDomains(parseUrl.Hostname())
+	mainDomain, domainDeep := getMainDomain(parseUrl.Hostname())
 
-	for _, domain := range crmDomains {
-		if domain.Domain == parseUrl.Hostname() {
+	if domainDeep != 3 {
+		return false
+	}
+
+	if true == checkDomains(crmDomainsUrl, mainDomain){
+		return true
+	}
+
+	if true == checkDomains(boxDomainsUrl, parseUrl.Hostname()){
+		return true
+	}
+
+	return false
+}
+
+func checkDomains(domainsStoreUrl string, domain string) bool {
+	crmDomains := getDomainsByStore(domainsStoreUrl, http.DefaultClient)
+
+	if nil == crmDomains {
+		return false
+	}
+
+	for _, crmDomain := range crmDomains {
+		if crmDomain.Domain == domain {
 			return true
 		}
 	}
 
 	return false
+}
+
+func getMainDomain(hostname string) (mainDomain string, domainDeep int) {
+	domainArray := strings.Split(hostname, ".")
+	domainDeep = len(domainArray)
+	domainArray = append(domainArray[:0], domainArray[1:]...)
+
+	return strings.Join(domainArray, "."), domainDeep
 }
 
 func checkUrlString(parseUrl *url.URL) bool {
@@ -65,27 +95,6 @@ func checkUrlString(parseUrl *url.URL) bool {
 	return true
 }
 
-func getValidDomains(hostName string) []Domain {
-	subdomain := strings.Split(hostName, ".")[0]
-	crmDomains := getDomainsByStore(crmDomainsUrl, http.DefaultClient)
-
-	if nil != crmDomains {
-		crmDomains = addSubdomain(subdomain, crmDomains)
-	}
-
-	boxDomains := getDomainsByStore(boxDomainsUrl, http.DefaultClient)
-
-	return append(crmDomains[:], boxDomains[:]...)
-}
-
-func addSubdomain(subdomain string, domains []Domain) []Domain {
-	for key, domain := range domains {
-		domains[key].Domain = subdomain + "." + domain.Domain
-	}
-
-	return domains
-}
-
 func getDomainsByStore(store string, client *http.Client) []Domain {
 	req, reqErr := http.NewRequest(http.MethodGet, store, nil); if reqErr != nil {
 		return nil
@@ -96,12 +105,10 @@ func getDomainsByStore(store string, client *http.Client) []Domain {
 	}
 
 	defer func(body io.ReadCloser) {
-		if err := body.Close(); err != nil {
-			panic(err)
-		}
+		_ = body.Close()
 	} (resp.Body)
 
-	respBody, readErr := ioutil.ReadAll(resp.Body); ; if readErr != nil {
+	respBody, readErr := ioutil.ReadAll(resp.Body); if readErr != nil {
 		return nil
 	}
 
