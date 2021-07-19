@@ -52,7 +52,6 @@ type Config struct {
 	ConfigAWS        ConfigAWS         `yaml:"config_aws"`
 	TransportInfo    Info              `yaml:"transport_info"`
 	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
-	DomainStores     []string          `yaml:"domainStores"`
 }
 
 // Info struct.
@@ -206,9 +205,5 @@ func (h *HTTPClientConfig) IsSSLVerificationEnabled() bool {
 	}
 
 	return *h.SSLVerification
-}
-
-func (c Config) GetDomainStores() []string {
-	return c.DomainStores
 }
 
