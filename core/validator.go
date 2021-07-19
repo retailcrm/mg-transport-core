@@ -11,6 +11,9 @@ import (
 	"strings"
 )
 
+const crmDomainsUrl string = "https://infra-data.retailcrm.tech/crm-domains.json"
+const boxDomainsUrl string = "https://infra-data.retailcrm.tech/box-domains.json"
+
 // init here will register `validateCrmUrl` function for gin validator.
 func init() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
@@ -29,17 +32,13 @@ func validateCrmUrl(fl validator.FieldLevel) bool {
 }
 
 func isDomainValid(crmUrl string) bool {
-	var parseUrl = getParseUrl(crmUrl)
+	parseUrl, err := url.ParseRequestURI(crmUrl)
 
-	if nil == parseUrl {
+	if err != nil || nil == parseUrl || !checkUrlString(parseUrl) {
 		return false
 	}
 
-	if !checkUrlString(parseUrl) {
-		return false
-	}
-
-	var crmDomains = getValidDomains(parseUrl.Hostname())
+	crmDomains := getValidDomains(parseUrl.Hostname())
 
 	for _, domain := range crmDomains {
 		if domain.Domain == parseUrl.Hostname() {
@@ -50,18 +49,12 @@ func isDomainValid(crmUrl string) bool {
 	return false
 }
 
-func getParseUrl(crmUrl string) *url.URL {
-	parseUrl, err := url.ParseRequestURI(crmUrl)
-
-	if err != nil {
-		return nil
-	}
-
-	return parseUrl
-}
-
 func checkUrlString(parseUrl *url.URL) bool {
 	if parseUrl.Scheme != "https" {
+		return false
+	}
+
+	if len(parseUrl.Query()) != 0 && parseUrl.Fragment == "" {
 		return false
 	}
 
@@ -74,14 +67,13 @@ func checkUrlString(parseUrl *url.URL) bool {
 
 func getValidDomains(hostName string) []Domain {
 	subdomain := strings.Split(hostName, ".")[0]
-
-	crmDomains := getDomainsByStore("https://infra-data.retailcrm.tech/crm-domains.json", &http.Client{})
+	crmDomains := getDomainsByStore(crmDomainsUrl, http.DefaultClient)
 
 	if nil != crmDomains {
 		crmDomains = addSubdomain(subdomain, crmDomains)
 	}
 
-	boxDomains := getDomainsByStore("https://infra-data.retailcrm.tech/box-domains.json", &http.Client{})
+	boxDomains := getDomainsByStore(boxDomainsUrl, http.DefaultClient)
 
 	return append(crmDomains[:], boxDomains[:]...)
 }
@@ -95,29 +87,27 @@ func addSubdomain(subdomain string, domains []Domain) []Domain {
 }
 
 func getDomainsByStore(store string, client *http.Client) []Domain {
-	req, _ := http.NewRequest("GET", store, nil)
+	req, reqErr := http.NewRequest(http.MethodGet, store, nil); if reqErr != nil {
+		return nil
+	}
 	req.Header.Add("Accept", "application/json")
-	resp, err := client.Do(req)
-
-	if err != nil {
+	resp, respErr := client.Do(req); if respErr != nil {
 		return nil
 	}
 
-	defer func(Body io.ReadCloser) {
-		err := Body.Close()
-
-		if err != nil {
+	defer func(body io.ReadCloser) {
+		if err := body.Close(); err != nil {
 			panic(err)
 		}
-	}(resp.Body)
+	} (resp.Body)
 
-	respBody, _ := ioutil.ReadAll(resp.Body)
+	respBody, readErr := ioutil.ReadAll(resp.Body); ; if readErr != nil {
+		return nil
+	}
 
 	var crmDomains CrmDomains
 
-	err = json.Unmarshal(respBody, &crmDomains)
-
-	if err != nil {
+	err := json.Unmarshal(respBody, &crmDomains); if err != nil {
 		return nil
 	}
 
