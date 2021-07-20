@@ -26,9 +26,8 @@ func init() {
 // validateCrmURL will validate CRM URL.
 func validateCrmUrl(fl validator.FieldLevel) bool {
 	domainName := fl.Field().String()
-	result := isDomainValid(domainName)
 
-	return result
+	return isDomainValid(domainName)
 }
 
 func isDomainValid(crmUrl string) bool {
@@ -38,17 +37,13 @@ func isDomainValid(crmUrl string) bool {
 		return false
 	}
 
-	mainDomain, domainDeep := getMainDomain(parseUrl.Hostname())
+	mainDomain := getMainDomain(parseUrl.Hostname())
 
-	if domainDeep != 3 {
-		return false
-	}
-
-	if true == checkDomains(crmDomainsUrl, mainDomain){
+	if checkDomains(crmDomainsUrl, mainDomain) {
 		return true
 	}
 
-	if true == checkDomains(boxDomainsUrl, parseUrl.Hostname()){
+	if checkDomains(boxDomainsUrl, parseUrl.Hostname()) {
 		return true
 	}
 
@@ -56,7 +51,7 @@ func isDomainValid(crmUrl string) bool {
 }
 
 func checkDomains(domainsStoreUrl string, domain string) bool {
-	crmDomains := getDomainsByStore(domainsStoreUrl, http.DefaultClient)
+	crmDomains := getDomainsByStore(domainsStoreUrl)
 
 	if nil == crmDomains {
 		return false
@@ -71,50 +66,50 @@ func checkDomains(domainsStoreUrl string, domain string) bool {
 	return false
 }
 
-func getMainDomain(hostname string) (mainDomain string, domainDeep int) {
-	domainArray := strings.Split(hostname, ".")
-	domainDeep = len(domainArray)
-	domainArray = append(domainArray[:0], domainArray[1:]...)
-
-	return strings.Join(domainArray, "."), domainDeep
+func getMainDomain(hostname string) (mainDomain string) {
+	return strings.Join(strings.Split(hostname, ".")[1:], ".")
 }
 
 func checkUrlString(parseUrl *url.URL) bool {
-	if parseUrl.Scheme != "https" {
-		return false
-	}
+	password, _ := parseUrl.User.Password()
 
-	if len(parseUrl.Query()) != 0 && parseUrl.Fragment == "" {
-		return false
-	}
-
-	if parseUrl.Path != "/" && parseUrl.Path != "" {
+	if parseUrl.Scheme != "https" ||
+		parseUrl.Port() != "" ||
+		(parseUrl.Path != "/" && parseUrl.Path != "") ||
+		len(parseUrl.Query()) != 0 ||
+		parseUrl.Fragment != "" ||
+		parseUrl.User.Username() != "" ||
+		password != "" {
 		return false
 	}
 
 	return true
 }
 
-func getDomainsByStore(store string, client *http.Client) []Domain {
-	req, reqErr := http.NewRequest(http.MethodGet, store, nil); if reqErr != nil {
+func getDomainsByStore(store string) []Domain {
+	req, reqErr := http.NewRequest(http.MethodGet, store, nil)
+	if reqErr != nil {
 		return nil
 	}
 	req.Header.Add("Accept", "application/json")
-	resp, respErr := client.Do(req); if respErr != nil {
+	resp, respErr := http.DefaultClient.Do(req)
+	if respErr != nil {
 		return nil
 	}
 
 	defer func(body io.ReadCloser) {
 		_ = body.Close()
-	} (resp.Body)
+	}(resp.Body)
 
-	respBody, readErr := ioutil.ReadAll(resp.Body); if readErr != nil {
+	respBody, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
 		return nil
 	}
 
 	var crmDomains CrmDomains
 
-	err := json.Unmarshal(respBody, &crmDomains); if err != nil {
+	err := json.Unmarshal(respBody, &crmDomains)
+	if err != nil {
 		return nil
 	}
 
@@ -126,6 +121,6 @@ type Domain struct {
 }
 
 type CrmDomains struct {
-	CreateDate string `json:"createDate"`
-	Domains   []Domain `json:"domains"`
+	CreateDate string   `json:"createDate"`
+	Domains    []Domain `json:"domains"`
 }

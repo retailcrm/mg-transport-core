@@ -40,17 +40,29 @@ func (s *ValidatorSuite) Test_ValidationInvalidType() {
 }
 
 func (s *ValidatorSuite) Test_ValidationFails() {
-	conn := Connection{
-		Key: "key",
-		URL: "url",
+	crmDomains := []string{
+		"https://asd.retailcrm.ru:90",
+		"https://test.retailcrm.pro/test",
+		"http://raisa.retailcrm.es",
+		"https://blabla.simla.com#test",
+		"https://test:test@blabla.simlachat.com",
 	}
-	err := s.engine.Struct(conn)
-	require.IsType(s.T(), validator.ValidationErrors{}, err)
-	validatorErrors := err.(validator.ValidationErrors)
-	assert.Equal(
-		s.T(),
-		"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmUrl' tag",
-		validatorErrors.Error())
+
+	for _, domain:= range crmDomains {
+		conn := Connection{
+			Key: "key",
+			URL: domain,
+		}
+
+		err := s.engine.Struct(conn)
+		require.IsType(s.T(), validator.ValidationErrors{}, err)
+		validatorErrors := err.(validator.ValidationErrors)
+
+		assert.Equal(
+			s.T(),
+			"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmUrl' tag",
+			validatorErrors.Error())
+	}
 }
 
 func (s *ValidatorSuite) Test_ValidationSuccess() {
@@ -62,6 +74,11 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 		"https://blabla.simlachat.com",
 		"https://blabla.simlachat.ru",
 		"https://blabla.ecomlogic.com",
+		"https://crm.baucenter.ru",
+		"https://crm.holodilnik.ru",
+		"https://crm.eco.lanit.ru",
+		"https://ecom.inventive.ru",
+		"https://retailcrm.tvoydom.ru",
 	}
 
 	for _, domain:= range crmDomains {
