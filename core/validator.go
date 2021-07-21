@@ -108,7 +108,6 @@ func getDomainsByStore(store string) []Domain {
 		return nil
 	}
 
-	_ = resp.Body.Close()
 	respBody, readErr := ioutil.ReadAll(resp.Body)
 
 	if readErr != nil {
@@ -122,6 +121,8 @@ func getDomainsByStore(store string) []Domain {
 	if err != nil {
 		return nil
 	}
+
+	_ = resp.Body.Close()
 
 	return crmDomains.Domains
 }
