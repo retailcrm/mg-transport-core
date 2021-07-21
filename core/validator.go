@@ -2,56 +2,56 @@ package core
 
 import (
 	"encoding/json"
-	"github.com/gin-gonic/gin/binding"
-	"github.com/go-playground/validator/v10"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
+
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
 )
 
-const crmDomainsUrl string = "https://infra-data.retailcrm.tech/crm-domains.json"
-const boxDomainsUrl string = "https://infra-data.retailcrm.tech/box-domains.json"
+const crmDomainsURL string = "https://infra-data.retailcrm.tech/crm-domains.json"
+const boxDomainsURL string = "https://infra-data.retailcrm.tech/box-domains.json"
 
-// init here will register `validateCrmUrl` function for gin validator.
+// init here will register `validateCrmURL` function for gin validator.
 func init() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		if err := v.RegisterValidation("validateCrmUrl", validateCrmUrl); err != nil {
+		if err := v.RegisterValidation("validateCrmURL", validateCrmURL); err != nil {
 			panic("cannot register crm url validator: " + err.Error())
 		}
 	}
 }
 
 // validateCrmURL will validate CRM URL.
-func validateCrmUrl(fl validator.FieldLevel) bool {
+func validateCrmURL(fl validator.FieldLevel) bool {
 	domainName := fl.Field().String()
 
 	return isDomainValid(domainName)
 }
 
-func isDomainValid(crmUrl string) bool {
-	parseUrl, err := url.ParseRequestURI(crmUrl)
+func isDomainValid(crmURL string) bool {
+	parseURL, err := url.ParseRequestURI(crmURL)
 
-	if err != nil || nil == parseUrl || !checkUrlString(parseUrl) {
+	if err != nil || nil == parseURL || !checkURLString(parseURL) {
 		return false
 	}
 
-	mainDomain := getMainDomain(parseUrl.Hostname())
+	mainDomain := getMainDomain(parseURL.Hostname())
 
-	if checkDomains(crmDomainsUrl, mainDomain) {
+	if checkDomains(crmDomainsURL, mainDomain) {
 		return true
 	}
 
-	if checkDomains(boxDomainsUrl, parseUrl.Hostname()) {
+	if checkDomains(boxDomainsURL, parseURL.Hostname()) {
 		return true
 	}
 
 	return false
 }
 
-func checkDomains(domainsStoreUrl string, domain string) bool {
-	crmDomains := getDomainsByStore(domainsStoreUrl)
+func checkDomains(domainsStoreURL string, domain string) bool {
+	crmDomains := getDomainsByStore(domainsStoreURL)
 
 	if nil == crmDomains {
 		return false
@@ -70,15 +70,23 @@ func getMainDomain(hostname string) (mainDomain string) {
 	return strings.Join(strings.Split(hostname, ".")[1:], ".")
 }
 
-func checkUrlString(parseUrl *url.URL) bool {
-	password, _ := parseUrl.User.Password()
+func checkURLString(parseURL *url.URL) bool {
+	password := ""
 
-	if parseUrl.Scheme != "https" ||
-		parseUrl.Port() != "" ||
-		(parseUrl.Path != "/" && parseUrl.Path != "") ||
-		len(parseUrl.Query()) != 0 ||
-		parseUrl.Fragment != "" ||
-		parseUrl.User.Username() != "" ||
+	if nil != parseURL.User {
+		password, _ = parseURL.User.Password()
+	}
+
+	if nil == parseURL {
+		return false
+	}
+
+	if parseURL.Scheme != "https" ||
+		parseURL.Port() != "" ||
+		(parseURL.Path != "/" && parseURL.Path != "") ||
+		len(parseURL.Query()) != 0 ||
+		parseURL.Fragment != "" ||
+		parseURL.User.Username() != "" ||
 		password != "" {
 		return false
 	}
@@ -88,20 +96,21 @@ func checkUrlString(parseUrl *url.URL) bool {
 
 func getDomainsByStore(store string) []Domain {
 	req, reqErr := http.NewRequest(http.MethodGet, store, nil)
+
 	if reqErr != nil {
 		return nil
 	}
+
 	req.Header.Add("Accept", "application/json")
 	resp, respErr := http.DefaultClient.Do(req)
+
 	if respErr != nil {
 		return nil
 	}
 
-	defer func(body io.ReadCloser) {
-		_ = body.Close()
-	}(resp.Body)
-
+	_ = resp.Body.Close()
 	respBody, readErr := ioutil.ReadAll(resp.Body)
+
 	if readErr != nil {
 		return nil
 	}
@@ -109,6 +118,7 @@ func getDomainsByStore(store string) []Domain {
 	var crmDomains CrmDomains
 
 	err := json.Unmarshal(respBody, &crmDomains)
+
 	if err != nil {
 		return nil
 	}

@@ -60,7 +60,7 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 
 		assert.Equal(
 			s.T(),
-			"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmUrl' tag",
+			"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmURL' tag",
 			validatorErrors.Error())
 	}
 }
