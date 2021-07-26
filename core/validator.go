@@ -71,12 +71,6 @@ func getMainDomain(hostname string) (mainDomain string) {
 }
 
 func checkURLString(parseURL *url.URL) bool {
-	password := ""
-
-	if nil != parseURL.User {
-		password, _ = parseURL.User.Password()
-	}
-
 	if nil == parseURL {
 		return false
 	}
@@ -86,8 +80,7 @@ func checkURLString(parseURL *url.URL) bool {
 		(parseURL.Path != "/" && parseURL.Path != "") ||
 		len(parseURL.Query()) != 0 ||
 		parseURL.Fragment != "" ||
-		parseURL.User.Username() != "" ||
-		password != "" {
+		parseURL.User.Username() != "" {
 		return false
 	}
 
