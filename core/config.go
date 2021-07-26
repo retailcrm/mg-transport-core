@@ -16,7 +16,7 @@ var (
 		"/api/integration-modules/{code}/edit",
 	}
 	markdownSymbols = []string{"*", "_", "`", "["}
-	slashRegex = regexp.MustCompile(`/+$`)
+	slashRegex      = regexp.MustCompile(`/+$`)
 )
 
 // ConfigInterface settings data structure.
@@ -206,4 +206,3 @@ func (h *HTTPClientConfig) IsSSLVerificationEnabled() bool {
 
 	return *h.SSLVerification
 }
-
