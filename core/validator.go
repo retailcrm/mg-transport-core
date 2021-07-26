@@ -80,7 +80,7 @@ func checkURLString(parseURL *url.URL) bool {
 		(parseURL.Path != "/" && parseURL.Path != "") ||
 		len(parseURL.Query()) != 0 ||
 		parseURL.Fragment != "" ||
-		parseURL.User.Username() != "" {
+		nil != parseURL.User {
 		return false
 	}
 
