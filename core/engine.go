@@ -142,7 +142,7 @@ func (e *Engine) CreateRenderer(callback func(*Renderer), funcs template.FuncMap
 	return renderer
 }
 
-// CreateRendererFS with translation function and embedded files by embed.FS
+// CreateRendererFS with translation function and embedded files by embed.FS.
 func (e *Engine) CreateRendererFS(
 	templatesFS embed.FS, templatesDir string, callback func(*Renderer), funcs template.FuncMap,
 ) Renderer {
