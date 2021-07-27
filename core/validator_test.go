@@ -1,7 +1,6 @@
 package core
 
 import (
-	"github.com/pkg/errors"
 	"testing"
 
 	"github.com/gin-gonic/gin/binding"
@@ -60,10 +59,8 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 
 		assert.Equal(
 			s.T(),
-			true,
-			errors.As(
-				validator.ValidationErrors{},
-				"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmURL' tag"))
+			"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmURL' tag",
+			s.getError(err))
 	}
 }
 
