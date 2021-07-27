@@ -40,35 +40,52 @@ func (s *ValidatorSuite) Test_ValidationInvalidType() {
 }
 
 func (s *ValidatorSuite) Test_ValidationFails() {
-	conn := Connection{
-		Key: "key",
-		URL: "url",
-	}
-	err := s.engine.Struct(conn)
-	require.IsType(s.T(), validator.ValidationErrors{}, err)
-	validatorErrors := err.(validator.ValidationErrors)
-	assert.Equal(
-		s.T(),
-		"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validatecrmurl' tag",
-		validatorErrors.Error())
-}
-
-func (s *ValidatorSuite) Test_ValidationSuccess() {
-	domains := []string{
-		"https://asd.retailcrm.ru",
-		"https://test.retailcrm.pro",
-		"https://raisa.retailcrm.es",
-		"https://blabla.simla.com",
-		"https://blabla.simla.ru",
-		"https://blabla.simlachat.com",
-		"https://blabla.simlachat.ru",
+	crmDomains := []string{
+		"https://asd.retailcrm.ru:90",
+		"https://test.retailcrm.pro/test",
+		"http://raisa.retailcrm.es",
+		"https://blabla.simla.com#test",
+		"https://test:test@blabla.simlachat.com",
 	}
 
-	for _, domain := range domains {
+	for _, domain := range crmDomains {
 		conn := Connection{
 			Key: "key",
 			URL: domain,
 		}
+
+		err := s.engine.Struct(conn)
+		require.IsType(s.T(), validator.ValidationErrors{}, err)
+
+		assert.Equal(
+			s.T(),
+			"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmURL' tag",
+			s.getError(err))
+	}
+}
+
+func (s *ValidatorSuite) Test_ValidationSuccess() {
+	crmDomains := []string{
+		"https://asd.retailcrm.ru",
+		"https://test.retailcrm.pro",
+		"https://raisa.retailcrm.es",
+		"https://blabla.simla.com",
+		"https://blabla.simlachat.com",
+		"https://blabla.simlachat.ru",
+		"https://blabla.ecomlogic.com",
+		"https://crm.baucenter.ru",
+		"https://crm.holodilnik.ru",
+		"https://crm.eco.lanit.ru",
+		"https://ecom.inventive.ru",
+		"https://retailcrm.tvoydom.ru",
+	}
+
+	for _, domain := range crmDomains {
+		conn := Connection{
+			Key: "key",
+			URL: domain,
+		}
+
 		err := s.engine.Struct(conn)
 		assert.NoError(s.T(), err, s.getError(err))
 	}

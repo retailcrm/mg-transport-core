@@ -16,9 +16,7 @@ var (
 		"/api/integration-modules/{code}/edit",
 	}
 	markdownSymbols = []string{"*", "_", "`", "["}
-	regCommandName  = regexp.MustCompile(
-		`^https://?[\da-z.-]+\.(retailcrm\.(ru|pro|es)|ecomlogic\.com|simla(chat)?\.(com|ru))/?$`)
-	slashRegex = regexp.MustCompile(`/+$`)
+	slashRegex      = regexp.MustCompile(`/+$`)
 )
 
 // ConfigInterface settings data structure.
