@@ -10,8 +10,8 @@ require (
 	github.com/denisenkom/go-mssqldb v0.0.0-20190830225923-3302f0226fbd // indirect
 	github.com/getsentry/raven-go v0.2.0
 	github.com/gin-contrib/multitemplate v0.0.0-20190914010127-bba2ccfe37ec
-	github.com/gin-gonic/gin v1.6.2
-	github.com/go-playground/validator/v10 v10.2.0
+	github.com/gin-gonic/gin v1.7.0
+	github.com/go-playground/validator/v10 v10.4.1
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/gobuffalo/packd v0.3.0
 	github.com/gobuffalo/packr/v2 v2.7.1
