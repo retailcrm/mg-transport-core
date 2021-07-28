@@ -1,7 +1,5 @@
 // Copyright (c) 2019 RetailDriver LLC
 // Use of this source code is governed by a MIT
-// license that can be found in the LICENSE file.
-
 /*
 Package core provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.
 Usage:
@@ -13,7 +11,6 @@ Usage:
 	    "html/template"
 
 	    "github.com/gin-gonic/gin"
-	    "github.com/gobuffalo/packr/v2"
 	    "github.com/retailcrm/mg-transport-core/core"
 	)
 
@@ -54,26 +51,36 @@ Example of usage:
 	    "os"
 	    "fmt"
 	    "html/template"
+		"embed"
+		"net/http"
 
 	    "github.com/gin-gonic/gin"
-	    "github.com/gobuffalo/packr/v2"
 	    "github.com/retailcrm/mg-transport-core/core"
 	)
 
-	func main() {
-	    static := packr.New("assets", "./static")
-	    templates := packr.New("templates", "./templates")
-	    translations := packr.New("translations", "./translate")
+	//go:embed static
+	var Static embed.FS
 
+	//go:embed translations
+	var TranslationsFS embed.FS
+	var TranslationsDir string
+
+	//go:embed templates
+	var TemplatesFS embed.FS
+	var TemplatesDir string
+
+	func main() {
 	    app := core.New()
 	    app.Config = core.NewConfig("config.yml")
 	    app.DefaultError = "unknown_error"
-	    app.TranslationsBox = translations
+	    app.TranslationsDir = TranslationsDir
+	    app.TranslationsFS = TranslationsFS
 
 	    app.ConfigureRouter(func(engine *gin.Engine) {
-	        engine.StaticFS("/static", static)
+	        engine.StaticFS("/assets", http.FS(Static))
 	        engine.HTMLRender = app.CreateRendererFS(
-	            templates,
+	            TemplatesFS,
+	            TemplatesDir,
 	            func(renderer *core.Renderer) {
 	                // insert templates here. Example:
 	                r.Push("home", "layout.html", "home.html")

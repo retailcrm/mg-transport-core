@@ -34,9 +34,6 @@ func main() {
     // Set translations path
     app.TranslationsPath = "./translations"
 
-    // or set translations directory for embed.FS
-    app.TranslationsDir = "translate"
-    
     // Preload some translations so they will not be loaded for every request
     app.PreloadLanguages = core.DefaultLanguages
     
@@ -73,9 +70,10 @@ import (
     "os"
     "fmt"
     "html/template"
-
+    "embed"
+    "net/http"
+    
     "github.com/gin-gonic/gin"
-    "github.com/gobuffalo/packr/v2"
     "github.com/retailcrm/mg-transport-core/core"
 )
 
@@ -90,7 +88,6 @@ var TranslationsDir string
 var TemplatesFS embed.FS
 var TemplatesDir string
 
-
 func main() {
     app := core.New()
     app.Config = core.NewConfig("config.yml")
@@ -102,14 +99,15 @@ func main() {
     app.PreloadLanguages = core.DefaultLanguages
     
     app.ConfigureRouter(func(engine *gin.Engine) {
-    	// To serve static files by gin need to convert fsys to a FileSystem implementation
+    	// fs.FS should be converted to the http.FileSystem
 		
     	// FS implements the io/fs package's FS interface,
     	// so it can be used with any package that understands file systems,
     	// including net/http, text/template, and html/template.
         engine.StaticFS("/assets", http.FS(Static))
         engine.HTMLRender = app.CreateRendererFS(
-            templates, 
+			TemplatesFS,
+			TemplatesDir,
             func(renderer *core.Renderer) {
                 // Same Push method here, but without relative directory.
                 r.Push("home", "layout.html", "home.html")

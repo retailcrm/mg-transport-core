@@ -59,9 +59,12 @@ func (r *Renderer) addFromFS(name string, funcMap template.FuncMap, files ...str
 	var filesData []string
 
 	for _, fileName := range files {
-		if data, err := r.TemplatesFS.ReadFile(fmt.Sprintf("%s/%s", r.TemplatesDir, fileName)); err == nil {
-			filesData = append(filesData, string(data))
+		data, err := r.TemplatesFS.ReadFile(fmt.Sprintf("%s/%s", r.TemplatesDir, fileName))
+		if err != nil {
+			panic(err)
 		}
+
+		filesData = append(filesData, string(data))
 	}
 
 	return r.AddFromStringsFuncs(name, funcMap, filesData...)
