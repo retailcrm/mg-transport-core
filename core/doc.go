@@ -51,7 +51,6 @@ Example of usage:
 	    "os"
 	    "fmt"
 	    "html/template"
-		"embed"
 		"net/http"
 
 	    "github.com/gin-gonic/gin"
@@ -59,28 +58,39 @@ Example of usage:
 	)
 
 	//go:embed static
-	var Static embed.FS
+	var Static fs.FS
 
 	//go:embed translations
-	var TranslationsFS embed.FS
-	var TranslationsDir string
+	var Translate fs.FS
 
 	//go:embed templates
-	var TemplatesFS embed.FS
-	var TemplatesDir string
+	var Templates fs.FS
 
 	func main() {
+		staticFS, err := fs.Sub(Static, "static")
+		if err != nil {
+			panic(err)
+		}
+
+		translateFS, err := fs.Sub(Translate, "translate")
+		if err != nil {
+			panic(err)
+		}
+
+		templatesFS, err := fs.Sub(Templates, "templates")
+		if err != nil {
+			panic(err)
+		}
+
 	    app := core.New()
 	    app.Config = core.NewConfig("config.yml")
 	    app.DefaultError = "unknown_error"
-	    app.TranslationsDir = TranslationsDir
-	    app.TranslationsFS = TranslationsFS
+	    app.TranslationsFS = translateFS
 
 	    app.ConfigureRouter(func(engine *gin.Engine) {
-	        engine.StaticFS("/assets", http.FS(Static))
+	        engine.StaticFS("/static", http.FS(staticFS))
 	        engine.HTMLRender = app.CreateRendererFS(
-	            TemplatesFS,
-	            TemplatesDir,
+	            templatesFS,
 	            func(renderer *core.Renderer) {
 	                // insert templates here. Example:
 	                r.Push("home", "layout.html", "home.html")

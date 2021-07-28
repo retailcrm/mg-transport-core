@@ -70,7 +70,7 @@ import (
     "os"
     "fmt"
     "html/template"
-    "embed"
+    "io/fs"
     "net/http"
     
     "github.com/gin-gonic/gin"
@@ -78,24 +78,36 @@ import (
 )
 
 //go:embed static
-var Static embed.FS
+var Static fs.FS
 
 //go:embed translations
-var TranslationsFS embed.FS
-var TranslationsDir string
+var Translate fs.FS
 
 //go:embed templates
-var TemplatesFS embed.FS
-var TemplatesDir string
+var Templates fs.FS
 
 func main() {
+	staticFS, err := fs.Sub(Static, "static")
+	if err != nil {
+		panic(err)
+	}
+
+	translateFS, err := fs.Sub(Translate, "translate")
+	if err != nil {
+		panic(err)
+	}
+
+	templatesFS, err := fs.Sub(Templates, "templates")
+	if err != nil {
+		panic(err)
+	}
+	
     app := core.New()
     app.Config = core.NewConfig("config.yml")
     app.DefaultError = "unknown_error"
 
     // Now translations will be loaded from embedded files in Go program
-    app.TranslationsFS = TranslationsFS
-    app.TranslationsDir = TranslationsDir
+    app.TranslationsFS = translateFS
     app.PreloadLanguages = core.DefaultLanguages
     
     app.ConfigureRouter(func(engine *gin.Engine) {
@@ -104,10 +116,9 @@ func main() {
     	// FS implements the io/fs package's FS interface,
     	// so it can be used with any package that understands file systems,
     	// including net/http, text/template, and html/template.
-        engine.StaticFS("/assets", http.FS(Static))
+        engine.StaticFS("/static", http.FS(staticFS))
         engine.HTMLRender = app.CreateRendererFS(
-			TemplatesFS,
-			TemplatesDir,
+			templatesFS,
             func(renderer *core.Renderer) {
                 // Same Push method here, but without relative directory.
                 r.Push("home", "layout.html", "home.html")

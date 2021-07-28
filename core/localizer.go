@@ -189,7 +189,7 @@ func (l *Localizer) loadFromDirectory(i18nBundle *i18n.Bundle) error {
 	return nil
 }
 
-// LoadTranslations will load all translation files from embed.FS by translations directory.
+// LoadTranslations will load all translation files from embedding in binary.
 func (l *Localizer) loadFromFS(i18nBundle *i18n.Bundle) error {
 	translationFiles, err := fs.ReadDir(l.TranslationsFS, string('.'))
 	if err != nil {
