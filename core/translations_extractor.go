@@ -1,9 +1,8 @@
 package core
 
 import (
-	"embed"
 	"errors"
-	"fmt"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -20,8 +19,7 @@ import (
 // Translations can be checked manually, or via external library like https://github.com/google/go-cmp
 type TranslationsExtractor struct {
 	fileNameTemplate string
-	TranslationsFS   embed.FS
-	TranslationsDir  string
+	TranslationsFS   fs.FS
 	TranslationsPath string
 }
 
@@ -50,7 +48,7 @@ func (t *TranslationsExtractor) loadYAMLFromFS(fileName string) (map[string]inte
 		err     error
 	)
 
-	if data, err = t.TranslationsFS.ReadFile(fmt.Sprintf("%s/%s", t.TranslationsDir, fileName)); err != nil {
+	if data, err = fs.ReadFile(t.TranslationsFS, fileName); err != nil {
 		return dataMap, err
 	}
 

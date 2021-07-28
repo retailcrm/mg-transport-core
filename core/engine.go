@@ -2,8 +2,8 @@ package core
 
 import (
 	"crypto/x509"
-	"embed"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"sync"
 
@@ -144,14 +144,12 @@ func (e *Engine) CreateRenderer(callback func(*Renderer), funcs template.FuncMap
 
 // CreateRendererFS with translation function and embedded files.
 func (e *Engine) CreateRendererFS(
-	templatesFS embed.FS,
-	templatesDir string,
+	templatesFS fs.FS,
 	callback func(*Renderer),
 	funcs template.FuncMap,
 ) Renderer {
 	renderer := NewRenderer(e.TemplateFuncMap(funcs))
 	renderer.TemplatesFS = templatesFS
-	renderer.TemplatesDir = templatesDir
 	callback(&renderer)
 	return renderer
 }

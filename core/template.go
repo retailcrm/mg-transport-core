@@ -1,9 +1,8 @@
 package core
 
 import (
-	"embed"
-	"fmt"
 	"html/template"
+	"io/fs"
 
 	"github.com/gin-contrib/multitemplate"
 )
@@ -11,8 +10,7 @@ import (
 // Renderer wraps multitemplate.Renderer in order to make it easier to use.
 type Renderer struct {
 	multitemplate.Renderer
-	TemplatesFS  embed.FS
-	TemplatesDir string
+	TemplatesFS  fs.FS
 	FuncMap      template.FuncMap
 	alreadyAdded map[string]*template.Template
 }
@@ -47,7 +45,7 @@ func (r *Renderer) Push(name string, files ...string) *template.Template {
 		return tpl
 	}
 
-	if _, err := r.TemplatesFS.ReadDir(r.TemplatesDir); err == nil {
+	if r.TemplatesFS != nil {
 		return r.storeTemplate(name, r.addFromFS(name, r.FuncMap, files...))
 	}
 
@@ -59,7 +57,7 @@ func (r *Renderer) addFromFS(name string, funcMap template.FuncMap, files ...str
 	var filesData []string
 
 	for _, fileName := range files {
-		data, err := r.TemplatesFS.ReadFile(fmt.Sprintf("%s/%s", r.TemplatesDir, fileName))
+		data, err := fs.ReadFile(r.TemplatesFS, fileName)
 		if err != nil {
 			panic(err)
 		}

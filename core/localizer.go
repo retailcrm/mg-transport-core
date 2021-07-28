@@ -1,9 +1,8 @@
 package core
 
 import (
-	"embed"
-	"fmt"
 	"html/template"
+	"io/fs"
 	"io/ioutil"
 	"path"
 	"sync"
@@ -30,8 +29,7 @@ const LocalizerContextKey = "localizer"
 // Localizer struct.
 type Localizer struct {
 	i18nStorage      *sync.Map
-	TranslationsFS   embed.FS
-	TranslationsDir  string
+	TranslationsFS   fs.FS
 	loadMutex        *sync.RWMutex
 	LocaleMatcher    language.Matcher
 	LanguageTag      language.Tag
@@ -56,17 +54,16 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 
 // NewLocalizerFS returns localizer instance with specified parameters.
 // Usage:
-//      NewLocalizerFS(language.English, DefaultLocalizerMatcher(), translationsFS, translationsDir)
+//      NewLocalizerFS(language.English, DefaultLocalizerMatcher(), translationsFS)
 // TODO This code should be covered with tests.
 func NewLocalizerFS(
-	locale language.Tag, matcher language.Matcher, translationsFS embed.FS, translationsDir string,
+	locale language.Tag, matcher language.Matcher, translationsFS fs.FS,
 ) *Localizer {
 	localizer := &Localizer{
-		i18nStorage:     &sync.Map{},
-		LocaleMatcher:   matcher,
-		TranslationsFS:  translationsFS,
-		TranslationsDir: translationsDir,
-		loadMutex:       &sync.RWMutex{},
+		i18nStorage:    &sync.Map{},
+		LocaleMatcher:  matcher,
+		TranslationsFS: translationsFS,
+		loadMutex:      &sync.RWMutex{},
 	}
 	localizer.SetLanguage(locale)
 	localizer.LoadTranslations()
@@ -96,7 +93,6 @@ func (l *Localizer) Clone() *Localizer {
 	clone := &Localizer{
 		i18nStorage:      l.i18nStorage,
 		TranslationsFS:   l.TranslationsFS,
-		TranslationsDir:  l.TranslationsDir,
 		LocaleMatcher:    l.LocaleMatcher,
 		LanguageTag:      l.LanguageTag,
 		TranslationsPath: l.TranslationsPath,
@@ -195,13 +191,13 @@ func (l *Localizer) loadFromDirectory(i18nBundle *i18n.Bundle) error {
 
 // LoadTranslations will load all translation files from embed.FS by translations directory.
 func (l *Localizer) loadFromFS(i18nBundle *i18n.Bundle) error {
-	translationFiles, err := l.TranslationsFS.ReadDir(l.TranslationsDir)
+	translationFiles, err := fs.ReadDir(l.TranslationsFS, string('.'))
 	if err != nil {
 		return err
 	}
 	for _, file := range translationFiles {
 		if !file.IsDir() {
-			data, err := l.TranslationsFS.ReadFile(fmt.Sprintf("%s/%s", l.TranslationsDir, file.Name()))
+			data, err := fs.ReadFile(l.TranslationsFS, file.Name())
 			if err != nil {
 				return err
 			}
