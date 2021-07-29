@@ -2,13 +2,12 @@ package core
 
 import (
 	"html/template"
+	"io/fs"
 	"io/ioutil"
 	"path"
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gobuffalo/packd"
-	"github.com/gobuffalo/packr/v2"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
@@ -30,7 +29,7 @@ const LocalizerContextKey = "localizer"
 // Localizer struct.
 type Localizer struct {
 	i18nStorage      *sync.Map
-	TranslationsBox  *packr.Box
+	TranslationsFS   fs.FS
 	loadMutex        *sync.RWMutex
 	LocaleMatcher    language.Matcher
 	LanguageTag      language.Tag
@@ -53,16 +52,18 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 	return localizer
 }
 
-// NewLocalizerFS returns localizer instance with specified parameters. *packr.Box should be used instead of directory.
+// NewLocalizerFS returns localizer instance with specified parameters.
 // Usage:
-//      NewLocalizerFS(language.English, DefaultLocalizerMatcher(), translationsBox)
+//      NewLocalizerFS(language.English, DefaultLocalizerMatcher(), translationsFS)
 // TODO This code should be covered with tests.
-func NewLocalizerFS(locale language.Tag, matcher language.Matcher, translationsBox *packr.Box) *Localizer {
+func NewLocalizerFS(
+	locale language.Tag, matcher language.Matcher, translationsFS fs.FS,
+) *Localizer {
 	localizer := &Localizer{
-		i18nStorage:     &sync.Map{},
-		LocaleMatcher:   matcher,
-		TranslationsBox: translationsBox,
-		loadMutex:       &sync.RWMutex{},
+		i18nStorage:    &sync.Map{},
+		LocaleMatcher:  matcher,
+		TranslationsFS: translationsFS,
+		loadMutex:      &sync.RWMutex{},
 	}
 	localizer.SetLanguage(locale)
 	localizer.LoadTranslations()
@@ -91,7 +92,7 @@ func DefaultLocalizerMatcher() language.Matcher {
 func (l *Localizer) Clone() *Localizer {
 	clone := &Localizer{
 		i18nStorage:      l.i18nStorage,
-		TranslationsBox:  l.TranslationsBox,
+		TranslationsFS:   l.TranslationsFS,
 		LocaleMatcher:    l.LocaleMatcher,
 		LanguageTag:      l.LanguageTag,
 		TranslationsPath: l.TranslationsPath,
@@ -165,12 +166,10 @@ func (l *Localizer) loadTranslationsToBundle(i18nBundle *i18n.Bundle) {
 		if err := l.loadFromDirectory(i18nBundle); err != nil {
 			panic(err.Error())
 		}
-	case l.TranslationsBox != nil:
+	default:
 		if err := l.loadFromFS(i18nBundle); err != nil {
 			panic(err.Error())
 		}
-	default:
-		panic("TranslationsPath or TranslationsBox should be specified")
 	}
 }
 
@@ -190,28 +189,22 @@ func (l *Localizer) loadFromDirectory(i18nBundle *i18n.Bundle) error {
 	return nil
 }
 
-// LoadTranslations will load all translation files from embedded box.
+// LoadTranslations will load all translation files from embedding in binary.
 func (l *Localizer) loadFromFS(i18nBundle *i18n.Bundle) error {
-	err := l.TranslationsBox.Walk(func(s string, file packd.File) error {
-		if fileInfo, err := file.FileInfo(); err == nil {
-			if !fileInfo.IsDir() {
-				if data, err := ioutil.ReadAll(file); err == nil {
-					if _, err := i18nBundle.ParseMessageFileBytes(data, fileInfo.Name()); err != nil {
-						return err
-					}
-				} else {
-					return err
-				}
-			}
-		} else {
-			return err
-		}
-
-		return nil
-	})
-
+	translationFiles, err := fs.ReadDir(l.TranslationsFS, string('.'))
 	if err != nil {
 		return err
+	}
+	for _, file := range translationFiles {
+		if !file.IsDir() {
+			data, err := fs.ReadFile(l.TranslationsFS, file.Name())
+			if err != nil {
+				return err
+			}
+			if _, err := i18nBundle.ParseMessageFileBytes(data, file.Name()); err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil

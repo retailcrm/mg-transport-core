@@ -18,7 +18,6 @@ import (
     "html/template"
 
     "github.com/gin-gonic/gin"
-    "github.com/gobuffalo/packr/v2"
     "github.com/retailcrm/mg-transport-core/core"
 )
 
@@ -61,9 +60,7 @@ func main() {
 ```
 
 ### Resource embedding
-[packr](https://github.com/gobuffalo/packr/tree/master/v2) can be used to provide resource embedding. In order to use packr you must follow
-[this instruction](https://github.com/gobuffalo/packr/tree/master/v2#library-installation), and provide boxes with templates,
-translations and assets to library.
+[embed](https://golang.org/pkg/embed/) can be used to provide resource embedding. Go source files that import "embed" can use the //go:embed directive to initialize a variable of type string, []byte, or FS with the contents of files read from the package directory or subdirectories at compile time.
 
 Example:
 ```go
@@ -73,30 +70,55 @@ import (
     "os"
     "fmt"
     "html/template"
-
+    "io/fs"
+    "net/http"
+    
     "github.com/gin-gonic/gin"
-    "github.com/gobuffalo/packr/v2"
     "github.com/retailcrm/mg-transport-core/core"
 )
 
+//go:embed static
+var Static fs.FS
+
+//go:embed translations
+var Translate fs.FS
+
+//go:embed templates
+var Templates fs.FS
+
 func main() {
-    static := packr.New("assets", "./static")
-    templates := packr.New("templates", "./templates")
-    translations := packr.New("translations", "./translate")
-    
+	staticFS, err := fs.Sub(Static, "static")
+	if err != nil {
+		panic(err)
+	}
+
+	translateFS, err := fs.Sub(Translate, "translate")
+	if err != nil {
+		panic(err)
+	}
+
+	templatesFS, err := fs.Sub(Templates, "templates")
+	if err != nil {
+		panic(err)
+	}
+	
     app := core.New()
     app.Config = core.NewConfig("config.yml")
     app.DefaultError = "unknown_error"
 
-    // Now translations will be loaded from packr.Box
-    app.TranslationsBox = translations
+    // Now translations will be loaded from embedded files in Go program
+    app.TranslationsFS = translateFS
     app.PreloadLanguages = core.DefaultLanguages
     
     app.ConfigureRouter(func(engine *gin.Engine) {
-        // gin.Engine can use packr.Box as http.FileSystem
-        engine.StaticFS("/static", static)
+    	// fs.FS should be converted to the http.FileSystem
+		
+    	// FS implements the io/fs package's FS interface,
+    	// so it can be used with any package that understands file systems,
+    	// including net/http, text/template, and html/template.
+        engine.StaticFS("/static", http.FS(staticFS))
         engine.HTMLRender = app.CreateRendererFS(
-            templates, 
+			templatesFS,
             func(renderer *core.Renderer) {
                 // Same Push method here, but without relative directory.
                 r.Push("home", "layout.html", "home.html")

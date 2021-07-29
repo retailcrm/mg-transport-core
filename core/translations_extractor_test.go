@@ -45,7 +45,6 @@ func (t *TranslationsExtractorTest) SetupSuite() {
 
 	t.extractor = NewTranslationsExtractor("translate.{}.yml")
 	t.extractor.TranslationsPath = "/tmp"
-	t.extractor.TranslationsBox = nil
 }
 
 func (t *TranslationsExtractorTest) Test_LoadLocale() {

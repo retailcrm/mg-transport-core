@@ -3,11 +3,11 @@ package core
 import (
 	"crypto/x509"
 	"html/template"
+	"io/fs"
 	"net/http"
 	"sync"
 
 	"github.com/gin-gonic/gin"
-	"github.com/gobuffalo/packr/v2"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/op/go-logging"
@@ -142,10 +142,14 @@ func (e *Engine) CreateRenderer(callback func(*Renderer), funcs template.FuncMap
 	return renderer
 }
 
-// CreateRendererFS with translation function and packr box with templates data.
-func (e *Engine) CreateRendererFS(box *packr.Box, callback func(*Renderer), funcs template.FuncMap) Renderer {
+// CreateRendererFS with translation function and embedded files.
+func (e *Engine) CreateRendererFS(
+	templatesFS fs.FS,
+	callback func(*Renderer),
+	funcs template.FuncMap,
+) Renderer {
 	renderer := NewRenderer(e.TemplateFuncMap(funcs))
-	renderer.TemplatesBox = box
+	renderer.TemplatesFS = templatesFS
 	callback(&renderer)
 	return renderer
 }

@@ -2,13 +2,13 @@ package core
 
 import (
 	"errors"
+	"io/fs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/gobuffalo/packr/v2"
 	"gopkg.in/yaml.v2"
 )
 
@@ -19,7 +19,7 @@ import (
 // Translations can be checked manually, or via external library like https://github.com/google/go-cmp
 type TranslationsExtractor struct {
 	fileNameTemplate string
-	TranslationsBox  *packr.Box
+	TranslationsFS   fs.FS
 	TranslationsPath string
 }
 
@@ -40,15 +40,15 @@ func (t *TranslationsExtractor) unmarshalToMap(in []byte) (map[string]interface{
 	return dataMap, nil
 }
 
-// loadYAMLBox loads YAML from box.
-func (t *TranslationsExtractor) loadYAMLBox(fileName string) (map[string]interface{}, error) {
+// loadYAMLFromFS loads YAML from FS.
+func (t *TranslationsExtractor) loadYAMLFromFS(fileName string) (map[string]interface{}, error) {
 	var (
 		dataMap map[string]interface{}
 		data    []byte
 		err     error
 	)
 
-	if data, err = t.TranslationsBox.Find(fileName); err != nil {
+	if data, err = fs.ReadFile(t.TranslationsFS, fileName); err != nil {
 		return dataMap, err
 	}
 
@@ -88,14 +88,12 @@ func (t *TranslationsExtractor) loadYAMLFile(fileName string) (map[string]interf
 	return dataMap, err
 }
 
-// loadYAML loads YAML from filesystem or from packr box - depends on what was configured. Can return error.
+// loadYAML loads YAML from file or embed.FS - depends on what was configured. Can return error.
 func (t *TranslationsExtractor) loadYAML(fileName string) (map[string]interface{}, error) {
-	if t.TranslationsBox != nil {
-		return t.loadYAMLBox(fileName)
-	} else if t.TranslationsPath != "" {
+	if t.TranslationsPath != "" {
 		return t.loadYAMLFile(filepath.Join(t.TranslationsPath, fileName))
 	} else {
-		return map[string]interface{}{}, errors.New("nor box nor translations directory was provided")
+		return t.loadYAMLFromFS(fileName)
 	}
 }
 
