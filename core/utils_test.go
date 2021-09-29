@@ -261,6 +261,14 @@ func TestUtils_ReplaceMarkdownSymbols(t *testing.T) {
 	assert.Equal(t, expected, ReplaceMarkdownSymbols(test))
 }
 
+func TestUtils_FormatCurrencyValue(t *testing.T) {
+	assert.Equal(t, "-1.00", FormatCurrencyValue(-1))
+	assert.Equal(t, "100.00", FormatCurrencyValue(100))
+	assert.Equal(t, "111.11", FormatCurrencyValue(111.11))
+	assert.Equal(t, "123.46", FormatCurrencyValue(123.456789))
+	assert.Equal(t, "1000500.00", FormatCurrencyValue(1000500))
+}
+
 func TestUtils_Suite(t *testing.T) {
 	suite.Run(t, new(UtilsTest))
 }
