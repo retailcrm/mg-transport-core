@@ -263,3 +263,7 @@ func GetCurrencySymbol(code string) string {
 
 	return strings.ToUpper(code)
 }
+
+func FormatCurrencyValue(value float32) string {
+	return fmt.Sprintf("%.2f", value)
+}
