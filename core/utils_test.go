@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/h2non/gock"
 	"github.com/op/go-logging"
-	"github.com/retailcrm/api-client-go/v2"
+	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -93,7 +94,7 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPI() {
 func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
 	resp := retailcrm.CredentialResponse{
 		Success:        true,
-		Scopes:    []string{},
+		Scopes:         []string{},
 		SiteAccess:     "all",
 		SitesAvailable: []string{},
 	}
@@ -106,10 +107,10 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
 		Reply(http.StatusOK).
 		BodyString(string(data))
 
-	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", []string{})
+	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", DefaultScopes)
 	assert.Equal(u.T(), http.StatusBadRequest, status)
 	if assert.NotNil(u.T(), err) {
-		assert.Contains(u.T(), err.Error(), "Missing scopes")
+		assert.True(u.T(), errors.Is(err, ErrInsufficientScopes))
 	}
 }
 

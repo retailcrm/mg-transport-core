@@ -1,13 +1,15 @@
 package core
 
 import (
-	"github.com/stretchr/testify/assert"
+	"errors"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestError_NewScopesError(t *testing.T) {
 	scopes := []string{"scope1", "scope2"}
-	scopesError := NewScopesError(scopes)
+	scopesError := NewInsufficientScopesErr(scopes)
 
-	assert.Equal(t, scopesError.Error(), "Missing scopes: scope1, scope2")
+	assert.True(t, errors.Is(scopesError, ErrInsufficientScopes))
 }

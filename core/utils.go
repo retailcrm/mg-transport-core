@@ -16,11 +16,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/retailcrm/api-client-go/v2"
+	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 )
 
-var defaultScopes = []string{
+var DefaultScopes = []string{
 	"integration_read",
 	"integration_write",
 }
@@ -113,8 +113,8 @@ func (u *Utils) GenerateToken() string {
 
 // GetAPIClient will initialize RetailCRM api client from url and key.
 func (u *Utils) GetAPIClient(url, key string, scopes []string) (*retailcrm.Client, int, error) {
-	logger := retailcrm.DebugLoggerAdapter(u.Logger)
-	client := retailcrm.New(url, key).WithLogger(logger)
+	client := retailcrm.New(url, key).
+		WithLogger(retailcrm.DebugLoggerAdapter(u.Logger))
 	client.Debug = u.IsDebug
 
 	cr, status, err := client.APICredentials()
@@ -122,13 +122,9 @@ func (u *Utils) GetAPIClient(url, key string, scopes []string) (*retailcrm.Clien
 		return nil, status, err
 	}
 
-	for _, item := range defaultScopes {
-		scopes = append(scopes, item)
-	}
-
 	if res := u.checkScopes(cr.Scopes, scopes); len(res) != 0 {
 		u.Logger.Error(url, status, res)
-		return nil, http.StatusBadRequest, NewScopesError(res)
+		return nil, http.StatusBadRequest, NewInsufficientScopesErr(res)
 	}
 
 	return client, 0, nil

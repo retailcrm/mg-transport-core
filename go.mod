@@ -23,12 +23,10 @@ require (
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.9.0 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
-	github.com/nbio/st v0.0.0-20140626010706-e9e8d9816f32 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.0.2
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pkg/errors v0.9.1
-	github.com/retailcrm/api-client-go v1.3.8 // indirect
 	github.com/retailcrm/api-client-go/v2 v2.0.1
 	github.com/retailcrm/mg-transport-api-client-go v1.1.32
 	github.com/stretchr/testify v1.7.0
