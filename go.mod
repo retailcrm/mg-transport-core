@@ -14,7 +14,6 @@ require (
 	github.com/go-playground/validator/v10 v10.8.0
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/h2non/gock v1.0.10
@@ -29,7 +28,8 @@ require (
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pkg/errors v0.9.1
-	github.com/retailcrm/api-client-go v1.3.0
+	github.com/retailcrm/api-client-go v1.3.8 // indirect
+	github.com/retailcrm/api-client-go/v2 v2.0.1
 	github.com/retailcrm/mg-transport-api-client-go v1.1.32
 	github.com/stretchr/testify v1.7.0
 	github.com/ugorji/go v1.2.6 // indirect

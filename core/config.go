@@ -11,10 +11,6 @@ import (
 )
 
 var (
-	credentialsTransport = []string{
-		"/api/integration-modules/{code}",
-		"/api/integration-modules/{code}/edit",
-	}
 	markdownSymbols = []string{"*", "_", "`", "["}
 	slashRegex      = regexp.MustCompile(`/+$`)
 )

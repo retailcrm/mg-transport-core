@@ -5,7 +5,6 @@ import (
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"regexp"
@@ -17,9 +16,14 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	v5 "github.com/retailcrm/api-client-go/v5"
+	"github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 )
+
+var defaultScopes = []string{
+	"integration_read",
+	"integration_write",
+}
 
 var defaultCurrencies = map[string]string{
 	"rub": "₽",
@@ -108,60 +112,45 @@ func (u *Utils) GenerateToken() string {
 }
 
 // GetAPIClient will initialize RetailCRM api client from url and key.
-func (u *Utils) GetAPIClient(url, key string) (*v5.Client, int, error) {
-	client := v5.New(url, key)
+func (u *Utils) GetAPIClient(url, key string, scopes []string) (*retailcrm.Client, int, error) {
+	logger := retailcrm.DebugLoggerAdapter(u.Logger)
+	client := retailcrm.New(url, key).WithLogger(logger)
 	client.Debug = u.IsDebug
 
-	cr, status, e := client.APICredentials()
-	if e != nil && e.Error() != "" {
-		u.Logger.Error(url, status, e.Error(), cr)
-		return nil, http.StatusInternalServerError, errors.New(e.Error())
+	cr, status, err := client.APICredentials()
+	if err != nil {
+		return nil, status, err
 	}
 
-	if !cr.Success {
-		errMsg := "unknown error"
-
-		if e != nil {
-			if e.ApiError() != "" {
-				errMsg = e.ApiError()
-			} else if e.ApiErrors() != nil {
-				errMsg = ""
-
-				for key, errText := range e.ApiErrors() {
-					errMsg += fmt.Sprintf("[%s: %s] ", key, errText)
-				}
-			}
-		}
-
-		u.Logger.Error(url, status, errMsg, cr)
-		return nil, http.StatusBadRequest, errors.New("invalid credentials")
+	for _, item := range defaultScopes {
+		scopes = append(scopes, item)
 	}
 
-	if res := u.checkCredentials(cr.Credentials); len(res) != 0 {
+	if res := u.checkScopes(cr.Scopes, scopes); len(res) != 0 {
 		u.Logger.Error(url, status, res)
-		return nil, http.StatusBadRequest, errors.New("missing credentials")
+		return nil, http.StatusBadRequest, NewScopesError(res)
 	}
 
 	return client, 0, nil
 }
 
-func (u *Utils) checkCredentials(credential []string) []string {
-	rc := make([]string, len(credentialsTransport))
-	copy(rc, credentialsTransport)
+func (u *Utils) checkScopes(scopes []string, scopesRequired []string) []string {
+	rs := make([]string, len(scopesRequired))
+	copy(rs, scopesRequired)
 
-	for _, vc := range credential {
-		for kn, vn := range rc {
-			if vn == vc {
-				if len(rc) == 1 {
-					rc = rc[:0]
+	for _, vs := range scopes {
+		for kn, vn := range rs {
+			if vn == vs {
+				if len(rs) == 1 {
+					rs = rs[:0]
 					break
 				}
-				rc = append(rc[:kn], rc[kn+1:]...)
+				rs = append(rs[:kn], rs[kn+1:]...)
 			}
 		}
 	}
 
-	return rc
+	return rs
 }
 
 // UploadUserAvatar will upload avatar for user.
