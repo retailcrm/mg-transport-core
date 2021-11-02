@@ -59,6 +59,7 @@ type Info struct {
 	Name     string `yaml:"name"`
 	Code     string `yaml:"code"`
 	LogoPath string `yaml:"logo_path"`
+	Secret   string `yaml:"secret"`
 }
 
 // ConfigAWS struct.
