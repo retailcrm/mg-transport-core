@@ -164,6 +164,21 @@ func (u *UtilsTest) Test_RemoveTrailingSlash() {
 	assert.Equal(u.T(), testCRMURL, u.utils.RemoveTrailingSlash(testCRMURL))
 }
 
+func (u *UtilsTest) TestUtils_CheckScopes() {
+	required := []string{"one", "two"}
+
+	scopes := []string{"one", "two"}
+
+	diff := u.utils.checkScopes(scopes, required)
+	assert.Equal(u.T(), 0, len(diff))
+
+	scopes = []string{"three", "four"}
+
+	diff = u.utils.checkScopes(scopes, required)
+	assert.Equal(u.T(), 2, len(diff))
+	assert.Equal(u.T(), []string{"one", "two"}, diff)
+}
+
 func TestUtils_GetMGItemData_FailRuntime_GetImage(t *testing.T) {
 	defer gock.Off()
 	gock.New(testMGURL)
