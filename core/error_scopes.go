@@ -2,6 +2,8 @@ package core
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 )
 
 // ErrInsufficientScopes is wrapped by the insufficientScopesErr.
@@ -32,6 +34,11 @@ func (e insufficientScopesErr) Unwrap() error {
 // Scopes that are missing.
 func (e insufficientScopesErr) Scopes() []string {
 	return e.scopes
+}
+
+// String returns string representation of an error with scopes that are missing.
+func (e insufficientScopesErr) String() string {
+	return fmt.Sprintf("Missing scopes: %s", strings.Join(e.Scopes(), ", "))
 }
 
 // NewInsufficientScopesErr is a insufficientScopesErr constructor.
