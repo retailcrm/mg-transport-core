@@ -2,6 +2,7 @@ package core
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
@@ -9,7 +10,7 @@ import (
 
 	"github.com/h2non/gock"
 	"github.com/op/go-logging"
-	v5 "github.com/retailcrm/api-client-go/v5"
+	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,9 +69,10 @@ func (u *UtilsTest) Test_GenerateToken() {
 
 func (u *UtilsTest) Test_GetAPIClient_FailRuntime() {
 	defer gock.Off()
-	gock.New(testCRMURL)
+	gock.New(testCRMURL).
+		Reply(http.StatusInternalServerError)
 
-	_, status, err := u.utils.GetAPIClient(testCRMURL, "key")
+	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", []string{})
 	assert.Equal(u.T(), http.StatusInternalServerError, status)
 	assert.NotNil(u.T(), err)
 }
@@ -80,9 +82,9 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPI() {
 	gock.New(testCRMURL).
 		Get("/credentials").
 		Reply(http.StatusBadRequest).
-		BodyString(`{"success": false, "errorMsg": "error message"}`)
+		BodyString(`{"success": false, "errorMsg": "invalid credentials"}`)
 
-	_, status, err := u.utils.GetAPIClient(testCRMURL, "key")
+	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", []string{})
 	assert.Equal(u.T(), http.StatusBadRequest, status)
 	if assert.NotNil(u.T(), err) {
 		assert.Equal(u.T(), "invalid credentials", err.Error())
@@ -90,9 +92,9 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPI() {
 }
 
 func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
-	resp := v5.CredentialResponse{
+	resp := retailcrm.CredentialResponse{
 		Success:        true,
-		Credentials:    []string{},
+		Scopes:         []string{},
 		SiteAccess:     "all",
 		SitesAvailable: []string{},
 	}
@@ -105,20 +107,17 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
 		Reply(http.StatusOK).
 		BodyString(string(data))
 
-	_, status, err := u.utils.GetAPIClient(testCRMURL, "key")
+	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", DefaultScopes)
 	assert.Equal(u.T(), http.StatusBadRequest, status)
 	if assert.NotNil(u.T(), err) {
-		assert.Equal(u.T(), "missing credentials", err.Error())
+		assert.True(u.T(), errors.Is(err, ErrInsufficientScopes))
 	}
 }
 
 func (u *UtilsTest) Test_GetAPIClient_Success() {
-	resp := v5.CredentialResponse{
-		Success: true,
-		Credentials: []string{
-			"/api/integration-modules/{code}",
-			"/api/integration-modules/{code}/edit",
-		},
+	resp := retailcrm.CredentialResponse{
+		Success:        true,
+		Scopes:         DefaultScopes,
 		SiteAccess:     "all",
 		SitesAvailable: []string{"site"},
 	}
@@ -131,7 +130,7 @@ func (u *UtilsTest) Test_GetAPIClient_Success() {
 		Reply(http.StatusOK).
 		BodyString(string(data))
 
-	_, status, err := u.utils.GetAPIClient(testCRMURL, "key")
+	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", DefaultScopes)
 	require.NoError(u.T(), err)
 	assert.Equal(u.T(), 0, status)
 }
@@ -160,6 +159,21 @@ func (u *UtilsTest) Test_UploadUserAvatar_FailBadRequest() {
 func (u *UtilsTest) Test_RemoveTrailingSlash() {
 	assert.Equal(u.T(), testCRMURL, u.utils.RemoveTrailingSlash(testCRMURL+"/"))
 	assert.Equal(u.T(), testCRMURL, u.utils.RemoveTrailingSlash(testCRMURL))
+}
+
+func (u *UtilsTest) TestUtils_CheckScopes() {
+	required := []string{"one", "two"}
+
+	scopes := []string{"one", "two"}
+
+	diff := u.utils.checkScopes(scopes, required)
+	assert.Equal(u.T(), 0, len(diff))
+
+	scopes = []string{"three", "four"}
+
+	diff = u.utils.checkScopes(scopes, required)
+	assert.Equal(u.T(), 2, len(diff))
+	assert.Equal(u.T(), []string{"one", "two"}, diff)
 }
 
 func TestUtils_GetMGItemData_FailRuntime_GetImage(t *testing.T) {
