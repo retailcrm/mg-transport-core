@@ -116,11 +116,8 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
 
 func (u *UtilsTest) Test_GetAPIClient_Success() {
 	resp := retailcrm.CredentialResponse{
-		Success: true,
-		Scopes: []string{
-			"integration_read",
-			"integration_write",
-		},
+		Success:        true,
+		Scopes:         DefaultScopes,
 		SiteAccess:     "all",
 		SitesAvailable: []string{"site"},
 	}
@@ -133,7 +130,7 @@ func (u *UtilsTest) Test_GetAPIClient_Success() {
 		Reply(http.StatusOK).
 		BodyString(string(data))
 
-	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", []string{})
+	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", DefaultScopes)
 	require.NoError(u.T(), err)
 	assert.Equal(u.T(), 0, status)
 }
