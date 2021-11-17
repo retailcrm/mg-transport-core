@@ -34,6 +34,7 @@ type InfoInterface interface {
 	GetName() string
 	GetCode() string
 	GetLogoPath() string
+	GetSecret() string
 }
 
 // Config struct.
@@ -193,6 +194,11 @@ func (t Info) GetCode() string {
 // GetLogoPath transport logo.
 func (t Info) GetLogoPath() string {
 	return t.LogoPath
+}
+
+// GetSecret returns secret.
+func (t Info) GetSecret() string {
+	return t.Secret
 }
 
 // IsSSLVerificationEnabled returns SSL verification flag (default is true).
