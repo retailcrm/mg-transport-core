@@ -14,6 +14,13 @@ type PkgErrorTraceable interface {
 	StackTrace() pkgErrors.StackTrace
 }
 
+// IsPkgErrorsError returns true if passed error might be github.com/pkg/errors error.
+func IsPkgErrorsError(err error) bool {
+	_, okTraceable := err.(PkgErrorTraceable) // nolint:errorlint
+	_, okCauseable := err.(PkgErrorCauseable) // nolint:errorlint
+	return okTraceable || okCauseable
+}
+
 // PkgErrorsStackTransformer transforms stack data from github.com/pkg/errors error to stacktrace.Stacktrace.
 type PkgErrorsStackTransformer struct {
 	stack pkgErrors.StackTrace
@@ -44,7 +51,7 @@ type PkgErrorsBuilder struct {
 
 // Build stacktrace.
 func (b *PkgErrorsBuilder) Build() StackBuilderInterface {
-	if !isPkgErrors(b.err) {
+	if !IsPkgErrorsError(b.err) {
 		b.buildErr = ErrUnfeasibleBuilder
 		return b
 	}

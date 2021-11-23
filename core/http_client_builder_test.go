@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/retailcrm/mg-transport-core/core/errortools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -248,9 +249,9 @@ uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 	_, err = keyFile.WriteString(keyFileData)
 	require.NoError(t.T(), err, "cannot write temp key file")
 	require.NoError(t.T(),
-		ErrorCollector(certFile.Sync(), certFile.Close()), "cannot sync and close temp cert file")
+		errortools.Collect(certFile.Sync(), certFile.Close()), "cannot sync and close temp cert file")
 	require.NoError(t.T(),
-		ErrorCollector(keyFile.Sync(), keyFile.Close()), "cannot sync and close temp key file")
+		errortools.Collect(keyFile.Sync(), keyFile.Close()), "cannot sync and close temp key file")
 
 	mux := &http.ServeMux{}
 	srv := &http.Server{Addr: mockServerAddr, Handler: mux}

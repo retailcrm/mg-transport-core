@@ -26,8 +26,8 @@ func (s *MigrationGeneratorSuite) SetupSuite() {
 
 func (s *MigrationGeneratorSuite) Test_FileExists() {
 	var (
-		seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
-		notExist              = fmt.Sprintf("/tmp/%d", seededRand.Int31())
+		seededRand = rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
+		notExist   = fmt.Sprintf("/tmp/%d", seededRand.Int31())
 	)
 
 	assert.False(s.T(), s.command.FileExists(notExist))

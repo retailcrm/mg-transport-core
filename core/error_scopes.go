@@ -1,50 +1,19 @@
 package core
 
 import (
-	"errors"
-	"fmt"
-	"strings"
+	"github.com/retailcrm/mg-transport-core/core/errortools"
 )
 
 // ErrInsufficientScopes is wrapped by the insufficientScopesErr.
-// If errors.Is(err, ErrInsufficientScopes) returns true then error implements ScopesList.
-var ErrInsufficientScopes = errors.New("insufficient scopes")
+// Deprecated: use errortools.ErrInsufficientScopes.
+var ErrInsufficientScopes = errortools.ErrInsufficientScopes
 
 // ScopesList is a contract for the scopes list.
-type ScopesList interface {
-	Scopes() []string
-}
-
-// insufficientScopesErr contains information about missing auth scopes.
-type insufficientScopesErr struct {
-	scopes  []string
-	wrapped error
-}
-
-// Error message.
-func (e insufficientScopesErr) Error() string {
-	return e.wrapped.Error()
-}
-
-// Unwrap underlying error.
-func (e insufficientScopesErr) Unwrap() error {
-	return e.wrapped
-}
-
-// Scopes that are missing.
-func (e insufficientScopesErr) Scopes() []string {
-	return e.scopes
-}
-
-// String returns string representation of an error with scopes that are missing.
-func (e insufficientScopesErr) String() string {
-	return fmt.Sprintf("Missing scopes: %s", strings.Join(e.Scopes(), ", "))
-}
+// Deprecated: use errortools.ScopesList.
+type ScopesList errortools.ScopesList
 
 // NewInsufficientScopesErr is a insufficientScopesErr constructor.
+// Deprecated: use errortools.NewInsufficientScopesErr.
 func NewInsufficientScopesErr(scopes []string) error {
-	return insufficientScopesErr{
-		scopes:  scopes,
-		wrapped: ErrInsufficientScopes,
-	}
+	return errortools.NewInsufficientScopesErr(scopes)
 }

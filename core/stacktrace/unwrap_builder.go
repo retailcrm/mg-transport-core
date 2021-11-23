@@ -14,6 +14,12 @@ type UnwrapBuilder struct {
 	AbstractStackBuilder
 }
 
+// IsUnwrappableError returns true if error can be unwrapped.
+func IsUnwrappableError(err error) bool {
+	_, ok := err.(Unwrappable) // nolint:errorlint
+	return ok
+}
+
 // Build stacktrace.
 func (b *UnwrapBuilder) Build() StackBuilderInterface {
 	if _, ok := b.err.(Unwrappable); !ok {
@@ -22,7 +28,7 @@ func (b *UnwrapBuilder) Build() StackBuilderInterface {
 	}
 
 	err := b.err
-	frames := []*raven.StacktraceFrame{}
+	var frames []*raven.StacktraceFrame
 
 	for err != nil {
 		frames = append(frames, raven.NewStacktraceFrame(

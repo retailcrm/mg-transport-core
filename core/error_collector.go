@@ -5,7 +5,7 @@ import (
 )
 
 // ErrorCollector can be used to group several error calls into one call.
-// It is mostly useful in GORM migrations, where you should return only one errors, but several can occur.
+// It is mostly useful in GORM migrations, where you should return only one error, but several can occur.
 // Error messages are composed into one message. For example:
 // 		err := core.ErrorCollector(
 // 			errors.New("first"),
@@ -19,6 +19,7 @@ import (
 // 			db.CreateTable(models.Account{}, models.Connection{}).Error,
 // 			db.Table("account").AddUniqueIndex("account_key", "channel").Error,
 // 		)
+// Deprecated: use errortools.Collector of errortools.Collect instead.
 func ErrorCollector(errorsList ...error) error {
 	var errorMsg string
 

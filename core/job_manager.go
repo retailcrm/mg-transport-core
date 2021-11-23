@@ -211,7 +211,7 @@ func (j *JobManager) FetchJob(name string) (value *Job, ok bool) {
 
 // UpdateJob updates job.
 func (j *JobManager) UpdateJob(name string, job *Job) error {
-	if job, ok := j.FetchJob(name); ok {
+	if _, ok := j.FetchJob(name); ok {
 		_ = j.UnregisterJob(name)
 		return j.RegisterJob(name, job)
 	}

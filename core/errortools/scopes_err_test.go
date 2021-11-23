@@ -1,4 +1,4 @@
-package core
+package errortools
 
 import (
 	"errors"
@@ -12,4 +12,5 @@ func TestError_NewScopesError(t *testing.T) {
 	scopesError := NewInsufficientScopesErr(scopes)
 
 	assert.True(t, errors.Is(scopesError, ErrInsufficientScopes))
+	assert.Equal(t, scopes, AsInsufficientScopesErr(scopesError).Scopes())
 }

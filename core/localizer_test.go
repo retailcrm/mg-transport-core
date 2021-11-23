@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/text/language"
+
+	"github.com/retailcrm/mg-transport-core/core/errortools"
 )
 
 var (
@@ -183,7 +185,7 @@ func (l *LocalizerTest) Test_BadRequestLocalized() {
 	status, resp := l.localizer.BadRequestLocalized("message")
 
 	assert.Equal(l.T(), http.StatusBadRequest, status)
-	assert.Equal(l.T(), "Test message", resp.(ErrorResponse).Error)
+	assert.Equal(l.T(), "Test message", resp.(errortools.Response).Error)
 }
 
 // getContextWithLang generates context with Accept-Language header.

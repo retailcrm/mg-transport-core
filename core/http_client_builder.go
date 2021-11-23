@@ -116,7 +116,7 @@ func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder 
 	return b
 }
 
-// SetSSLVerification enables or disables SSL certificates verification in client.
+// SetCertPool sets provided TLS certificates pool into the client.
 func (b *HTTPClientBuilder) SetCertPool(pool *x509.CertPool) *HTTPClientBuilder {
 	if b.httpTransport.TLSClientConfig == nil {
 		b.httpTransport.TLSClientConfig = &tls.Config{}

@@ -11,6 +11,8 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
+
+	"github.com/retailcrm/mg-transport-core/core/errortools"
 )
 
 // DefaultLanguages for transports.
@@ -302,9 +304,24 @@ func (l *Localizer) LocalizeTemplateMessage(messageID string, templateData map[s
 	})
 }
 
-// BadRequestLocalized is same as BadRequest(string), but passed string will be localized.
+// BadRequestLocalized is same as error.BadRequest(string), but passed string will be localized.
 func (l *Localizer) BadRequestLocalized(err string) (int, interface{}) {
-	return BadRequest(l.GetLocalizedMessage(err))
+	return errortools.BadRequest(l.GetLocalizedMessage(err))
+}
+
+// UnauthorizedLocalized is same as error.Unauthorized(string), but passed string will be localized.
+func (l *Localizer) UnauthorizedLocalized(err string) (int, interface{}) {
+	return errortools.Unauthorized(l.GetLocalizedMessage(err))
+}
+
+// ForbiddenLocalized is same as error.Forbidden(string), but passed string will be localized.
+func (l *Localizer) ForbiddenLocalized(err string) (int, interface{}) {
+	return errortools.Forbidden(l.GetLocalizedMessage(err))
+}
+
+// InternalServerErrorLocalized is same as error.InternalServerError(string), but passed string will be localized.
+func (l *Localizer) InternalServerErrorLocalized(err string) (int, interface{}) {
+	return errortools.InternalServerError(l.GetLocalizedMessage(err))
 }
 
 // GetContextLocalizer returns localizer from context if it exist there.
