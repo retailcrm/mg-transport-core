@@ -19,7 +19,7 @@ import (
 // 			db.CreateTable(models.Account{}, models.Connection{}).Error,
 // 			db.Table("account").AddUniqueIndex("account_key", "channel").Error,
 // 		)
-// Deprecated: use errortools.Collector of errortools.Collect instead.
+// Deprecated: use errortools.Collector or errortools.Collect instead.
 func ErrorCollector(errorsList ...error) error {
 	var errorMsg string
 

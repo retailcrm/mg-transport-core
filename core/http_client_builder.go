@@ -52,6 +52,7 @@ type HTTPClientBuilder struct {
 	mockPort      string
 	mockedDomains []string
 	timeout       time.Duration
+	tlsVersion    uint16
 	logging       bool
 	built         bool
 }
@@ -62,6 +63,7 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 		built:         false,
 		httpClient:    &http.Client{},
 		httpTransport: &http.Transport{},
+		tlsVersion:    tls.VersionTLS12,
 		timeout:       30 * time.Second,
 		mockAddress:   "",
 		mockedDomains: []string{},
@@ -115,6 +117,15 @@ func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder 
 	return b
 }
 
+// UseTLS10 restores TLS 1.0 as a minimal supported TLS version.
+func (b *HTTPClientBuilder) UseTLS10() *HTTPClientBuilder {
+	b.tlsVersion = tls.VersionTLS10
+	if b.httpTransport.TLSClientConfig != nil {
+		b.httpTransport.TLSClientConfig.MinVersion = b.tlsVersion
+	}
+	return b
+}
+
 // SetCertPool sets provided TLS certificates pool into the client.
 func (b *HTTPClientBuilder) SetCertPool(pool *x509.CertPool) *HTTPClientBuilder {
 	if b.httpTransport.TLSClientConfig == nil {
@@ -159,7 +170,7 @@ func (b *HTTPClientBuilder) FromEngine(engine *Engine) *HTTPClientBuilder {
 
 // baseTLSConfig returns *tls.Config with TLS 1.2 as a minimal supported version.
 func (b *HTTPClientBuilder) baseTLSConfig() *tls.Config {
-	return &tls.Config{MinVersion: tls.VersionTLS12}
+	return &tls.Config{MinVersion: b.tlsVersion} // nolint:gosec
 }
 
 // buildDialer initializes dialer with provided timeout.

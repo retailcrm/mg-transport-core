@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -315,6 +316,16 @@ uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 
 	assert.Equal(t.T(), http.StatusCreated, resp.StatusCode, "invalid status code")
 	assert.Equal(t.T(), "ok", string(data), "invalid body contents")
+}
+
+func (t *HTTPClientBuilderTest) Test_UseTLS10() {
+	client, err := NewHTTPClientBuilder().SetSSLVerification(true).UseTLS10().Build()
+
+	t.Require().NoError(err)
+	t.Require().NotNil(client)
+	t.Require().NotNil(client.Transport)
+	t.Require().NotNil(client.Transport.(*http.Transport).TLSClientConfig)
+	t.Assert().Equal(uint16(tls.VersionTLS10), client.Transport.(*http.Transport).TLSClientConfig.MinVersion)
 }
 
 // taken from https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go
