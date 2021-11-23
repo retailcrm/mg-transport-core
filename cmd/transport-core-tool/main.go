@@ -30,7 +30,7 @@ func init() {
 
 func main() {
 	if _, err := parser.Parse(); err != nil {
-		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp { // nolint:errorlint
 			os.Exit(0)
 		} else {
 			os.Exit(1)

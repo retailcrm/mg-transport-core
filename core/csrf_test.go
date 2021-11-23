@@ -21,10 +21,10 @@ type CSRFTest struct {
 }
 
 type requestOptions struct {
+	Body    io.Reader
+	Headers map[string]string
 	Method  string
 	URL     string
-	Headers map[string]string
-	Body    io.Reader
 }
 
 func TestCSRF_DefaultCSRFTokenGetter_Empty(t *testing.T) {

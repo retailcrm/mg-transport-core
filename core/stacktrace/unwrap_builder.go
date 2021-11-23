@@ -22,7 +22,7 @@ func IsUnwrappableError(err error) bool {
 
 // Build stacktrace.
 func (b *UnwrapBuilder) Build() StackBuilderInterface {
-	if _, ok := b.err.(Unwrappable); !ok {
+	if !IsUnwrappableError(b.err) {
 		b.buildErr = ErrUnfeasibleBuilder
 		return b
 	}
@@ -40,7 +40,7 @@ func (b *UnwrapBuilder) Build() StackBuilderInterface {
 			b.client.IncludePaths(),
 		))
 
-		if item, ok := err.(Unwrappable); ok {
+		if item, ok := err.(Unwrappable); ok { // nolint:errorlint
 			err = item.Unwrap()
 		} else {
 			err = nil

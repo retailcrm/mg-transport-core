@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -15,10 +16,11 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/retailcrm/mg-transport-core/core/errortools"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/retailcrm/mg-transport-core/core/errortools"
 )
 
 type HTTPClientBuilderTest struct {
@@ -262,8 +264,8 @@ uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 
 	testSkipChan := make(chan error, 1)
 	go func(skip chan error) {
-		if err := srv.ListenAndServeTLS(certFile.Name(), keyFile.Name()); err != nil && err != http.ErrServerClosed {
-			skip <- fmt.Errorf("skipping test because server won't start: %s", err.Error())
+		if err := srv.ListenAndServeTLS(certFile.Name(), keyFile.Name()); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			skip <- fmt.Errorf("skipping test because server won't start: %w", err)
 		}
 	}(testSkipChan)
 

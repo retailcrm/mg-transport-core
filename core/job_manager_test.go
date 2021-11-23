@@ -17,13 +17,13 @@ import (
 type JobTest struct {
 	suite.Suite
 	job          *Job
-	syncBool     bool
 	executedChan chan bool
 	randomNumber chan int
 	executeErr   chan error
 	panicValue   chan interface{}
 	lastLog      string
 	lastMsgLevel logging.Level
+	syncBool     bool
 }
 
 type JobManagerTest struct {
@@ -86,16 +86,16 @@ func (t *JobTest) testLogFunc() JobLogFunc {
 	}
 }
 
-func (t *JobTest) executed(wait time.Duration, defaultVal bool) bool {
+func (t *JobTest) executed() bool {
 	if t.executedChan == nil {
-		return defaultVal
+		return false
 	}
 
 	select {
 	case c := <-t.executedChan:
 		return c
-	case <-time.After(wait):
-		return defaultVal
+	case <-time.After(time.Millisecond):
+		return false
 	}
 }
 
@@ -182,7 +182,7 @@ func (t *JobTest) regularJob() {
 	t.job = &Job{
 		Command: func(logFunc JobLogFunc) error {
 			t.executedChan <- true
-			t.randomNumber <- rand.Int()
+			t.randomNumber <- rand.Int() // nolint:gosec
 			return nil
 		},
 		ErrorHandler: t.testErrorHandler(),
@@ -216,7 +216,7 @@ func (t *JobTest) Test_getWrappedFunc() {
 	fn := t.job.getWrappedFunc("job", t.testLogFunc())
 	require.NotNil(t.T(), fn)
 	go fn()
-	assert.True(t.T(), t.executed(time.Millisecond, false))
+	assert.True(t.T(), t.executed())
 	assert.False(t.T(), t.errored(time.Millisecond))
 	assert.False(t.T(), t.panicked(time.Millisecond))
 }
@@ -231,7 +231,7 @@ func (t *JobTest) Test_getWrappedFuncError() {
 	fn := t.job.getWrappedFunc("job", t.testLogFunc())
 	require.NotNil(t.T(), fn)
 	go fn()
-	assert.True(t.T(), t.executed(time.Millisecond, false))
+	assert.True(t.T(), t.executed())
 	assert.True(t.T(), t.errored(time.Millisecond))
 	assert.False(t.T(), t.panicked(time.Millisecond))
 }
@@ -246,7 +246,7 @@ func (t *JobTest) Test_getWrappedFuncPanic() {
 	fn := t.job.getWrappedFunc("job", t.testLogFunc())
 	require.NotNil(t.T(), fn)
 	go fn()
-	assert.True(t.T(), t.executed(time.Millisecond, false))
+	assert.True(t.T(), t.executed())
 	assert.False(t.T(), t.errored(time.Millisecond))
 	assert.True(t.T(), t.panicked(time.Millisecond))
 }
@@ -260,7 +260,7 @@ func (t *JobTest) Test_run() {
 	t.job.run("job", t.testLogFunc())
 	time.Sleep(time.Millisecond * 5)
 	t.job.stop()
-	require.True(t.T(), t.executed(time.Millisecond, false))
+	require.True(t.T(), t.executed())
 }
 
 func (t *JobTest) Test_runOnce() {
@@ -271,7 +271,7 @@ func (t *JobTest) Test_runOnce() {
 	t.regularJob()
 	t.job.runOnce("job", t.testLogFunc())
 	time.Sleep(time.Millisecond * 5)
-	require.True(t.T(), t.executed(time.Millisecond, false))
+	require.True(t.T(), t.executed())
 	first := 0
 
 	select {

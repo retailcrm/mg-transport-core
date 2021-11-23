@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
+
 	"github.com/retailcrm/mg-transport-core/core/errortools"
 )
 
@@ -79,11 +80,11 @@ var defaultCurrencies = map[string]string{
 
 // Utils service object.
 type Utils struct {
-	IsDebug      bool
-	TokenCounter uint32
-	ConfigAWS    ConfigAWS
 	Logger       LoggerInterface
 	slashRegex   *regexp.Regexp
+	ConfigAWS    ConfigAWS
+	TokenCounter uint32
+	IsDebug      bool
 }
 
 // NewUtils will create new Utils instance.
@@ -229,7 +230,7 @@ func GetEntitySHA1(v interface{}) (hash string, err error) {
 // ReplaceMarkdownSymbols will remove markdown symbols from text.
 func ReplaceMarkdownSymbols(s string) string {
 	for _, v := range markdownSymbols {
-		s = strings.Replace(s, v, "\\"+v, -1)
+		s = strings.ReplaceAll(s, v, "\\"+v)
 	}
 
 	return s

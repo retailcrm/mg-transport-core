@@ -41,6 +41,11 @@ const (
 	CSRFErrorTokenMismatch
 )
 
+const (
+	keySize          = 8
+	randomStringSize = 64
+)
+
 // DefaultCSRFTokenGetter default getter.
 var DefaultCSRFTokenGetter = func(c *gin.Context) string {
 	r := c.Request
@@ -70,31 +75,43 @@ var DefaultIgnoredMethods = []string{"GET", "HEAD", "OPTIONS"}
 
 // CSRF struct. Provides CSRF token verification.
 type CSRF struct {
+	store           sessions.Store
+	abortFunc       CSRFAbortFunc
+	csrfTokenGetter CSRFTokenGetter
 	salt            string
 	secret          string
 	sessionName     string
-	abortFunc       CSRFAbortFunc
-	csrfTokenGetter CSRFTokenGetter
-	store           sessions.Store
 }
 
 // NewCSRF creates CSRF struct with specified configuration and session store.
 // GenerateCSRFMiddleware and VerifyCSRFMiddleware returns CSRF middlewares.
-// Salt must be different every time (pass empty salt to use random), secret must be provided, sessionName is optional - pass empty to use default,
-// store will be used to store sessions, abortFunc will be called to return error if token is invalid, csrfTokenGetter will be used to obtain token.
+// Salt must be different every time (pass empty salt to use random), secret must be provided,
+// sessionName is optional - pass empty to use default,
+// store will be used to store sessions, abortFunc will be called to return error if token is invalid,
+// csrfTokenGetter will be used to obtain token.
+//
 // Usage (with random salt):
 // 		core.NewCSRF("", "super secret", "csrf_session", store, func (c *gin.Context, reason core.CSRFErrorReason) {
 // 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid CSRF token"})
 // 		}, core.DefaultCSRFTokenGetter)
-// Note for csrfTokenGetter: if you want to read token from request body (for example, from form field) - don't forget to restore Body data!
+//
+// Note for csrfTokenGetter: if you want to read token from request body (for example, from form field)
+// - don't forget to restore Body data!
+//
 // Body in http.Request is io.ReadCloser instance. Reading CSRF token from form like that:
 // 		if t := r.FormValue("csrf_token"); len(t) > 0 {
 // 			return t
 // 		}
 // will close body - and all next middlewares won't be able to read body at all!
+//
 // Use DefaultCSRFTokenGetter as example to implement your own token getter.
 // CSRFErrorReason will be passed to abortFunc and can be used for better error messages.
-func NewCSRF(salt, secret, sessionName string, store sessions.Store, abortFunc CSRFAbortFunc, csrfTokenGetter CSRFTokenGetter) *CSRF {
+func NewCSRF(
+	salt, secret, sessionName string,
+	store sessions.Store,
+	abortFunc CSRFAbortFunc,
+	csrfTokenGetter CSRFTokenGetter,
+) *CSRF {
 	if store == nil {
 		panic("store must not be nil")
 	}
@@ -157,10 +174,10 @@ func (x *CSRF) generateCSRFToken() string {
 // Default secure salt length: 8 bytes.
 // Default pseudo-random salt length: 64 bytes.
 func (x *CSRF) generateSalt() string {
-	salt := securecookie.GenerateRandomKey(8)
+	salt := securecookie.GenerateRandomKey(keySize)
 
 	if salt == nil {
-		return x.pseudoRandomString(64)
+		return x.pseudoRandomString(randomStringSize)
 	}
 
 	return string(salt)
@@ -171,15 +188,15 @@ func (x *CSRF) pseudoRandomString(length int) string {
 	rand.Seed(time.Now().UnixNano())
 	data := make([]byte, length)
 
-	for i := 0; i < length; i++ {
-		data[i] = byte(65 + rand.Intn(90-65))
+	for i := 0; i < length; i++ { // it is supposed to use pseudo-random data.
+		data[i] = byte(65 + rand.Intn(90-65)) // nolint:gosec,gomnd
 	}
 
 	return string(data)
 }
 
-// CSRFFromContext returns csrf token or random token. It shouldn't return empty string because it will make csrf protection useless.
-// e.g. any request without token will work fine, which is inacceptable.
+// CSRFFromContext returns csrf token or random token. It shouldn't return empty string because
+// it will make csrf protection useless. e.g. any request without token will work fine, which is unacceptable.
 func (x *CSRF) CSRFFromContext(c *gin.Context) string {
 	if i, ok := c.Get("csrf_token"); ok {
 		if token, ok := i.(string); ok {

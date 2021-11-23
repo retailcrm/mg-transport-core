@@ -16,9 +16,9 @@ var migrations *Migrate
 type Migrate struct {
 	db         *gorm.DB
 	first      *gormigrate.Migration
-	versions   []string
 	migrations map[string]*gormigrate.Migration
 	GORMigrate *gormigrate.Gormigrate
+	versions   []string
 	prepared   bool
 }
 
@@ -123,7 +123,7 @@ func (m *Migrate) MigrateNextTo(version string) error {
 		case current < next:
 			return m.GORMigrate.MigrateTo(next)
 		case current > next:
-			return errors.New(fmt.Sprintf("current migration version '%s' is higher than fetched version '%s'", current, next))
+			return fmt.Errorf("current migration version '%s' is higher than fetched version '%s'", current, next)
 		default:
 			return nil
 		}
@@ -144,7 +144,7 @@ func (m *Migrate) MigratePreviousTo(version string) error {
 		case current > prev:
 			return m.GORMigrate.RollbackTo(prev)
 		case current < prev:
-			return errors.New(fmt.Sprintf("current migration version '%s' is lower than fetched version '%s'", current, prev))
+			return fmt.Errorf("current migration version '%s' is lower than fetched version '%s'", current, prev)
 		case prev == "0":
 			return m.GORMigrate.RollbackMigration(m.first)
 		default:
@@ -241,8 +241,11 @@ func (m *Migrate) prepareMigrations() error {
 		return nil
 	}
 
+	i := 0
+	keys = make([]string, len(m.migrations))
 	for key := range m.migrations {
-		keys = append(keys, key)
+		keys[i] = key
+		i++
 	}
 
 	sort.Strings(keys)

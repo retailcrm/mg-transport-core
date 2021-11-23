@@ -16,22 +16,22 @@ type ErrorsResponse errortools.ListResponse
 // Usage (with gin):
 //      context.JSON(GetErrorResponse(http.StatusPaymentRequired, "Not enough money"))
 // Deprecated: use errortools.GetErrorResponse instead.
-func GetErrorResponse(statusCode int, error string) (int, interface{}) {
-	return errortools.GetErrorResponse(statusCode, error)
+func GetErrorResponse(statusCode int, err string) (int, interface{}) {
+	return errortools.GetErrorResponse(statusCode, err)
 }
 
 // BadRequest returns ErrorResponse with code 400
 // Usage (with gin):
 //      context.JSON(BadRequest("invalid data"))
 // Deprecated: use errortools.BadRequest instead.
-func BadRequest(error string) (int, interface{}) {
-	return errortools.BadRequest(error)
+func BadRequest(err string) (int, interface{}) {
+	return errortools.BadRequest(err)
 }
 
 // InternalServerError returns ErrorResponse with code 500
 // Usage (with gin):
 //      context.JSON(BadRequest("invalid data"))
 // Deprecated: use errortools.InternalServerError instead.
-func InternalServerError(error string) (int, interface{}) {
-	return errortools.InternalServerError(error)
+func InternalServerError(err string) (int, interface{}) {
+	return errortools.InternalServerError(err)
 }

@@ -1,5 +1,6 @@
 /*
-Package core provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.
+Package core provides different functions like error-reporting, logging, localization, etc.
+to make it easier to create transports.
 Usage:
 	package main
 

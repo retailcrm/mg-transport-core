@@ -17,8 +17,8 @@ type ScopesList interface {
 
 // insufficientScopesErr contains information about missing auth scopes.
 type insufficientScopesErr struct {
-	scopes  []string
 	wrapped error
+	scopes  []string
 }
 
 // Error message.

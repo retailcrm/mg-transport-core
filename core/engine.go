@@ -25,21 +25,21 @@ var DefaultHTTPClientConfig = &HTTPClientConfig{
 
 // Engine struct.
 type Engine struct {
-	Localizer
+	logger       LoggerInterface
+	Sessions     sessions.Store
+	LogFormatter logging.Formatter
+	Config       ConfigInterface
+	ginEngine    *gin.Engine
+	csrf         *CSRF
+	httpClient   *http.Client
+	jobManager   *JobManager
 	ORM
-	Sentry
+	Localizer
 	Utils
-	ginEngine        *gin.Engine
-	httpClient       *http.Client
-	logger           LoggerInterface
-	mutex            sync.RWMutex
-	csrf             *CSRF
-	jobManager       *JobManager
 	PreloadLanguages []language.Tag
-	Sessions         sessions.Store
-	Config           ConfigInterface
-	LogFormatter     logging.Formatter
-	prepared         bool
+	Sentry
+	mutex    sync.RWMutex
+	prepared bool
 }
 
 // New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or

@@ -43,18 +43,17 @@ var DefaultTransport = http.DefaultTransport
 // 			fmt.Print(err)
 // 		}
 type HTTPClientBuilder struct {
+	logger        LoggerInterface
 	httpClient    *http.Client
 	httpTransport *http.Transport
-	certsPool     *x509.CertPool
 	dialer        *net.Dialer
-	logger        LoggerInterface
-	built         bool
-	logging       bool
-	timeout       time.Duration
 	mockAddress   string
 	mockHost      string
 	mockPort      string
 	mockedDomains []string
+	timeout       time.Duration
+	logging       bool
+	built         bool
 }
 
 // NewHTTPClientBuilder returns HTTPClientBuilder with default values.
@@ -81,7 +80,7 @@ func (b *HTTPClientBuilder) WithLogger(logger LoggerInterface) *HTTPClientBuilde
 
 // SetTimeout sets timeout for http client.
 func (b *HTTPClientBuilder) SetTimeout(seconds time.Duration) *HTTPClientBuilder {
-	seconds = seconds * time.Second
+	seconds *= time.Second
 	b.timeout = seconds
 	b.httpClient.Timeout = seconds
 	return b
@@ -108,7 +107,7 @@ func (b *HTTPClientBuilder) SetMockedDomains(domains []string) *HTTPClientBuilde
 // SetSSLVerification enables or disables SSL certificates verification in client.
 func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder {
 	if b.httpTransport.TLSClientConfig == nil {
-		b.httpTransport.TLSClientConfig = &tls.Config{}
+		b.httpTransport.TLSClientConfig = b.baseTLSConfig()
 	}
 
 	b.httpTransport.TLSClientConfig.InsecureSkipVerify = !enabled
@@ -119,7 +118,7 @@ func (b *HTTPClientBuilder) SetSSLVerification(enabled bool) *HTTPClientBuilder 
 // SetCertPool sets provided TLS certificates pool into the client.
 func (b *HTTPClientBuilder) SetCertPool(pool *x509.CertPool) *HTTPClientBuilder {
 	if b.httpTransport.TLSClientConfig == nil {
-		b.httpTransport.TLSClientConfig = &tls.Config{}
+		b.httpTransport.TLSClientConfig = b.baseTLSConfig()
 	}
 
 	b.httpTransport.TLSClientConfig.RootCAs = pool
@@ -156,6 +155,11 @@ func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuil
 // FromEngine fulfills mock configuration from ConfigInterface inside Engine.
 func (b *HTTPClientBuilder) FromEngine(engine *Engine) *HTTPClientBuilder {
 	return b.FromConfig(engine.GetHTTPClientConfig())
+}
+
+// baseTLSConfig returns *tls.Config with TLS 1.2 as a minimal supported version.
+func (b *HTTPClientBuilder) baseTLSConfig() *tls.Config {
+	return &tls.Config{MinVersion: tls.VersionTLS12}
 }
 
 // buildDialer initializes dialer with provided timeout.

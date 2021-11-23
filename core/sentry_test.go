@@ -21,9 +21,9 @@ import (
 )
 
 type sampleStruct struct {
-	ID      int
 	Pointer *int
 	Field   string
+	ID      int
 }
 
 type ravenPacket struct {
@@ -53,21 +53,11 @@ func (r ravenPacket) getException() (*raven.Exception, bool) {
 	return nil, false
 }
 
-func (r ravenPacket) getRequest() (*raven.Http, bool) {
-	if i, ok := r.getInterface("request"); ok {
-		if r, ok := i.(*raven.Http); ok {
-			return r, true
-		}
-	}
-
-	return nil, false
-}
-
 type ravenClientMock struct {
-	raven.Client
 	captured []ravenPacket
-	mu       sync.RWMutex
-	wg       sync.WaitGroup
+	raven.Client
+	mu sync.RWMutex
+	wg sync.WaitGroup
 }
 
 func newRavenMock() *ravenClientMock {
@@ -96,7 +86,7 @@ func (r *ravenClientMock) CaptureMessageAndWait(message string, tags map[string]
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	defer r.wg.Done()
-	eventID := strconv.FormatUint(rand.Uint64(), 10)
+	eventID := strconv.FormatUint(rand.Uint64(), 10) // nolint:gosec
 	r.captured = append(r.captured, ravenPacket{
 		EventID:    eventID,
 		Message:    message,
@@ -129,8 +119,8 @@ func (n *simpleError) Error() string {
 
 // wrappableError is a simple implementation of wrappable error.
 type wrappableError struct {
-	msg string
 	err error
+	msg string
 }
 
 func newWrappableError(msg string, child error) error {

@@ -140,11 +140,6 @@ func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 	}
 }
 
-// getLocaleBundle returns current locale bundle and creates it if needed.
-func (l *Localizer) getLocaleBundle() *i18n.Bundle {
-	return l.createLocaleBundleByTag(l.LanguageTag)
-}
-
 // createLocaleBundleByTag creates locale bundle by language tag.
 func (l *Localizer) createLocaleBundleByTag(tag language.Tag) *i18n.Bundle {
 	bundle := i18n.NewBundle(tag)
@@ -281,8 +276,8 @@ func (l *Localizer) GetLocalizedMessage(messageID string) string {
 	return l.getCurrentLocalizer().MustLocalize(&i18n.LocalizeConfig{MessageID: messageID})
 }
 
-// GetLocalizedTemplateMessage will return localized message with specified data. It doesn't use `Must` prefix in order to keep BC.
-// It uses text/template syntax: https://golang.org/pkg/text/template/
+// GetLocalizedTemplateMessage will return localized message with specified data.
+// It doesn't use `Must` prefix in order to keep BC. It uses text/template syntax: https://golang.org/pkg/text/template/
 func (l *Localizer) GetLocalizedTemplateMessage(messageID string, templateData map[string]interface{}) string {
 	return l.getCurrentLocalizer().MustLocalize(&i18n.LocalizeConfig{
 		MessageID:    messageID,

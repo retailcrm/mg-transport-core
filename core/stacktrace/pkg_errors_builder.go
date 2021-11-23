@@ -78,7 +78,7 @@ func (b *PkgErrorsBuilder) Build() StackBuilderInterface {
 
 // getErrorCause will try to extract original error from wrapper - it is used only if stacktrace is not present.
 func (b *PkgErrorsBuilder) getErrorCause(err error) error {
-	causeable, ok := err.(PkgErrorCauseable)
+	causeable, ok := err.(PkgErrorCauseable) // nolint:errorlint
 	if !ok {
 		return nil
 	}
@@ -88,7 +88,7 @@ func (b *PkgErrorsBuilder) getErrorCause(err error) error {
 // getErrorStackTrace will try to extract stacktrace from error using StackTrace method
 // (default errors doesn't have it).
 func (b *PkgErrorsBuilder) getErrorStack(err error) pkgErrors.StackTrace {
-	traceable, ok := err.(PkgErrorTraceable)
+	traceable, ok := err.(PkgErrorTraceable) // nolint:errorlint
 	if !ok {
 		return nil
 	}

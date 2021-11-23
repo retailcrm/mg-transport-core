@@ -26,11 +26,11 @@ type Job struct {
 	Command      JobFunc
 	ErrorHandler JobErrorHandler
 	PanicHandler JobPanicHandler
+	stopChannel  chan bool
 	Interval     time.Duration
 	writeLock    sync.RWMutex
 	Regular      bool
 	active       bool
-	stopChannel  chan bool
 }
 
 // JobManager controls jobs execution flow. Jobs can be added just for later use (e.g. JobManager can be used as
@@ -51,9 +51,9 @@ type Job struct {
 // 		})
 // 		manager.Start()
 type JobManager struct {
+	logger        LoggerInterface
 	jobs          *sync.Map
 	enableLogging bool
-	logger        LoggerInterface
 }
 
 // getWrappedFunc wraps job into function.
@@ -86,7 +86,7 @@ func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func(chan bool) {
 }
 
 // run job.
-func (j *Job) run(name string, log JobLogFunc) *Job {
+func (j *Job) run(name string, log JobLogFunc) {
 	j.writeLock.RLock()
 
 	if j.Regular && j.Interval > 0 && !j.active {
@@ -100,12 +100,10 @@ func (j *Job) run(name string, log JobLogFunc) *Job {
 	} else {
 		j.writeLock.RUnlock()
 	}
-
-	return j
 }
 
 // stop running job.
-func (j *Job) stop() *Job {
+func (j *Job) stop() {
 	j.writeLock.RLock()
 
 	if j.active && j.stopChannel != nil {
@@ -119,20 +117,16 @@ func (j *Job) stop() *Job {
 	} else {
 		j.writeLock.RUnlock()
 	}
-
-	return j
 }
 
 // runOnce run job once.
-func (j *Job) runOnce(name string, log JobLogFunc) *Job {
+func (j *Job) runOnce(name string, log JobLogFunc) {
 	go j.getWrappedFunc(name, log)()
-	return j
 }
 
 // runOnceSync run job once in current goroutine.
-func (j *Job) runOnceSync(name string, log JobLogFunc) *Job {
+func (j *Job) runOnceSync(name string, log JobLogFunc) {
 	j.getWrappedFunc(name, log)()
-	return j
 }
 
 // NewJobManager is a JobManager constructor.
@@ -219,7 +213,8 @@ func (j *JobManager) UpdateJob(name string, job *Job) error {
 	return fmt.Errorf("cannot find job `%s`", name)
 }
 
-// RunJob starts provided regular job if it's exists. It's async operation and error returns only of job wasn't executed at all.
+// RunJob starts provided regular job if it's exists.
+// It runs asynchronously and error returns only of job wasn't executed at all.
 func (j *JobManager) RunJob(name string) error {
 	if job, ok := j.FetchJob(name); ok {
 		job.run(name, j.log)

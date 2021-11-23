@@ -32,7 +32,7 @@ func init() {
 
 // NewMigrationCommand struct.
 type NewMigrationCommand struct {
-	Directory string `short:"d" long:"directory" default:"./migrations" description:"Directory where migration will be created"`
+	Directory string `short:"d" long:"directory" default:"./migrations" description:"Directory where migration will be created"` // nolint:lll
 }
 
 // FileExists returns true if provided file exist and it's not directory.

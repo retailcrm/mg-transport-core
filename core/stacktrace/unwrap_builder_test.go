@@ -25,8 +25,8 @@ func (n *simpleError) Error() string {
 
 // wrappableError is a simple implementation of wrappable error.
 type wrappableError struct {
-	msg string
 	err error
+	msg string
 }
 
 func newWrappableError(msg string, child error) error {
@@ -75,8 +75,7 @@ func (s *UnwrapBuilderSuite) TestBuild_NoUnwrap() {
 
 func (s *UnwrapBuilderSuite) TestBuild_WrappableHasWrapped() {
 	testErr := newWrappableError("first", newWrappableError("second", errors.New("third")))
-	_, ok := testErr.(Unwrappable)
-	require.True(s.T(), ok)
+	require.True(s.T(), IsUnwrappableError(testErr))
 
 	s.builder.SetError(testErr)
 	stack, buildErr := s.builder.Build().GetResult()

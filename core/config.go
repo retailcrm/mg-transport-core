@@ -39,16 +39,16 @@ type InfoInterface interface {
 
 // Config struct.
 type Config struct {
-	Version          string            `yaml:"version"`
-	LogLevel         logging.Level     `yaml:"log_level"`
-	Database         DatabaseConfig    `yaml:"database"`
-	SentryDSN        string            `yaml:"sentry_dsn"`
-	HTTPServer       HTTPServerConfig  `yaml:"http_server"`
-	Debug            bool              `yaml:"debug"`
-	UpdateInterval   int               `yaml:"update_interval"`
+	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
 	ConfigAWS        ConfigAWS         `yaml:"config_aws"`
 	TransportInfo    Info              `yaml:"transport_info"`
-	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
+	HTTPServer       HTTPServerConfig  `yaml:"http_server"`
+	Version          string            `yaml:"version"`
+	SentryDSN        string            `yaml:"sentry_dsn"`
+	Database         DatabaseConfig    `yaml:"database"`
+	UpdateInterval   int               `yaml:"update_interval"`
+	LogLevel         logging.Level     `yaml:"log_level"`
+	Debug            bool              `yaml:"debug"`
 }
 
 // Info struct.
@@ -72,19 +72,19 @@ type ConfigAWS struct {
 // DatabaseConfig struct.
 type DatabaseConfig struct {
 	Connection         interface{} `yaml:"connection"`
-	Logging            bool        `yaml:"logging"`
 	TablePrefix        string      `yaml:"table_prefix"`
 	MaxOpenConnections int         `yaml:"max_open_connections"`
 	MaxIdleConnections int         `yaml:"max_idle_connections"`
 	ConnectionLifetime int         `yaml:"connection_lifetime"`
+	Logging            bool        `yaml:"logging"`
 }
 
 // HTTPClientConfig struct.
 type HTTPClientConfig struct {
-	Timeout         time.Duration `yaml:"timeout"`
 	SSLVerification *bool         `yaml:"ssl_verification"`
 	MockAddress     string        `yaml:"mock_address"`
 	MockedDomains   []string      `yaml:"mocked_domains"`
+	Timeout         time.Duration `yaml:"timeout"`
 }
 
 // HTTPServerConfig struct.

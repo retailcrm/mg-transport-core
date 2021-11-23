@@ -2,11 +2,11 @@ package errortools
 
 // Node contains information about error in the list.
 type Node struct {
-	PC   uintptr
 	Err  error
-	File string
-	Line int
 	next *Node
+	File string
+	PC   uintptr
+	Line int
 }
 
 // Error returns error message from the Node's Err.

@@ -92,9 +92,8 @@ func (t *TranslationsExtractor) loadYAMLFile(fileName string) (map[string]interf
 func (t *TranslationsExtractor) loadYAML(fileName string) (map[string]interface{}, error) {
 	if t.TranslationsPath != "" {
 		return t.loadYAMLFile(filepath.Join(t.TranslationsPath, fileName))
-	} else {
-		return t.loadYAMLFromFS(fileName)
 	}
+	return t.loadYAMLFromFS(fileName)
 }
 
 // GetMapKeys returns sorted map keys from map[string]interface{} - useful to check keys in several translation files.

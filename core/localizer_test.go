@@ -122,7 +122,7 @@ func (l *LocalizerTest) Test_LocalizationMiddleware_Httptest() {
 		wg.Add(1)
 		go func(m map[language.Tag]string, wg *sync.WaitGroup) {
 			var tag language.Tag
-			switch rand.Intn(3-1) + 1 {
+			switch rand.Intn(3-1) + 1 { // nolint:gosec
 			case 1:
 				tag = language.English
 			case 2:
