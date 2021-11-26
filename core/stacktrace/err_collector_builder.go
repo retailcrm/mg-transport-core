@@ -5,16 +5,16 @@ import (
 
 	"github.com/getsentry/raven-go"
 
-	"github.com/retailcrm/mg-transport-core/core/errortools"
+	"github.com/retailcrm/mg-transport-core/core/errorutil"
 )
 
-// ErrorNodesList is the interface for the error.errList.
+// ErrorNodesList is the interface for the errorutil.errList.
 type ErrorNodesList interface {
-	Iterate() <-chan errortools.Node
+	Iterate() <-chan errorutil.Node
 	Len() int
 }
 
-// ErrCollectorBuilder builds stacktrace from the list of errors collected by error.Collector.
+// ErrCollectorBuilder builds stacktrace from the list of errors collected by errorutil.Collector.
 type ErrCollectorBuilder struct {
 	AbstractStackBuilder
 }

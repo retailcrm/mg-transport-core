@@ -1,4 +1,4 @@
-package errortools
+package errorutil
 
 import "net/http"
 

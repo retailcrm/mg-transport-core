@@ -1,4 +1,4 @@
-package errortools
+package errorutil
 
 // Node contains information about error in the list.
 type Node struct {

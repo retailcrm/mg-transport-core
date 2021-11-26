@@ -10,12 +10,12 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/retailcrm/mg-transport-core/core/errortools"
+	"github.com/retailcrm/mg-transport-core/core/errorutil"
 )
 
 type ErrCollectorBuilderTest struct {
 	builder *ErrCollectorBuilder
-	c       *errortools.Collector
+	c       *errorutil.Collector
 	suite.Suite
 }
 
@@ -24,7 +24,7 @@ func TestErrCollectorBuilder(t *testing.T) {
 }
 
 func (t *ErrCollectorBuilderTest) SetupTest() {
-	t.c = errortools.NewCollector()
+	t.c = errorutil.NewCollector()
 	client, _ := raven.New("fake dsn")
 	t.builder = &ErrCollectorBuilder{AbstractStackBuilder{
 		client: client,

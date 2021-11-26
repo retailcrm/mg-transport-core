@@ -11,6 +11,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/op/go-logging"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 	"golang.org/x/text/language"
 )
 
@@ -25,7 +26,7 @@ var DefaultHTTPClientConfig = &HTTPClientConfig{
 
 // Engine struct.
 type Engine struct {
-	logger       LoggerInterface
+	logger       logger.Logger
 	Sessions     sessions.Store
 	LogFormatter logging.Formatter
 	Config       ConfigInterface
@@ -91,7 +92,7 @@ func (e *Engine) Prepare() *Engine {
 		e.DefaultError = "error"
 	}
 	if e.LogFormatter == nil {
-		e.LogFormatter = DefaultLogFormatter()
+		e.LogFormatter = logger.DefaultLogFormatter()
 	}
 	if e.LocaleMatcher == nil {
 		e.LocaleMatcher = DefaultLocalizerMatcher()
@@ -110,7 +111,7 @@ func (e *Engine) Prepare() *Engine {
 	e.createDB(e.Config.GetDBConfig())
 	e.createRavenClient(e.Config.GetSentryDSN())
 	e.resetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
-	e.SetLogger(NewLogger(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
+	e.SetLogger(logger.NewStandard(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
 	e.Sentry.Localizer = &e.Localizer
 	e.Sentry.Stacktrace = true
 	e.Utils.Logger = e.Logger()
@@ -176,12 +177,12 @@ func (e *Engine) JobManager() *JobManager {
 }
 
 // Logger returns current logger.
-func (e *Engine) Logger() LoggerInterface {
+func (e *Engine) Logger() logger.Logger {
 	return e.logger
 }
 
 // SetLogger sets provided logger instance to engine.
-func (e *Engine) SetLogger(l LoggerInterface) *Engine {
+func (e *Engine) SetLogger(l logger.Logger) *Engine {
 	if l == nil {
 		return e
 	}

@@ -8,15 +8,16 @@ import (
 	"testing"
 	"time"
 
-	"github.com/h2non/gock"
 	"github.com/op/go-logging"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"gopkg.in/h2non/gock.v1"
 
-	"github.com/retailcrm/mg-transport-core/core/errortools"
+	"github.com/retailcrm/mg-transport-core/core/errorutil"
 )
 
 var (
@@ -34,7 +35,7 @@ func mgClient() *v1.MgClient {
 }
 
 func (u *UtilsTest) SetupSuite() {
-	logger := NewLogger("code", logging.DEBUG, DefaultLogFormatter())
+	logger := logger.NewStandard("code", logging.DEBUG, logger.DefaultLogFormatter())
 	awsConfig := ConfigAWS{
 		AccessKeyID:     "access key id (will be removed)",
 		SecretAccessKey: "secret access key",
@@ -112,7 +113,7 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
 	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", DefaultScopes)
 	assert.Equal(u.T(), http.StatusBadRequest, status)
 	if assert.NotNil(u.T(), err) {
-		assert.True(u.T(), errors.Is(err, errortools.ErrInsufficientScopes))
+		assert.True(u.T(), errors.Is(err, errorutil.ErrInsufficientScopes))
 	}
 }
 

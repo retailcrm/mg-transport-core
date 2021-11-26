@@ -14,6 +14,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -230,7 +231,7 @@ func (e *EngineTest) Test_SetLogger() {
 	defer func() {
 		e.engine.logger = origLogger
 	}()
-	e.engine.logger = &Logger{}
+	e.engine.logger = &logger.StandardLogger{}
 	e.engine.SetLogger(nil)
 	assert.NotNil(e.T(), e.engine.logger)
 }

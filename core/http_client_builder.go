@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 )
 
 // DefaultClient stores original http.DefaultClient.
@@ -43,7 +44,7 @@ var DefaultTransport = http.DefaultTransport
 // 			fmt.Print(err)
 // 		}
 type HTTPClientBuilder struct {
-	logger        LoggerInterface
+	logger        logger.Logger
 	httpClient    *http.Client
 	httpTransport *http.Transport
 	dialer        *net.Dialer
@@ -72,7 +73,7 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 }
 
 // WithLogger sets provided logger into HTTPClientBuilder.
-func (b *HTTPClientBuilder) WithLogger(logger LoggerInterface) *HTTPClientBuilder {
+func (b *HTTPClientBuilder) WithLogger(logger logger.Logger) *HTTPClientBuilder {
 	if logger != nil {
 		b.logger = logger
 	}

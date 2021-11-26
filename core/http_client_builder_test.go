@@ -17,11 +17,12 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/retailcrm/mg-transport-core/core/errortools"
+	"github.com/retailcrm/mg-transport-core/core/errorutil"
 )
 
 type HTTPClientBuilderTest struct {
@@ -142,7 +143,7 @@ func (t *HTTPClientBuilderTest) Test_buildMocks() {
 }
 
 func (t *HTTPClientBuilderTest) Test_WithLogger() {
-	logger := NewLogger("telegram", logging.ERROR, DefaultLogFormatter())
+	logger := logger.NewStandard("telegram", logging.ERROR, logger.DefaultLogFormatter())
 	builder := NewHTTPClientBuilder()
 	require.Nil(t.T(), builder.logger)
 
@@ -252,9 +253,9 @@ uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 	_, err = keyFile.WriteString(keyFileData)
 	require.NoError(t.T(), err, "cannot write temp key file")
 	require.NoError(t.T(),
-		errortools.Collect(certFile.Sync(), certFile.Close()), "cannot sync and close temp cert file")
+		errorutil.Collect(certFile.Sync(), certFile.Close()), "cannot sync and close temp cert file")
 	require.NoError(t.T(),
-		errortools.Collect(keyFile.Sync(), keyFile.Close()), "cannot sync and close temp key file")
+		errorutil.Collect(keyFile.Sync(), keyFile.Close()), "cannot sync and close temp key file")
 
 	mux := &http.ServeMux{}
 	srv := &http.Server{Addr: mockServerAddr, Handler: mux}

@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/retailcrm/mg-transport-core/core/errortools"
+	"github.com/retailcrm/mg-transport-core/core/errorutil"
 )
 
 type sampleStruct struct {
@@ -296,7 +296,7 @@ func (s *SentryTest) TestSentry_CaptureRegularError() {
 		c.Error(newSimpleError("test"))
 	})
 
-	var resp errortools.ListResponse
+	var resp errorutil.ListResponse
 	req, err := http.NewRequest(http.MethodGet, "/test_regularError", nil)
 	require.NoError(s.T(), err)
 
@@ -330,7 +330,7 @@ func (s *SentryTest) TestSentry_CaptureWrappedError() {
 		c.Error(first)
 	})
 
-	var resp errortools.ListResponse
+	var resp errorutil.ListResponse
 	req, err := http.NewRequest(http.MethodGet, "/test_wrappableError", nil)
 	require.NoError(s.T(), err)
 
@@ -381,7 +381,7 @@ func (s *SentryTest) TestSentry_CaptureTags() {
 		}),
 	}
 
-	var resp errortools.ListResponse
+	var resp errorutil.ListResponse
 	req, err := http.NewRequest(http.MethodGet, "/test_taggedError", nil)
 	require.NoError(s.T(), err)
 

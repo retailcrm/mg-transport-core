@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 
 	"github.com/retailcrm/mg-transport-core/core/stacktrace"
 
@@ -34,7 +35,7 @@ type SentryTagged interface {
 
 // Sentry struct. Holds SentryTaggedStruct list.
 type Sentry struct {
-	Logger       LoggerInterface
+	Logger       logger.Logger
 	Client       stacktrace.RavenClientInterface
 	Localizer    *Localizer
 	DefaultError string
@@ -60,7 +61,7 @@ func NewSentry(
 	sentryDSN string,
 	defaultError string,
 	taggedTypes SentryTaggedTypes,
-	logger LoggerInterface,
+	logger logger.Logger,
 	localizer *Localizer,
 ) *Sentry {
 	sentry := &Sentry{

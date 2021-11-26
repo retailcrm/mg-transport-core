@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -33,6 +35,70 @@ type JobManagerTest struct {
 	syncRunnerFlag bool
 }
 
+type callbackLoggerFunc func(level logging.Level, format string, args ...interface{})
+
+type callbackLogger struct {
+	fn callbackLoggerFunc
+}
+
+func (n *callbackLogger) Fatal(args ...interface{}) {
+	n.fn(logging.CRITICAL, "", args...)
+}
+
+func (n *callbackLogger) Fatalf(format string, args ...interface{}) {
+	n.fn(logging.CRITICAL, format, args...)
+}
+
+func (n *callbackLogger) Panic(args ...interface{}) {
+	n.fn(logging.CRITICAL, "", args...)
+}
+func (n *callbackLogger) Panicf(format string, args ...interface{}) {
+	n.fn(logging.CRITICAL, format, args...)
+}
+
+func (n *callbackLogger) Critical(args ...interface{}) {
+	n.fn(logging.CRITICAL, "", args...)
+}
+
+func (n *callbackLogger) Criticalf(format string, args ...interface{}) {
+	n.fn(logging.CRITICAL, format, args...)
+}
+
+func (n *callbackLogger) Error(args ...interface{}) {
+	n.fn(logging.ERROR, "", args...)
+}
+func (n *callbackLogger) Errorf(format string, args ...interface{}) {
+	n.fn(logging.ERROR, format, args...)
+}
+
+func (n *callbackLogger) Warning(args ...interface{}) {
+	n.fn(logging.WARNING, "", args...)
+}
+func (n *callbackLogger) Warningf(format string, args ...interface{}) {
+	n.fn(logging.WARNING, format, args...)
+}
+
+func (n *callbackLogger) Notice(args ...interface{}) {
+	n.fn(logging.NOTICE, "", args...)
+}
+func (n *callbackLogger) Noticef(format string, args ...interface{}) {
+	n.fn(logging.NOTICE, format, args...)
+}
+
+func (n *callbackLogger) Info(args ...interface{}) {
+	n.fn(logging.INFO, "", args...)
+}
+func (n *callbackLogger) Infof(format string, args ...interface{}) {
+	n.fn(logging.INFO, format, args...)
+}
+
+func (n *callbackLogger) Debug(args ...interface{}) {
+	n.fn(logging.DEBUG, "", args...)
+}
+func (n *callbackLogger) Debugf(format string, args ...interface{}) {
+	n.fn(logging.DEBUG, format, args...)
+}
+
 func TestJob(t *testing.T) {
 	suite.Run(t, new(JobTest))
 }
@@ -48,10 +114,10 @@ func TestDefaultJobErrorHandler(t *testing.T) {
 
 	fn := DefaultJobErrorHandler()
 	require.NotNil(t, fn)
-	fn("job", errors.New("test"), func(s string, level logging.Level, i ...interface{}) {
+	fn("job", errors.New("test"), &callbackLogger{fn: func(level logging.Level, s string, i ...interface{}) {
 		require.Len(t, i, 2)
 		assert.Equal(t, fmt.Sprintf("%s", i[1]), "test")
-	})
+	}})
 }
 
 func TestDefaultJobPanicHandler(t *testing.T) {
@@ -61,29 +127,40 @@ func TestDefaultJobPanicHandler(t *testing.T) {
 
 	fn := DefaultJobPanicHandler()
 	require.NotNil(t, fn)
-	fn("job", errors.New("test"), func(s string, level logging.Level, i ...interface{}) {
+	fn("job", errors.New("test"), &callbackLogger{fn: func(level logging.Level, s string, i ...interface{}) {
 		require.Len(t, i, 2)
 		assert.Equal(t, fmt.Sprintf("%s", i[1]), "test")
-	})
+	}})
 }
 
 func (t *JobTest) testErrorHandler() JobErrorHandler {
-	return func(name string, err error, logFunc JobLogFunc) {
+	return func(name string, err error, log logger.Logger) {
 		t.executeErr <- err
 	}
 }
 
 func (t *JobTest) testPanicHandler() JobPanicHandler {
-	return func(name string, i interface{}, logFunc JobLogFunc) {
+	return func(name string, i interface{}, log logger.Logger) {
 		t.panicValue <- i
 	}
 }
 
-func (t *JobTest) testLogFunc() JobLogFunc {
-	return func(s string, level logging.Level, i ...interface{}) {
-		t.lastLog = fmt.Sprintf(s, i...)
+func (t *JobTest) testLogger() logger.Logger {
+	return &callbackLogger{fn: func(level logging.Level, format string, args ...interface{}) {
+		if format == "" {
+			var sb strings.Builder
+			sb.Grow(3 * len(args)) // nolint:gomnd
+
+			for i := 0; i < len(args); i++ {
+				sb.WriteString("%v ")
+			}
+
+			format = strings.TrimRight(sb.String(), " ")
+		}
+
+		t.lastLog = fmt.Sprintf(format)
 		t.lastMsgLevel = level
-	}
+	}}
 }
 
 func (t *JobTest) executed() bool {
@@ -140,7 +217,7 @@ func (t *JobTest) clear() {
 
 func (t *JobTest) onceJob() {
 	t.job = &Job{
-		Command: func(logFunc JobLogFunc) error {
+		Command: func(log logger.Logger) error {
 			t.executedChan <- true
 			return nil
 		},
@@ -153,7 +230,7 @@ func (t *JobTest) onceJob() {
 
 func (t *JobTest) onceErrorJob() {
 	t.job = &Job{
-		Command: func(logFunc JobLogFunc) error {
+		Command: func(log logger.Logger) error {
 			t.executedChan <- true
 			return errors.New("test error")
 		},
@@ -166,7 +243,7 @@ func (t *JobTest) onceErrorJob() {
 
 func (t *JobTest) oncePanicJob() {
 	t.job = &Job{
-		Command: func(logFunc JobLogFunc) error {
+		Command: func(log logger.Logger) error {
 			t.executedChan <- true
 			panic("test panic")
 		},
@@ -180,7 +257,7 @@ func (t *JobTest) oncePanicJob() {
 func (t *JobTest) regularJob() {
 	rand.Seed(time.Now().UnixNano())
 	t.job = &Job{
-		Command: func(logFunc JobLogFunc) error {
+		Command: func(log logger.Logger) error {
 			t.executedChan <- true
 			t.randomNumber <- rand.Int() // nolint:gosec
 			return nil
@@ -195,7 +272,7 @@ func (t *JobTest) regularJob() {
 func (t *JobTest) regularSyncJob() {
 	rand.Seed(time.Now().UnixNano())
 	t.job = &Job{
-		Command: func(logFunc JobLogFunc) error {
+		Command: func(log logger.Logger) error {
 			t.syncBool = true
 			return nil
 		},
@@ -213,7 +290,7 @@ func (t *JobTest) Test_getWrappedFunc() {
 
 	t.clear()
 	t.onceJob()
-	fn := t.job.getWrappedFunc("job", t.testLogFunc())
+	fn := t.job.getWrappedFunc("job", t.testLogger())
 	require.NotNil(t.T(), fn)
 	go fn()
 	assert.True(t.T(), t.executed())
@@ -228,7 +305,7 @@ func (t *JobTest) Test_getWrappedFuncError() {
 
 	t.clear()
 	t.onceErrorJob()
-	fn := t.job.getWrappedFunc("job", t.testLogFunc())
+	fn := t.job.getWrappedFunc("job", t.testLogger())
 	require.NotNil(t.T(), fn)
 	go fn()
 	assert.True(t.T(), t.executed())
@@ -243,7 +320,7 @@ func (t *JobTest) Test_getWrappedFuncPanic() {
 
 	t.clear()
 	t.oncePanicJob()
-	fn := t.job.getWrappedFunc("job", t.testLogFunc())
+	fn := t.job.getWrappedFunc("job", t.testLogger())
 	require.NotNil(t.T(), fn)
 	go fn()
 	assert.True(t.T(), t.executed())
@@ -257,7 +334,7 @@ func (t *JobTest) Test_run() {
 	}()
 
 	t.regularJob()
-	t.job.run("job", t.testLogFunc())
+	t.job.run("job", t.testLogger())
 	time.Sleep(time.Millisecond * 5)
 	t.job.stop()
 	require.True(t.T(), t.executed())
@@ -269,7 +346,7 @@ func (t *JobTest) Test_runOnce() {
 	}()
 
 	t.regularJob()
-	t.job.runOnce("job", t.testLogFunc())
+	t.job.runOnce("job", t.testLogger())
 	time.Sleep(time.Millisecond * 5)
 	require.True(t.T(), t.executed())
 	first := 0
@@ -301,7 +378,7 @@ func (t *JobTest) Test_runOnceSync() {
 	t.clear()
 	t.regularSyncJob()
 	require.False(t.T(), t.syncBool)
-	t.job.runOnceSync("job", t.testLogFunc())
+	t.job.runOnceSync("job", t.testLogger())
 	assert.True(t.T(), t.syncBool)
 }
 
@@ -326,11 +403,11 @@ func (t *JobManagerTest) WaitForJob() bool {
 
 func (t *JobManagerTest) Test_SetLogger() {
 	t.manager.logger = nil
-	t.manager.SetLogger(NewLogger("test", logging.ERROR, DefaultLogFormatter()))
-	assert.IsType(t.T(), &Logger{}, t.manager.logger)
+	t.manager.SetLogger(logger.NewStandard("test", logging.ERROR, logger.DefaultLogFormatter()))
+	assert.IsType(t.T(), &logger.StandardLogger{}, t.manager.logger)
 
 	t.manager.SetLogger(nil)
-	assert.IsType(t.T(), &Logger{}, t.manager.logger)
+	assert.IsType(t.T(), &logger.StandardLogger{}, t.manager.logger)
 }
 
 func (t *JobManagerTest) Test_SetLogging() {
@@ -351,7 +428,7 @@ func (t *JobManagerTest) Test_RegisterJobNil() {
 func (t *JobManagerTest) Test_RegisterJob() {
 	require.NotNil(t.T(), t.manager.jobs)
 	err := t.manager.RegisterJob("job", &Job{
-		Command: func(log JobLogFunc) error {
+		Command: func(log logger.Logger) error {
 			t.runnerWG.Done()
 			return nil
 		},
@@ -360,7 +437,7 @@ func (t *JobManagerTest) Test_RegisterJob() {
 	})
 	assert.NoError(t.T(), err)
 	err = t.manager.RegisterJob("job_regular", &Job{
-		Command: func(log JobLogFunc) error {
+		Command: func(log logger.Logger) error {
 			t.runnerWG.Done()
 			return nil
 		},
@@ -371,7 +448,7 @@ func (t *JobManagerTest) Test_RegisterJob() {
 	})
 	assert.NoError(t.T(), err)
 	err = t.manager.RegisterJob("job_sync", &Job{
-		Command: func(log JobLogFunc) error {
+		Command: func(log logger.Logger) error {
 			t.syncRunnerFlag = true
 			return nil
 		},
@@ -398,7 +475,7 @@ func (t *JobManagerTest) Test_FetchJob() {
 		require.Nil(t.T(), recover())
 	}()
 
-	require.NoError(t.T(), t.manager.RegisterJob("test_fetch", &Job{Command: func(logFunc JobLogFunc) error {
+	require.NoError(t.T(), t.manager.RegisterJob("test_fetch", &Job{Command: func(log logger.Logger) error {
 		return nil
 	}}))
 	require.NotNil(t.T(), t.manager.jobs)
@@ -479,8 +556,8 @@ func (t *JobManagerTest) Test_Start() {
 
 	manager := NewJobManager()
 	_ = manager.RegisterJob("job", &Job{
-		Command: func(logFunc JobLogFunc) error {
-			logFunc("alive!", logging.INFO)
+		Command: func(log logger.Logger) error {
+			log.Info("alive!")
 			return nil
 		},
 		ErrorHandler: DefaultJobErrorHandler(),
@@ -507,6 +584,6 @@ func (t *JobManagerTest) Test_log() {
 	t.manager.SetLogging(true)
 	t.manager.logger = nil
 	testLog()
-	t.manager.logger = NewLogger("test", logging.DEBUG, DefaultLogFormatter())
+	t.manager.logger = logger.NewStandard("test", logging.DEBUG, logger.DefaultLogFormatter())
 	testLog()
 }

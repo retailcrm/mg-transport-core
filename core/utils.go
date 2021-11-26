@@ -18,8 +18,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 
-	"github.com/retailcrm/mg-transport-core/core/errortools"
+	"github.com/retailcrm/mg-transport-core/core/errorutil"
 )
 
 var DefaultScopes = []string{
@@ -80,7 +81,7 @@ var defaultCurrencies = map[string]string{
 
 // Utils service object.
 type Utils struct {
-	Logger       LoggerInterface
+	Logger       logger.Logger
 	slashRegex   *regexp.Regexp
 	ConfigAWS    ConfigAWS
 	TokenCounter uint32
@@ -88,7 +89,7 @@ type Utils struct {
 }
 
 // NewUtils will create new Utils instance.
-func NewUtils(awsConfig ConfigAWS, logger LoggerInterface, debug bool) *Utils {
+func NewUtils(awsConfig ConfigAWS, logger logger.Logger, debug bool) *Utils {
 	return &Utils{
 		IsDebug:      debug,
 		ConfigAWS:    awsConfig,
@@ -126,7 +127,7 @@ func (u *Utils) GetAPIClient(url, key string, scopes []string) (*retailcrm.Clien
 
 	if res := u.checkScopes(cr.Scopes, scopes); len(res) != 0 {
 		u.Logger.Error(url, status, res)
-		return nil, http.StatusBadRequest, errortools.NewInsufficientScopesErr(res)
+		return nil, http.StatusBadRequest, errorutil.NewInsufficientScopesErr(res)
 	}
 
 	return client, 0, nil

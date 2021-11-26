@@ -7,19 +7,17 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/retailcrm/mg-transport-core/core/logger"
 )
 
 // JobFunc is empty func which should be executed in a parallel goroutine.
-type JobFunc func(JobLogFunc) error
-
-// JobLogFunc is a function which logs data from job.
-type JobLogFunc func(string, logging.Level, ...interface{})
+type JobFunc func(logger.Logger) error
 
 // JobErrorHandler is a function to handle jobs errors. First argument is a job name.
-type JobErrorHandler func(string, error, JobLogFunc)
+type JobErrorHandler func(string, error, logger.Logger)
 
 // JobPanicHandler is a function to handle jobs panics. First argument is a job name.
-type JobPanicHandler func(string, interface{}, JobLogFunc)
+type JobPanicHandler func(string, interface{}, logger.Logger)
 
 // Job represents single job. Regular job will be executed every Interval.
 type Job struct {
@@ -39,9 +37,9 @@ type Job struct {
 // 			SetLogger(logger).
 // 			SetLogging(false)
 // 		_ = manager.RegisterJob("updateTokens", &Job{
-// 			Command: func(logFunc JobLogFunc) error {
+// 			Command: func(log logger.Logger) error {
 // 				// logic goes here...
-// 				logFunc("All tokens were updated successfully", logging.INFO)
+// 				logger.Info("All tokens were updated successfully")
 // 				return nil
 // 			},
 // 			ErrorHandler: DefaultJobErrorHandler(),
@@ -51,13 +49,14 @@ type Job struct {
 // 		})
 // 		manager.Start()
 type JobManager struct {
-	logger        LoggerInterface
+	logger        logger.Logger
+	nilLogger     logger.Logger
 	jobs          *sync.Map
 	enableLogging bool
 }
 
 // getWrappedFunc wraps job into function.
-func (j *Job) getWrappedFunc(name string, log JobLogFunc) func() {
+func (j *Job) getWrappedFunc(name string, log logger.Logger) func() {
 	return func() {
 		defer func() {
 			if r := recover(); r != nil && j.PanicHandler != nil {
@@ -72,7 +71,7 @@ func (j *Job) getWrappedFunc(name string, log JobLogFunc) func() {
 }
 
 // getWrappedTimerFunc returns job timer func to run in the separate goroutine.
-func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func(chan bool) {
+func (j *Job) getWrappedTimerFunc(name string, log logger.Logger) func(chan bool) {
 	return func(stopChannel chan bool) {
 		for range time.NewTicker(j.Interval).C {
 			select {
@@ -86,7 +85,7 @@ func (j *Job) getWrappedTimerFunc(name string, log JobLogFunc) func(chan bool) {
 }
 
 // run job.
-func (j *Job) run(name string, log JobLogFunc) {
+func (j *Job) run(name string, log logger.Logger) {
 	j.writeLock.RLock()
 
 	if j.Regular && j.Interval > 0 && !j.active {
@@ -120,45 +119,53 @@ func (j *Job) stop() {
 }
 
 // runOnce run job once.
-func (j *Job) runOnce(name string, log JobLogFunc) {
+func (j *Job) runOnce(name string, log logger.Logger) {
 	go j.getWrappedFunc(name, log)()
 }
 
 // runOnceSync run job once in current goroutine.
-func (j *Job) runOnceSync(name string, log JobLogFunc) {
+func (j *Job) runOnceSync(name string, log logger.Logger) {
 	j.getWrappedFunc(name, log)()
 }
 
 // NewJobManager is a JobManager constructor.
 func NewJobManager() *JobManager {
-	return &JobManager{jobs: &sync.Map{}}
+	return &JobManager{jobs: &sync.Map{}, nilLogger: logger.NewNil()}
 }
 
 // DefaultJobErrorHandler returns default error handler for a job.
 func DefaultJobErrorHandler() JobErrorHandler {
-	return func(name string, err error, log JobLogFunc) {
+	return func(name string, err error, log logger.Logger) {
 		if err != nil && name != "" {
-			log("Job `%s` errored with an error: `%s`", logging.ERROR, name, err.Error())
+			log.Errorf("Job `%s` errored with an error: `%s`", name, err.Error())
 		}
 	}
 }
 
 // DefaultJobPanicHandler returns default panic handler for a job.
 func DefaultJobPanicHandler() JobPanicHandler {
-	return func(name string, recoverValue interface{}, log JobLogFunc) {
+	return func(name string, recoverValue interface{}, log logger.Logger) {
 		if recoverValue != nil && name != "" {
-			log("Job `%s` panicked with value: `%#v`", logging.ERROR, name, recoverValue)
+			log.Errorf("Job `%s` panicked with value: `%#v`", name, recoverValue)
 		}
 	}
 }
 
 // SetLogger sets logger into JobManager.
-func (j *JobManager) SetLogger(logger LoggerInterface) *JobManager {
+func (j *JobManager) SetLogger(logger logger.Logger) *JobManager {
 	if logger != nil {
 		j.logger = logger
 	}
 
 	return j
+}
+
+// Logger returns logger.
+func (j *JobManager) Logger() logger.Logger {
+	if !j.enableLogging {
+		return j.nilLogger
+	}
+	return j.logger
 }
 
 // SetLogging enables or disables JobManager logging.
@@ -217,7 +224,7 @@ func (j *JobManager) UpdateJob(name string, job *Job) error {
 // It runs asynchronously and error returns only of job wasn't executed at all.
 func (j *JobManager) RunJob(name string) error {
 	if job, ok := j.FetchJob(name); ok {
-		job.run(name, j.log)
+		job.run(name, j.Logger())
 		return nil
 	}
 
@@ -237,7 +244,7 @@ func (j *JobManager) StopJob(name string) error {
 // RunJobOnce starts provided job once if it exists. It's also async.
 func (j *JobManager) RunJobOnce(name string) error {
 	if job, ok := j.FetchJob(name); ok {
-		job.runOnce(name, j.log)
+		job.runOnce(name, j.Logger())
 		return nil
 	}
 
@@ -247,7 +254,7 @@ func (j *JobManager) RunJobOnce(name string) error {
 // RunJobOnceSync starts provided job once in current goroutine if job exists. Will wait for job to end it's work.
 func (j *JobManager) RunJobOnceSync(name string) error {
 	if job, ok := j.FetchJob(name); ok {
-		job.runOnceSync(name, j.log)
+		job.runOnceSync(name, j.Logger())
 		return nil
 	}
 
@@ -259,7 +266,7 @@ func (j *JobManager) Start() {
 	j.jobs.Range(func(key, value interface{}) bool {
 		name := key.(string)
 		job := value.(*Job)
-		job.run(name, j.log)
+		job.run(name, j.Logger())
 		return true
 	})
 }

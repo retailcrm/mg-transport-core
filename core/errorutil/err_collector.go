@@ -1,4 +1,4 @@
-package errortools
+package errorutil
 
 import (
 	"fmt"
@@ -18,9 +18,9 @@ import (
 // because AsError() returns nil if there are no errors in the list.
 //
 // Example:
-//      err := error.NewCollector().
-//                  Do(error.New("error 1")).
-//                  Do(error.New("error 2"), error.New("error 3"))
+//      err := errorutil.NewCollector().
+//                  Do(errors.New("error 1")).
+//                  Do(errors.New("error 2"), errors.New("error 3"))
 //      // Will print error message.
 //      fmt.Println(err)
 //
@@ -30,9 +30,9 @@ import (
 //      #3 err at /home/user/main.go:64: error 3
 //
 // You can also iterate over the error to use their data instead of using predefined message:
-//      err := error.NewCollector().
-//                  Do(error.New("error 1")).
-//                  Do(error.New("error 2"), error.New("error 3"))
+//      err := errorutil.NewCollector().
+//                  Do(errors.New("error 1")).
+//                  Do(errors.New("error 2"), errors.New("error 3"))
 //
 //      for err := range c.Iterate() {
 //      	fmt.Printf("Error at %s:%d: %v\n", err.File, err.Line, err)
@@ -44,7 +44,7 @@ import (
 //      Error at /home/user/main.go:164: error 2
 //
 // Example with GORM migration (Collector is returned as an error here).
-//      return error.NewCollector().Do(
+//      return errorutil.NewCollector().Do(
 //          db.CreateTable(models.Account{}, models.Connection{}).Error,
 //          db.Table("account").AddUniqueIndex("account_key", "channel").Error,
 //      ).AsError()
@@ -52,14 +52,14 @@ type Collector struct {
 	errors *errList
 }
 
-// NewCollector returns new error.Collector instance.
+// NewCollector returns new errorutil.Collector instance.
 func NewCollector() *Collector {
 	return &Collector{
 		errors: &errList{},
 	}
 }
 
-// Collect errors, return one error for all of them (shorthand for errortools.NewCollector().Do(...).AsError()).
+// Collect errors, return one error for all of them (shorthand for errorutil.NewCollector().Do(...).AsError()).
 // Returns nil if there are no errors.
 func Collect(errs ...error) error {
 	return NewCollector().Do(errs...).AsError()
@@ -110,7 +110,7 @@ func (e *Collector) Panic() {
 	}
 }
 
-// Iterate over the errors in the list. Every error is represented as an error.Node value.
+// Iterate over the errors in the list. Every error is represented as an errorutil.Node value.
 func (e *Collector) Iterate() <-chan Node {
 	return e.errors.Iterate()
 }
