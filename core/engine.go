@@ -11,8 +11,9 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/op/go-logging"
-	"github.com/retailcrm/mg-transport-core/core/logger"
 	"golang.org/x/text/language"
+
+	"github.com/retailcrm/mg-transport-core/core/logger"
 )
 
 var boolTrue = true

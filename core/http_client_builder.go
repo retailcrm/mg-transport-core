@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"github.com/retailcrm/mg-transport-core/core/logger"
 )
 

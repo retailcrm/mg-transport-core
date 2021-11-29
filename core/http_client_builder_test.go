@@ -17,10 +17,11 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/retailcrm/mg-transport-core/core/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/retailcrm/mg-transport-core/core/logger"
 
 	"github.com/retailcrm/mg-transport-core/core/errorutil"
 )

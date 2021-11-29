@@ -17,10 +17,10 @@ import (
 //          defer cleaner()
 //      }.
 func DeleteCreatedEntities(db *gorm.DB) func() { // nolint
-	type entity struct { // nolint
+	type entity struct {
+		key     interface{}
 		table   string
 		keyname string
-		key     interface{}
 	}
 	var entries []entity
 	hookName := "cleanupHook"

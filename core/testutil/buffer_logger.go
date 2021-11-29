@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/op/go-logging"
+
 	"github.com/retailcrm/mg-transport-core/core/logger"
 )
 

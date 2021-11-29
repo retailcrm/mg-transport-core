@@ -11,8 +11,8 @@ import (
 )
 
 type testUser struct {
-	ID       int    `gorm:"primary_key"`
 	Username string `gorm:"column:username; type:varchar(255); not null;"`
+	ID       int    `gorm:"primary_key"`
 }
 
 func TestDeleteCreatedEntities(t *testing.T) {
@@ -23,7 +23,7 @@ func TestDeleteCreatedEntities(t *testing.T) {
 	require.NoError(t, err)
 
 	mock.
-		ExpectExec(regexp.QuoteMeta(`CREATE TABLE "test_users" ("id" serial,"username" varchar(255) NOT NULL , PRIMARY KEY ("id"))`)).
+		ExpectExec(regexp.QuoteMeta(`CREATE TABLE "test_users" ("username" varchar(255) NOT NULL,"id" serial , PRIMARY KEY ("id"))`)).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	mock.ExpectBegin()
 	mock.

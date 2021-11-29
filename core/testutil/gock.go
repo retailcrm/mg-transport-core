@@ -3,6 +3,7 @@ package testutil
 import (
 	"fmt"
 	"io"
+	"net/http"
 
 	"gopkg.in/h2non/gock.v1"
 )
@@ -21,45 +22,48 @@ func AssertNoUnmatchedRequests(t UnmatchedRequestsTestingT) {
 		t.Log("gock has unmatched requests. their contents will be dumped here.\n")
 
 		for _, r := range gock.GetUnmatchedRequests() {
-			t.Logf("%s %s %s\n", r.Proto, r.Method, r.URL.String())
-			t.Logf(" > RemoteAddr: %s\n", r.RemoteAddr)
-			t.Logf(" > Host: %s\n", r.Host)
-			t.Logf(" > Length: %d\n", r.ContentLength)
-
-			for _, encoding := range r.TransferEncoding {
-				t.Logf(" > Transfer-Encoding: %s\n", encoding)
-			}
-
-			for header, values := range r.Header {
-				for _, value := range values {
-					t.Logf("[header] %s: %s\n", header, value)
-				}
-			}
-
-			if r.Body == nil {
-				t.Log("No body is present.")
-			} else {
-				data, err := io.ReadAll(r.Body)
-				if err != nil {
-					t.Logf("Cannot read body: %s\n", err)
-				}
-
-				if len(data) == 0 {
-					t.Log("Body is empty.")
-				} else {
-					t.Logf("Body:\n%s\n", string(data))
-				}
-			}
-
-			for header, values := range r.Trailer {
-				for _, value := range values {
-					t.Logf("[trailer header] %s: %s\n", header, value)
-				}
-			}
-
+			printRequestData(t, r)
 			fmt.Println()
 		}
 
 		t.FailNow()
+	}
+}
+
+func printRequestData(t UnmatchedRequestsTestingT, r *http.Request) {
+	t.Logf("%s %s %s\n", r.Proto, r.Method, r.URL.String())
+	t.Logf(" > RemoteAddr: %s\n", r.RemoteAddr)
+	t.Logf(" > Host: %s\n", r.Host)
+	t.Logf(" > Length: %d\n", r.ContentLength)
+
+	for _, encoding := range r.TransferEncoding {
+		t.Logf(" > Transfer-Encoding: %s\n", encoding)
+	}
+
+	for header, values := range r.Header {
+		for _, value := range values {
+			t.Logf("[header] %s: %s\n", header, value)
+		}
+	}
+
+	if r.Body == nil {
+		t.Log("No body is present.")
+	} else {
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Logf("Cannot read body: %s\n", err)
+		}
+
+		if len(data) == 0 {
+			t.Log("Body is empty.")
+		} else {
+			t.Logf("Body:\n%s\n", string(data))
+		}
+	}
+
+	for header, values := range r.Trailer {
+		for _, value := range values {
+			t.Logf("[trailer header] %s: %s\n", header, value)
+		}
 	}
 }

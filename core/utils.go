@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
+
 	"github.com/retailcrm/mg-transport-core/core/logger"
 
 	"github.com/retailcrm/mg-transport-core/core/errorutil"

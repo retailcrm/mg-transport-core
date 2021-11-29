@@ -10,10 +10,11 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
-	"github.com/retailcrm/mg-transport-core/core/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/retailcrm/mg-transport-core/core/logger"
 )
 
 type JobTest struct {
@@ -158,7 +159,7 @@ func (t *JobTest) testLogger() logger.Logger {
 			format = strings.TrimRight(sb.String(), " ")
 		}
 
-		t.lastLog = fmt.Sprintf(format)
+		t.lastLog = fmt.Sprintf(format, args...)
 		t.lastMsgLevel = level
 	}}
 }
@@ -564,26 +565,4 @@ func (t *JobManagerTest) Test_Start() {
 		PanicHandler: DefaultJobPanicHandler(),
 	})
 	manager.Start()
-}
-
-func (t *JobManagerTest) Test_log() {
-	defer func() {
-		require.Nil(t.T(), recover())
-	}()
-
-	testLog := func() {
-		t.manager.log("test", logging.CRITICAL)
-		t.manager.log("test", logging.ERROR)
-		t.manager.log("test", logging.WARNING)
-		t.manager.log("test", logging.NOTICE)
-		t.manager.log("test", logging.INFO)
-		t.manager.log("test", logging.DEBUG)
-	}
-	t.manager.SetLogging(false)
-	testLog()
-	t.manager.SetLogging(true)
-	t.manager.logger = nil
-	testLog()
-	t.manager.logger = logger.NewStandard("test", logging.DEBUG, logger.DefaultLogFormatter())
-	testLog()
 }

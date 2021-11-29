@@ -36,11 +36,11 @@ type AccountLogger interface {
 }
 
 type AccountLoggerDecorator struct {
-	PrefixDecorator
 	format         string
 	component      string
 	connIdentifier string
 	accIdentifier  string
+	PrefixDecorator
 }
 
 func DecorateForAccount(base Logger, component, connIdentifier, accIdentifier string) AccountLogger {

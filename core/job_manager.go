@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/op/go-logging"
 	"github.com/retailcrm/mg-transport-core/core/logger"
 )
 
@@ -269,45 +268,4 @@ func (j *JobManager) Start() {
 		job.run(name, j.Logger())
 		return true
 	})
-}
-
-// log logs via logger or as plaintext.
-func (j *JobManager) log(format string, severity logging.Level, args ...interface{}) {
-	if !j.enableLogging {
-		return
-	}
-
-	if j.logger != nil {
-		switch severity {
-		case logging.CRITICAL:
-			j.logger.Criticalf(format, args...)
-		case logging.ERROR:
-			j.logger.Errorf(format, args...)
-		case logging.WARNING:
-			j.logger.Warningf(format, args...)
-		case logging.NOTICE:
-			j.logger.Noticef(format, args...)
-		case logging.INFO:
-			j.logger.Infof(format, args...)
-		case logging.DEBUG:
-			j.logger.Debugf(format, args...)
-		}
-
-		return
-	}
-
-	switch severity {
-	case logging.CRITICAL:
-		fmt.Print("[CRITICAL] ", fmt.Sprintf(format, args...))
-	case logging.ERROR:
-		fmt.Print("[ERROR] ", fmt.Sprintf(format, args...))
-	case logging.WARNING:
-		fmt.Print("[WARNING] ", fmt.Sprintf(format, args...))
-	case logging.NOTICE:
-		fmt.Print("[NOTICE] ", fmt.Sprintf(format, args...))
-	case logging.INFO:
-		fmt.Print("[INFO] ", fmt.Sprintf(format, args...))
-	case logging.DEBUG:
-		fmt.Print("[DEBUG] ", fmt.Sprintf(format, args...))
-	}
 }

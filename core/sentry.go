@@ -8,6 +8,7 @@ import (
 	"strconv"
 
 	"github.com/pkg/errors"
+
 	"github.com/retailcrm/mg-transport-core/core/logger"
 
 	"github.com/retailcrm/mg-transport-core/core/stacktrace"

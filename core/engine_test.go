@@ -14,10 +14,11 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
-	"github.com/retailcrm/mg-transport-core/core/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/retailcrm/mg-transport-core/core/logger"
 )
 
 type EngineTest struct {
