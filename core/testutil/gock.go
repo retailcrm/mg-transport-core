@@ -15,7 +15,7 @@ type UnmatchedRequestsTestingT interface {
 	FailNow()
 }
 
-// AssertNoUnmatchedRequests check that every request in the gock mock chain has been matched.
+// AssertNoUnmatchedRequests check that gock didn't receive any request that it was not able to match.
 // It will print out an entire request data for every unmatched request.
 func AssertNoUnmatchedRequests(t UnmatchedRequestsTestingT) {
 	if gock.HasUnmatchedRequest() { // nolint:nestif
