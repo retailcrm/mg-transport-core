@@ -68,21 +68,25 @@ func (t *AssertNoUnmatchedRequestsTest) Test_OK() {
 func (t *AssertNoUnmatchedRequestsTest) Test_HasUnmatchedRequests() {
 	defer gock.Off()
 
-	gock.New("https://example.com").Get("/nil").Reply(http.StatusOK)
 	gock.New("https://example.com").
 		Post("/dial").
 		MatchHeader("X-Client-Data", "something").
 		BodyString("something in body").
 		Reply(http.StatusOK)
 
-	res, err := http.Get("https://example.com/nil")
-	t.Require().NoError(err)
-	t.Assert().Equal(http.StatusOK, res.StatusCode)
+	_, _ = http.Get("https://example.com/nil")
 
 	AssertNoUnmatchedRequests(t.tmock)
 
 	t.Assert().True(gock.HasUnmatchedRequest())
-	t.Assert().Empty(t.tmock.Logs())
-	t.T().Log(t.tmock.Logs())
+	t.Assert().NotEmpty(t.tmock.Logs())
+	t.Assert().Equal(`=> gock has unmatched requests. their contents will be dumped here.
+
+ => HTTP/1.1 GET https://example.com/nil
+ =>  > RemoteAddr: 
+ =>  > Host: example.com
+ =>  > Length: 0
+=> No body is present.
+`, t.tmock.Logs())
 	t.Assert().True(t.tmock.Failed())
 }

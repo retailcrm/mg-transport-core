@@ -36,6 +36,7 @@ func TestDeleteCreatedEntities(t *testing.T) {
 		ExpectExec(regexp.QuoteMeta(`DELETE FROM "test_users" WHERE (id = $1)`)).
 		WithArgs(1).
 		WillReturnResult(sqlmock.NewResult(1, 1))
+	mock.ExpectCommit()
 
 	cleaner := DeleteCreatedEntities(db)
 

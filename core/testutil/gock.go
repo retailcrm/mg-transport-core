@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"fmt"
 	"io"
 
 	"gopkg.in/h2non/gock.v1"
@@ -56,7 +57,7 @@ func AssertNoUnmatchedRequests(t UnmatchedRequestsTestingT) {
 				}
 			}
 
-			t.Log()
+			fmt.Println()
 		}
 
 		t.FailNow()
