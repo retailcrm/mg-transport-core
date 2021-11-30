@@ -4,8 +4,7 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
-
-	"github.com/retailcrm/mg-transport-core/core"
+	"github.com/retailcrm/mg-transport-core/core/db"
 )
 
 // Options for tool command.
@@ -20,7 +19,7 @@ func init() {
 	_, err := parser.AddCommand("migration",
 		"Create new empty migration in specified directory.",
 		"Create new empty migration in specified directory.",
-		&core.NewMigrationCommand{},
+		&db.NewMigrationCommand{},
 	)
 
 	if err != nil {

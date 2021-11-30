@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/retailcrm/mg-transport-core/core/errorutil"
+	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
 )
 
 type sampleStruct struct {

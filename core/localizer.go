@@ -12,7 +12,7 @@ import (
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
 
-	"github.com/retailcrm/mg-transport-core/core/errorutil"
+	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
 )
 
 // DefaultLanguages for transports.

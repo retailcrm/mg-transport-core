@@ -1,10 +1,11 @@
-package core
+package db
 
 import (
 	"database/sql"
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/retailcrm/mg-transport-core/core/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,7 @@ func TestORM_NewORM(t *testing.T) {
 	db, _, err = sqlmock.New()
 	require.NoError(t, err)
 
-	config := DatabaseConfig{
+	config := config.DatabaseConfig{
 		Connection:         db,
 		Logging:            true,
 		TablePrefix:        "",
@@ -39,7 +40,7 @@ func TestORM_createDB_Fail(t *testing.T) {
 		assert.NotNil(t, recover())
 	}()
 
-	NewORM(DatabaseConfig{Connection: nil})
+	NewORM(config.DatabaseConfig{Connection: nil})
 }
 
 func TestORM_CloseDB(t *testing.T) {
@@ -56,7 +57,7 @@ func TestORM_CloseDB(t *testing.T) {
 	db, dbMock, err = sqlmock.New()
 	require.NoError(t, err)
 
-	config := DatabaseConfig{
+	config := config.DatabaseConfig{
 		Connection:         db,
 		Logging:            true,
 		TablePrefix:        "",

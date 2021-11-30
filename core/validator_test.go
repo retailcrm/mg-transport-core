@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"github.com/retailcrm/mg-transport-core/core/db/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -49,7 +50,7 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 	}
 
 	for _, domain := range crmDomains {
-		conn := Connection{
+		conn := models.Connection{
 			Key: "key",
 			URL: domain,
 		}
@@ -81,7 +82,7 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 	}
 
 	for _, domain := range crmDomains {
-		conn := Connection{
+		conn := models.Connection{
 			Key: "key",
 			URL: domain,
 		}

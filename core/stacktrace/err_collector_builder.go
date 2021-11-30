@@ -5,7 +5,7 @@ import (
 
 	"github.com/getsentry/raven-go"
 
-	"github.com/retailcrm/mg-transport-core/core/errorutil"
+	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
 )
 
 // ErrorNodesList is the interface for the errorutil.errList.

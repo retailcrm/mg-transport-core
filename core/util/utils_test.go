@@ -1,4 +1,4 @@
-package core
+package util
 
 import (
 	"encoding/json"
@@ -11,6 +11,7 @@ import (
 	"github.com/op/go-logging"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
+	"github.com/retailcrm/mg-transport-core/core/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -18,7 +19,7 @@ import (
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
 
-	"github.com/retailcrm/mg-transport-core/core/errorutil"
+	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
 )
 
 var (
@@ -37,7 +38,7 @@ func mgClient() *v1.MgClient {
 
 func (u *UtilsTest) SetupSuite() {
 	logger := logger.NewStandard("code", logging.DEBUG, logger.DefaultLogFormatter())
-	awsConfig := ConfigAWS{
+	awsConfig := config.ConfigAWS{
 		AccessKeyID:     "access key id (will be removed)",
 		SecretAccessKey: "secret access key",
 		Region:          "region",
@@ -57,7 +58,7 @@ func (u *UtilsTest) Test_ResetUtils() {
 
 	awsConfig := u.utils.ConfigAWS
 	awsConfig.AccessKeyID = "access key id"
-	u.utils.resetUtils(awsConfig, true, 0)
+	u.utils.ResetUtils(awsConfig, true, 0)
 
 	assert.Equal(u.T(), "access key id", u.utils.ConfigAWS.AccessKeyID)
 	assert.Equal(u.T(), uint32(0), u.utils.TokenCounter)

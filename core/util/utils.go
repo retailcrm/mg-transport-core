@@ -1,4 +1,4 @@
-package core
+package util
 
 import (
 	// nolint:gosec
@@ -18,10 +18,16 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
+	"github.com/retailcrm/mg-transport-core/core/config"
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
 
-	"github.com/retailcrm/mg-transport-core/core/errorutil"
+	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
+)
+
+var (
+	markdownSymbols = []string{"*", "_", "`", "["}
+	slashRegex      = regexp.MustCompile(`/+$`)
 )
 
 var DefaultScopes = []string{
@@ -84,13 +90,13 @@ var defaultCurrencies = map[string]string{
 type Utils struct {
 	Logger       logger.Logger
 	slashRegex   *regexp.Regexp
-	ConfigAWS    ConfigAWS
+	ConfigAWS    config.ConfigAWS
 	TokenCounter uint32
 	IsDebug      bool
 }
 
 // NewUtils will create new Utils instance.
-func NewUtils(awsConfig ConfigAWS, logger logger.Logger, debug bool) *Utils {
+func NewUtils(awsConfig config.ConfigAWS, logger logger.Logger, debug bool) *Utils {
 	return &Utils{
 		IsDebug:      debug,
 		ConfigAWS:    awsConfig,
@@ -100,8 +106,8 @@ func NewUtils(awsConfig ConfigAWS, logger logger.Logger, debug bool) *Utils {
 	}
 }
 
-// resetUtils.
-func (u *Utils) resetUtils(awsConfig ConfigAWS, debug bool, tokenCounter uint32) {
+// ResetUtils resets the utils inner state.
+func (u *Utils) ResetUtils(awsConfig config.ConfigAWS, debug bool, tokenCounter uint32) {
 	u.TokenCounter = tokenCounter
 	u.ConfigAWS = awsConfig
 	u.IsDebug = debug

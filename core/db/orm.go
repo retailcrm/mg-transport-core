@@ -1,9 +1,11 @@
-package core
+package db
 
 import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/retailcrm/mg-transport-core/core/config"
+
 	// PostgreSQL is an default.
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -14,13 +16,14 @@ type ORM struct {
 }
 
 // NewORM will init new database connection.
-func NewORM(config DatabaseConfig) *ORM {
+func NewORM(config config.DatabaseConfig) *ORM {
 	orm := &ORM{}
-	orm.createDB(config)
+	orm.CreateDB(config)
 	return orm
 }
 
-func (orm *ORM) createDB(config DatabaseConfig) {
+// CreateDB connection using provided config.
+func (orm *ORM) CreateDB(config config.DatabaseConfig) {
 	db, err := gorm.Open("postgres", config.Connection)
 	if err != nil {
 		panic(err)

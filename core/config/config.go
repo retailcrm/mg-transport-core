@@ -1,18 +1,12 @@
-package core
+package config
 
 import (
 	"io/ioutil"
 	"path/filepath"
-	"regexp"
 	"time"
 
 	"github.com/op/go-logging"
 	"gopkg.in/yaml.v2"
-)
-
-var (
-	markdownSymbols = []string{"*", "_", "`", "["}
-	slashRegex      = regexp.MustCompile(`/+$`)
 )
 
 // ConfigInterface settings data structure.

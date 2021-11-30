@@ -1,4 +1,4 @@
-package core
+package httputil
 
 import (
 	"context"
@@ -17,13 +17,14 @@ import (
 	"time"
 
 	"github.com/op/go-logging"
+	"github.com/retailcrm/mg-transport-core/core/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
 
-	"github.com/retailcrm/mg-transport-core/core/errorutil"
+	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
 )
 
 type HTTPClientBuilderTest struct {
@@ -98,7 +99,7 @@ func (t *HTTPClientBuilderTest) Test_FromConfigNil() {
 }
 
 func (t *HTTPClientBuilderTest) Test_FromConfig() {
-	config := &HTTPClientConfig{
+	config := &config.HTTPClientConfig{
 		SSLVerification: boolPtr(true),
 		MockAddress:     "anothermock.local:3004",
 		MockedDomains:   []string{"example.gov"},
@@ -111,22 +112,6 @@ func (t *HTTPClientBuilderTest) Test_FromConfig() {
 	assert.Equal(t.T(), config.MockedDomains[0], t.builder.mockedDomains[0])
 	assert.Equal(t.T(), config.Timeout*time.Second, t.builder.timeout)
 	assert.Equal(t.T(), config.Timeout*time.Second, t.builder.httpClient.Timeout)
-}
-
-func (t *HTTPClientBuilderTest) Test_FromEngine() {
-	engine := &Engine{
-		Config: Config{
-			HTTPClientConfig: &HTTPClientConfig{
-				SSLVerification: boolPtr(true),
-				MockAddress:     "anothermock.local:3004",
-				MockedDomains:   []string{"example.gov"},
-			},
-			Debug: false,
-		},
-	}
-
-	t.builder.FromEngine(engine)
-	assert.Equal(t.T(), engine.Config.GetHTTPClientConfig().MockAddress, t.builder.mockAddress)
 }
 
 func (t *HTTPClientBuilderTest) Test_buildDialer() {
@@ -345,4 +330,9 @@ func getOutboundIP() net.IP {
 
 func Test_HTTPClientBuilder(t *testing.T) {
 	suite.Run(t, new(HTTPClientBuilderTest))
+}
+
+func boolPtr(val bool) *bool {
+	b := val
+	return &b
 }

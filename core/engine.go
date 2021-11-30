@@ -11,6 +11,11 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/op/go-logging"
+	"github.com/retailcrm/mg-transport-core/core/config"
+	"github.com/retailcrm/mg-transport-core/core/db"
+	"github.com/retailcrm/mg-transport-core/core/middleware"
+	"github.com/retailcrm/mg-transport-core/core/util"
+	"github.com/retailcrm/mg-transport-core/core/util/httputil"
 	"golang.org/x/text/language"
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
@@ -20,7 +25,7 @@ var boolTrue = true
 
 // DefaultHTTPClientConfig is a default config for HTTP client. It will be used by Engine for building HTTP client
 // if HTTP client config is not present in the configuration.
-var DefaultHTTPClientConfig = &HTTPClientConfig{
+var DefaultHTTPClientConfig = &config.HTTPClientConfig{
 	Timeout:         30,
 	SSLVerification: &boolTrue,
 }
@@ -30,14 +35,14 @@ type Engine struct {
 	logger       logger.Logger
 	Sessions     sessions.Store
 	LogFormatter logging.Formatter
-	Config       ConfigInterface
+	Config       config.ConfigInterface
 	ginEngine    *gin.Engine
-	csrf         *CSRF
+	csrf         *middleware.CSRF
 	httpClient   *http.Client
 	jobManager   *JobManager
-	ORM
+	db.ORM
 	Localizer
-	Utils
+	util.Utils
 	PreloadLanguages []language.Tag
 	Sentry
 	mutex    sync.RWMutex
@@ -54,9 +59,9 @@ func New() *Engine {
 			loadMutex:   &sync.RWMutex{},
 		},
 		PreloadLanguages: []language.Tag{},
-		ORM:              ORM{},
+		ORM:              db.ORM{},
 		Sentry:           Sentry{},
-		Utils:            Utils{},
+		Utils:            util.Utils{},
 		ginEngine:        nil,
 		logger:           nil,
 		mutex:            sync.RWMutex{},
@@ -109,9 +114,9 @@ func (e *Engine) Prepare() *Engine {
 		e.Localizer.Preload(e.PreloadLanguages)
 	}
 
-	e.createDB(e.Config.GetDBConfig())
+	e.CreateDB(e.Config.GetDBConfig())
 	e.createRavenClient(e.Config.GetSentryDSN())
-	e.resetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
+	e.ResetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
 	e.SetLogger(logger.NewStandard(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
 	e.Sentry.Localizer = &e.Localizer
 	e.Sentry.Stacktrace = true
@@ -196,11 +201,11 @@ func (e *Engine) SetLogger(l logger.Logger) *Engine {
 
 // BuildHTTPClient builds HTTP client with provided configuration.
 func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *Engine {
-	client, err := NewHTTPClientBuilder().
+	client, err := httputil.NewHTTPClientBuilder().
 		WithLogger(e.Logger()).
 		SetLogging(e.Config.IsDebug()).
 		SetCertPool(certs).
-		FromEngine(e).
+		FromConfig(e.GetHTTPClientConfig()).
 		Build(replaceDefault...)
 
 	if err != nil {
@@ -213,7 +218,7 @@ func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *
 }
 
 // GetHTTPClientConfig returns configuration for HTTP client.
-func (e *Engine) GetHTTPClientConfig() *HTTPClientConfig {
+func (e *Engine) GetHTTPClientConfig() *config.HTTPClientConfig {
 	if e.Config.GetHTTPClientConfig() != nil {
 		return e.Config.GetHTTPClientConfig()
 	}
@@ -268,12 +273,12 @@ func (e *Engine) WithFilesystemSessions(path string, keyLength ...int) *Engine {
 // InitCSRF initializes CSRF middleware. engine.Sessions must be already initialized,
 // use engine.WithCookieStore or engine.WithFilesystemStore for that.
 // Syntax is similar to core.NewCSRF, but you shouldn't pass sessionName, store and salt.
-func (e *Engine) InitCSRF(secret string, abortFunc CSRFAbortFunc, getter CSRFTokenGetter) *Engine {
+func (e *Engine) InitCSRF(secret string, abortFunc middleware.CSRFAbortFunc, getter middleware.CSRFTokenGetter) *Engine {
 	if e.Sessions == nil {
 		panic("engine.Sessions must be initialized first")
 	}
 
-	e.csrf = NewCSRF("", secret, "", e.Sessions, abortFunc, getter)
+	e.csrf = middleware.NewCSRF("", secret, "", e.Sessions, abortFunc, getter)
 	return e
 }
 

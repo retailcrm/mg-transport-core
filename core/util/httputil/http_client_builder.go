@@ -1,4 +1,4 @@
-package core
+package httputil
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/retailcrm/mg-transport-core/core/config"
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
 )
@@ -146,7 +147,7 @@ func (b *HTTPClientBuilder) SetLogging(flag bool) *HTTPClientBuilder {
 }
 
 // FromConfig fulfills mock configuration from HTTPClientConfig.
-func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuilder {
+func (b *HTTPClientBuilder) FromConfig(config *config.HTTPClientConfig) *HTTPClientBuilder {
 	if config == nil {
 		return b
 	}
@@ -163,11 +164,6 @@ func (b *HTTPClientBuilder) FromConfig(config *HTTPClientConfig) *HTTPClientBuil
 	b.SetSSLVerification(config.IsSSLVerificationEnabled())
 
 	return b
-}
-
-// FromEngine fulfills mock configuration from ConfigInterface inside Engine.
-func (b *HTTPClientBuilder) FromEngine(engine *Engine) *HTTPClientBuilder {
-	return b.FromConfig(engine.GetHTTPClientConfig())
 }
 
 // baseTLSConfig returns *tls.Config with TLS 1.2 as a minimal supported version.
