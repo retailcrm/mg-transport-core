@@ -11,12 +11,13 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/op/go-logging"
+	"golang.org/x/text/language"
+
 	"github.com/retailcrm/mg-transport-core/core/config"
 	"github.com/retailcrm/mg-transport-core/core/db"
 	"github.com/retailcrm/mg-transport-core/core/middleware"
 	"github.com/retailcrm/mg-transport-core/core/util"
 	"github.com/retailcrm/mg-transport-core/core/util/httputil"
-	"golang.org/x/text/language"
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
 )
@@ -35,7 +36,7 @@ type Engine struct {
 	logger       logger.Logger
 	Sessions     sessions.Store
 	LogFormatter logging.Formatter
-	Config       config.ConfigInterface
+	Config       config.Configuration
 	ginEngine    *gin.Engine
 	csrf         *middleware.CSRF
 	httpClient   *http.Client
@@ -273,7 +274,8 @@ func (e *Engine) WithFilesystemSessions(path string, keyLength ...int) *Engine {
 // InitCSRF initializes CSRF middleware. engine.Sessions must be already initialized,
 // use engine.WithCookieStore or engine.WithFilesystemStore for that.
 // Syntax is similar to core.NewCSRF, but you shouldn't pass sessionName, store and salt.
-func (e *Engine) InitCSRF(secret string, abortFunc middleware.CSRFAbortFunc, getter middleware.CSRFTokenGetter) *Engine {
+func (e *Engine) InitCSRF(
+	secret string, abortFunc middleware.CSRFAbortFunc, getter middleware.CSRFTokenGetter) *Engine {
 	if e.Sessions == nil {
 		panic("engine.Sessions must be initialized first")
 	}

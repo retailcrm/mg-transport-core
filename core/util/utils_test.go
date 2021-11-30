@@ -11,11 +11,12 @@ import (
 	"github.com/op/go-logging"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
-	"github.com/retailcrm/mg-transport-core/core/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/h2non/gock.v1"
+
+	"github.com/retailcrm/mg-transport-core/core/config"
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
 
@@ -38,7 +39,7 @@ func mgClient() *v1.MgClient {
 
 func (u *UtilsTest) SetupSuite() {
 	logger := logger.NewStandard("code", logging.DEBUG, logger.DefaultLogFormatter())
-	awsConfig := config.ConfigAWS{
+	awsConfig := config.AWS{
 		AccessKeyID:     "access key id (will be removed)",
 		SecretAccessKey: "secret access key",
 		Region:          "region",
@@ -52,15 +53,15 @@ func (u *UtilsTest) SetupSuite() {
 }
 
 func (u *UtilsTest) Test_ResetUtils() {
-	assert.Equal(u.T(), "access key id (will be removed)", u.utils.ConfigAWS.AccessKeyID)
+	assert.Equal(u.T(), "access key id (will be removed)", u.utils.AWS.AccessKeyID)
 	assert.Equal(u.T(), uint32(12346), u.utils.TokenCounter)
 	assert.False(u.T(), u.utils.IsDebug)
 
-	awsConfig := u.utils.ConfigAWS
+	awsConfig := u.utils.AWS
 	awsConfig.AccessKeyID = "access key id"
 	u.utils.ResetUtils(awsConfig, true, 0)
 
-	assert.Equal(u.T(), "access key id", u.utils.ConfigAWS.AccessKeyID)
+	assert.Equal(u.T(), "access key id", u.utils.AWS.AccessKeyID)
 	assert.Equal(u.T(), uint32(0), u.utils.TokenCounter)
 	assert.True(u.T(), u.utils.IsDebug)
 }

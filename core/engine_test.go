@@ -14,12 +14,13 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/gin-gonic/gin"
-	"github.com/retailcrm/mg-transport-core/core/config"
-	"github.com/retailcrm/mg-transport-core/core/middleware"
-	"github.com/retailcrm/mg-transport-core/core/util/httputil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/retailcrm/mg-transport-core/core/config"
+	"github.com/retailcrm/mg-transport-core/core/middleware"
+	"github.com/retailcrm/mg-transport-core/core/util/httputil"
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
 )
@@ -61,7 +62,7 @@ func (e *EngineTest) SetupTest() {
 		},
 		Debug:          true,
 		UpdateInterval: 30,
-		ConfigAWS:      config.ConfigAWS{},
+		ConfigAWS:      config.AWS{},
 		TransportInfo: config.Info{
 			Name:     "test",
 			Code:     "test",

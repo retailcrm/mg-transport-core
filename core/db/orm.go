@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+
 	"github.com/retailcrm/mg-transport-core/core/config"
 
 	// PostgreSQL is an default.

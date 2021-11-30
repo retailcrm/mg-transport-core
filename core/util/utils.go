@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
+
 	"github.com/retailcrm/mg-transport-core/core/config"
 
 	"github.com/retailcrm/mg-transport-core/core/logger"
@@ -90,16 +91,16 @@ var defaultCurrencies = map[string]string{
 type Utils struct {
 	Logger       logger.Logger
 	slashRegex   *regexp.Regexp
-	ConfigAWS    config.ConfigAWS
+	AWS          config.AWS
 	TokenCounter uint32
 	IsDebug      bool
 }
 
 // NewUtils will create new Utils instance.
-func NewUtils(awsConfig config.ConfigAWS, logger logger.Logger, debug bool) *Utils {
+func NewUtils(awsConfig config.AWS, logger logger.Logger, debug bool) *Utils {
 	return &Utils{
 		IsDebug:      debug,
-		ConfigAWS:    awsConfig,
+		AWS:          awsConfig,
 		Logger:       logger,
 		TokenCounter: 0,
 		slashRegex:   slashRegex,
@@ -107,9 +108,9 @@ func NewUtils(awsConfig config.ConfigAWS, logger logger.Logger, debug bool) *Uti
 }
 
 // ResetUtils resets the utils inner state.
-func (u *Utils) ResetUtils(awsConfig config.ConfigAWS, debug bool, tokenCounter uint32) {
+func (u *Utils) ResetUtils(awsConfig config.AWS, debug bool, tokenCounter uint32) {
 	u.TokenCounter = tokenCounter
-	u.ConfigAWS = awsConfig
+	u.AWS = awsConfig
 	u.IsDebug = debug
 	u.slashRegex = slashRegex
 }
@@ -163,10 +164,10 @@ func (u *Utils) checkScopes(scopes []string, scopesRequired []string) []string {
 func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
 	s3Config := &aws.Config{
 		Credentials: credentials.NewStaticCredentials(
-			u.ConfigAWS.AccessKeyID,
-			u.ConfigAWS.SecretAccessKey,
+			u.AWS.AccessKeyID,
+			u.AWS.SecretAccessKey,
 			""),
-		Region: aws.String(u.ConfigAWS.Region),
+		Region: aws.String(u.AWS.Region),
 	}
 
 	s := session.Must(session.NewSession(s3Config))
@@ -184,10 +185,10 @@ func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
 	}
 
 	result, err := uploader.Upload(&s3manager.UploadInput{
-		Bucket:      aws.String(u.ConfigAWS.Bucket),
-		Key:         aws.String(fmt.Sprintf("%v/%v.jpg", u.ConfigAWS.FolderName, u.GenerateToken())),
+		Bucket:      aws.String(u.AWS.Bucket),
+		Key:         aws.String(fmt.Sprintf("%v/%v.jpg", u.AWS.FolderName, u.GenerateToken())),
 		Body:        resp.Body,
-		ContentType: aws.String(u.ConfigAWS.ContentType),
+		ContentType: aws.String(u.AWS.ContentType),
 		ACL:         aws.String("public-read"),
 	})
 	if err != nil {

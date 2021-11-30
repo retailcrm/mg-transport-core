@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/jessevdk/go-flags"
+
 	"github.com/retailcrm/mg-transport-core/core/db"
 )
 

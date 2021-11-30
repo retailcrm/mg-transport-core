@@ -9,14 +9,14 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// ConfigInterface settings data structure.
-type ConfigInterface interface {
+// Configuration settings data structure.
+type Configuration interface {
 	GetVersion() string
 	GetSentryDSN() string
 	GetLogLevel() logging.Level
 	GetHTTPConfig() HTTPServerConfig
 	GetDBConfig() DatabaseConfig
-	GetAWSConfig() ConfigAWS
+	GetAWSConfig() AWS
 	GetTransportInfo() InfoInterface
 	GetHTTPClientConfig() *HTTPClientConfig
 	GetUpdateInterval() int
@@ -34,7 +34,7 @@ type InfoInterface interface {
 // Config struct.
 type Config struct {
 	HTTPClientConfig *HTTPClientConfig `yaml:"http_client"`
-	ConfigAWS        ConfigAWS         `yaml:"config_aws"`
+	ConfigAWS        AWS               `yaml:"config_aws"`
 	TransportInfo    Info              `yaml:"transport_info"`
 	HTTPServer       HTTPServerConfig  `yaml:"http_server"`
 	Version          string            `yaml:"version"`
@@ -53,8 +53,8 @@ type Info struct {
 	Secret   string `yaml:"secret"`
 }
 
-// ConfigAWS struct.
-type ConfigAWS struct {
+// AWS struct.
+type AWS struct {
 	AccessKeyID     string `yaml:"access_key_id"`
 	SecretAccessKey string `yaml:"secret_access_key"`
 	Region          string `yaml:"region"`
@@ -151,7 +151,7 @@ func (c Config) IsDebug() bool {
 }
 
 // GetAWSConfig AWS configuration.
-func (c Config) GetAWSConfig() ConfigAWS {
+func (c Config) GetAWSConfig() AWS {
 	return c.ConfigAWS
 }
 

@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/DATA-DOG/go-sqlmock"
-	"github.com/retailcrm/mg-transport-core/core/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/retailcrm/mg-transport-core/core/config"
 )
 
 func TestORM_NewORM(t *testing.T) {
