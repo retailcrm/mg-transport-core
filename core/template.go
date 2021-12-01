@@ -54,15 +54,15 @@ func (r *Renderer) Push(name string, files ...string) *template.Template {
 
 // addFromFS adds embedded template.
 func (r *Renderer) addFromFS(name string, funcMap template.FuncMap, files ...string) *template.Template {
-	var filesData []string
+	filesData := make([]string, len(files))
 
-	for _, fileName := range files {
-		data, err := fs.ReadFile(r.TemplatesFS, fileName)
+	for i := 0; i < len(files); i++ {
+		data, err := fs.ReadFile(r.TemplatesFS, files[i])
 		if err != nil {
 			panic(err)
 		}
 
-		filesData = append(filesData, string(data))
+		filesData[i] = string(data)
 	}
 
 	return r.AddFromStringsFuncs(name, funcMap, filesData...)

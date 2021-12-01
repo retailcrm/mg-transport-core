@@ -22,14 +22,14 @@ jobs:
       - name: Lint code with golangci-lint
         uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.36
+          version: v1.42.1
           only-new-issues: true
   tests:
     name: Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.16']
+        go-version: ['1.16', '1.17']
     steps:
       - name: Set up Go ${{ matrix.go-version }}
         uses: actions/setup-go@v2

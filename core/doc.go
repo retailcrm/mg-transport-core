@@ -1,7 +1,6 @@
-// Copyright (c) 2019 RetailDriver LLC
-// Use of this source code is governed by a MIT
 /*
-Package core provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.
+Package core provides different functions like error-reporting, logging, localization, etc.
+to make it easier to create transports.
 Usage:
 	package main
 
@@ -110,5 +109,7 @@ Migration generator
 This library contains helper tool for transports. You can install it via go:
 	$ go get -u github.com/retailcrm/mg-transport-core/cmd/transport-core-tool
 Currently, it only can generate new migrations for your transport.
+
+Copyright (c) 2019 RetailDriver LLC. Usage of this source code is governed by a MIT license.
 */
 package core

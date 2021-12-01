@@ -32,19 +32,15 @@ linters:
     - gocyclo
     - godot
     - goimports
-    - golint
-    - gomnd
+    - revive
     - gosec
     - ifshort
-    - interfacer
     - lll
     - makezero
-    - maligned
     - misspell
     - nestif
     - prealloc
     - predeclared
-    - scopelint
     - sqlclosecheck
     - unconvert
     - whitespace
@@ -56,9 +52,11 @@ linters-settings:
     enable:
       - assign
       - atomic
+      - atomicalign
       - bools
       - buildtag
       - copylocks
+      - fieldalignment
       - httpresponse
       - loopclosure
       - lostcancel
@@ -152,12 +150,10 @@ linters-settings:
     local-prefixes: github.com/retailcrm/mg-transport-core
   lll:
     line-length: 120
-  maligned:
-    suggest-new: true
   misspell:
     locale: US
   nestif:
-    min-complexity: 4
+    min-complexity: 6
   whitespace:
     multi-if: false
     multi-func: false
@@ -166,7 +162,6 @@ issues:
   exclude-rules:
     - path: _test\.go
       linters:
-        - gomnd
         - lll
         - bodyclose
         - errcheck
@@ -175,7 +170,6 @@ issues:
         - ineffassign
         - whitespace
         - makezero
-        - maligned
         - ifshort
         - errcheck
         - funlen

@@ -11,6 +11,8 @@ import (
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	"golang.org/x/text/language"
 	"gopkg.in/yaml.v2"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/util/errorutil"
 )
 
 // DefaultLanguages for transports.
@@ -136,11 +138,6 @@ func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"trans": l.GetLocalizedMessage,
 	}
-}
-
-// getLocaleBundle returns current locale bundle and creates it if needed.
-func (l *Localizer) getLocaleBundle() *i18n.Bundle {
-	return l.createLocaleBundleByTag(l.LanguageTag)
 }
 
 // createLocaleBundleByTag creates locale bundle by language tag.
@@ -279,8 +276,8 @@ func (l *Localizer) GetLocalizedMessage(messageID string) string {
 	return l.getCurrentLocalizer().MustLocalize(&i18n.LocalizeConfig{MessageID: messageID})
 }
 
-// GetLocalizedTemplateMessage will return localized message with specified data. It doesn't use `Must` prefix in order to keep BC.
-// It uses text/template syntax: https://golang.org/pkg/text/template/
+// GetLocalizedTemplateMessage will return localized message with specified data.
+// It doesn't use `Must` prefix in order to keep BC. It uses text/template syntax: https://golang.org/pkg/text/template/
 func (l *Localizer) GetLocalizedTemplateMessage(messageID string, templateData map[string]interface{}) string {
 	return l.getCurrentLocalizer().MustLocalize(&i18n.LocalizeConfig{
 		MessageID:    messageID,
@@ -302,13 +299,52 @@ func (l *Localizer) LocalizeTemplateMessage(messageID string, templateData map[s
 	})
 }
 
-// BadRequestLocalized is same as BadRequest(string), but passed string will be localized.
+// BadRequestLocalized is same as errorutil.BadRequest(string), but passed string will be localized.
 func (l *Localizer) BadRequestLocalized(err string) (int, interface{}) {
-	return BadRequest(l.GetLocalizedMessage(err))
+	return errorutil.BadRequest(l.GetLocalizedMessage(err))
 }
 
-// GetContextLocalizer returns localizer from context if it exist there.
-func GetContextLocalizer(c *gin.Context) (*Localizer, bool) {
+// UnauthorizedLocalized is same as errorutil.Unauthorized(string), but passed string will be localized.
+func (l *Localizer) UnauthorizedLocalized(err string) (int, interface{}) {
+	return errorutil.Unauthorized(l.GetLocalizedMessage(err))
+}
+
+// ForbiddenLocalized is same as errorutil.Forbidden(string), but passed string will be localized.
+func (l *Localizer) ForbiddenLocalized(err string) (int, interface{}) {
+	return errorutil.Forbidden(l.GetLocalizedMessage(err))
+}
+
+// InternalServerErrorLocalized is same as errorutil.InternalServerError(string), but passed string will be localized.
+func (l *Localizer) InternalServerErrorLocalized(err string) (int, interface{}) {
+	return errorutil.InternalServerError(l.GetLocalizedMessage(err))
+}
+
+// GetContextLocalizer returns localizer from context if it is present there.
+// Language will be set using Accept-Language header and root language tag.
+func GetContextLocalizer(c *gin.Context) (loc *Localizer, ok bool) {
+	loc, ok = extractLocalizerFromContext(c)
+	if loc != nil {
+		loc.SetLocale(c.GetHeader("Accept-Language"))
+
+		lang := GetRootLanguageTag(loc.LanguageTag)
+		if lang != loc.LanguageTag {
+			loc.SetLanguage(lang)
+			loc.LoadTranslations()
+		}
+	}
+	return
+}
+
+// MustGetContextLocalizer returns Localizer instance if it exists in provided context. Panics otherwise.
+func MustGetContextLocalizer(c *gin.Context) *Localizer {
+	if localizer, ok := GetContextLocalizer(c); ok {
+		return localizer
+	}
+	panic("localizer is not present in provided context")
+}
+
+// extractLocalizerFromContext returns localizer from context if it exist there.
+func extractLocalizerFromContext(c *gin.Context) (*Localizer, bool) {
 	if c == nil {
 		return nil, false
 	}
@@ -322,10 +358,14 @@ func GetContextLocalizer(c *gin.Context) (*Localizer, bool) {
 	return nil, false
 }
 
-// MustGetContextLocalizer returns Localizer instance if it exists in provided context. Panics otherwise.
-func MustGetContextLocalizer(c *gin.Context) *Localizer {
-	if localizer, ok := GetContextLocalizer(c); ok {
-		return localizer
+// GetRootLanguageTag returns root language tag for country-specific tags (e.g "es" for "es_CA").
+// Useful when you don't have country-specific language variations.
+func GetRootLanguageTag(t language.Tag) language.Tag {
+	for {
+		parent := t.Parent()
+		if parent == language.Und {
+			return t
+		}
+		t = parent
 	}
-	panic("localizer is not present in provided context")
 }

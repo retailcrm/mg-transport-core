@@ -3,20 +3,17 @@ package stacktrace
 // GetStackBuilderByErrorType tries to guess which stacktrace builder would be feasible for passed error.
 // For example, errors from github.com/pkg/errors have StackTrace() method, and Go 1.13 errors can be unwrapped.
 func GetStackBuilderByErrorType(err error) StackBuilderInterface {
-	if isPkgErrors(err) {
+	if IsPkgErrorsError(err) {
 		return &PkgErrorsBuilder{AbstractStackBuilder{err: err}}
 	}
 
-	if _, ok := err.(Unwrappable); ok {
+	if IsUnwrappableError(err) {
 		return &UnwrapBuilder{AbstractStackBuilder{err: err}}
 	}
 
-	return &GenericStackBuilder{AbstractStackBuilder{err: err}}
-}
+	if IsErrorNodesList(err) {
+		return &ErrCollectorBuilder{AbstractStackBuilder{err: err}}
+	}
 
-// isPkgErrors returns true if passed error might be github.com/pkg/errors error.
-func isPkgErrors(err error) bool {
-	_, okTraceable := err.(PkgErrorTraceable)
-	_, okCauseable := err.(PkgErrorCauseable)
-	return okTraceable || okCauseable
+	return &GenericStackBuilder{AbstractStackBuilder{err: err}}
 }

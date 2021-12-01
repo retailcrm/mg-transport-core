@@ -9,7 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/retailcrm/mg-transport-core/core/stacktrace"
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/stacktrace"
 
 	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
@@ -34,19 +36,19 @@ type SentryTagged interface {
 
 // Sentry struct. Holds SentryTaggedStruct list.
 type Sentry struct {
+	Logger       logger.Logger
+	Client       stacktrace.RavenClientInterface
+	Localizer    *Localizer
+	DefaultError string
 	TaggedTypes  SentryTaggedTypes
 	Stacktrace   bool
-	DefaultError string
-	Localizer    *Localizer
-	Logger       LoggerInterface
-	Client       stacktrace.RavenClientInterface
 }
 
 // SentryTaggedStruct holds information about type, it's key in gin.Context (for middleware), and it's properties.
 type SentryTaggedStruct struct {
 	Type          reflect.Type
-	GinContextKey string
 	Tags          SentryTags
+	GinContextKey string
 }
 
 // SentryTaggedScalar variable from context.
@@ -56,7 +58,13 @@ type SentryTaggedScalar struct {
 }
 
 // NewSentry constructor.
-func NewSentry(sentryDSN string, defaultError string, taggedTypes SentryTaggedTypes, logger LoggerInterface, localizer *Localizer) *Sentry {
+func NewSentry(
+	sentryDSN string,
+	defaultError string,
+	taggedTypes SentryTaggedTypes,
+	logger logger.Logger,
+	localizer *Localizer,
+) *Sentry {
 	sentry := &Sentry{
 		DefaultError: defaultError,
 		TaggedTypes:  taggedTypes,
@@ -196,7 +204,7 @@ func (s *Sentry) ErrorResponseHandler() ErrorHandlerFunc {
 }
 
 // ErrorCaptureHandler will generate error data and send it to sentry.
-func (s *Sentry) ErrorCaptureHandler() ErrorHandlerFunc {
+func (s *Sentry) ErrorCaptureHandler() ErrorHandlerFunc { // nolint:gocognit
 	return func(recovery interface{}, c *gin.Context) {
 		tags := map[string]string{
 			"endpoint": c.Request.RequestURI,

@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/text/language"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/util/errorutil"
 )
 
 var (
@@ -120,7 +122,7 @@ func (l *LocalizerTest) Test_LocalizationMiddleware_Httptest() {
 		wg.Add(1)
 		go func(m map[language.Tag]string, wg *sync.WaitGroup) {
 			var tag language.Tag
-			switch rand.Intn(3-1) + 1 {
+			switch rand.Intn(3-1) + 1 { // nolint:gosec
 			case 1:
 				tag = language.English
 			case 2:
@@ -183,7 +185,7 @@ func (l *LocalizerTest) Test_BadRequestLocalized() {
 	status, resp := l.localizer.BadRequestLocalized("message")
 
 	assert.Equal(l.T(), http.StatusBadRequest, status)
-	assert.Equal(l.T(), "Test message", resp.(ErrorResponse).Error)
+	assert.Equal(l.T(), "Test message", resp.(errorutil.Response).Error)
 }
 
 // getContextWithLang generates context with Accept-Language header.

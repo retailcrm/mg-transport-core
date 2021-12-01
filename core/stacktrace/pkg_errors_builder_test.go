@@ -13,8 +13,8 @@ import (
 
 // errorWithCause has Cause() method, but doesn't have StackTrace() method.
 type errorWithCause struct {
-	msg   string
 	cause error
+	msg   string
 }
 
 func newErrorWithCause(msg string, cause error) error {
@@ -53,7 +53,7 @@ func (s *PkgErrorsStackProviderSuite) Test_Empty() {
 
 func (s *PkgErrorsStackProviderSuite) Test_Full() {
 	testErr := pkgErrors.New("test")
-	s.transformer.stack = testErr.(PkgErrorTraceable).StackTrace()
+	s.transformer.stack = testErr.(PkgErrorTraceable).StackTrace() // nolint:errorlint
 	assert.NotEmpty(s.T(), s.transformer.Stack())
 }
 

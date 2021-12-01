@@ -55,16 +55,14 @@ func (b *RavenStacktraceBuilder) Build(context int, appPackagePrefixes []string)
 }
 
 // convertFrame converts single generic stacktrace frame to github.com/pkg/errors.Frame.
-func (b *RavenStacktraceBuilder) convertFrame(f Frame, context int, appPackagePrefixes []string) *raven.StacktraceFrame {
+func (b *RavenStacktraceBuilder) convertFrame(
+	f Frame, context int, appPackagePrefixes []string) *raven.StacktraceFrame {
 	// This code is borrowed from github.com/pkg/errors.Frame.
 	pc := uintptr(f) - 1
-	fn := runtime.FuncForPC(pc)
-	var file string
-	var line int
-	if fn != nil {
+	line := 0
+	file := "unknown"
+	if fn := runtime.FuncForPC(pc); fn != nil {
 		file, line = fn.FileLine(pc)
-	} else {
-		file = "unknown"
 	}
 	return raven.NewStacktraceFrame(pc, path.Dir(file), file, line, context, appPackagePrefixes)
 }

@@ -17,6 +17,12 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/config"
+	"github.com/retailcrm/mg-transport-core/v2/core/middleware"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/httputil"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
 type EngineTest struct {
@@ -38,10 +44,10 @@ func (e *EngineTest) SetupTest() {
 
 	createTestLangFiles(e.T())
 
-	e.engine.Config = Config{
+	e.engine.Config = config.Config{
 		Version:  "1",
 		LogLevel: 5,
-		Database: DatabaseConfig{
+		Database: config.DatabaseConfig{
 			Connection:         db,
 			Logging:            true,
 			TablePrefix:        "",
@@ -50,14 +56,14 @@ func (e *EngineTest) SetupTest() {
 			ConnectionLifetime: 60,
 		},
 		SentryDSN: "sentry dsn",
-		HTTPServer: HTTPServerConfig{
+		HTTPServer: config.HTTPServerConfig{
 			Host:   "0.0.0.0",
 			Listen: ":3001",
 		},
 		Debug:          true,
 		UpdateInterval: 30,
-		ConfigAWS:      ConfigAWS{},
-		TransportInfo: Info{
+		ConfigAWS:      config.AWS{},
+		TransportInfo: config.Info{
 			Name:     "test",
 			Code:     "test",
 			LogoPath: "/test.svg",
@@ -113,7 +119,7 @@ func (e *EngineTest) Test_Prepare() {
 
 func (e *EngineTest) Test_initGin_Release() {
 	engine := New()
-	engine.Config = Config{Debug: false}
+	engine.Config = config.Config{Debug: false}
 	engine.initGin()
 	assert.NotNil(e.T(), engine.ginEngine)
 }
@@ -169,8 +175,8 @@ func (e *EngineTest) Test_ConfigureRouter() {
 }
 
 func (e *EngineTest) Test_BuildHTTPClient() {
-	e.engine.Config = &Config{
-		HTTPClientConfig: &HTTPClientConfig{
+	e.engine.Config = &config.Config{
+		HTTPClientConfig: &config.HTTPClientConfig{
 			Timeout:         30,
 			SSLVerification: boolPtr(true),
 		},
@@ -186,7 +192,7 @@ func (e *EngineTest) Test_BuildHTTPClient() {
 }
 
 func (e *EngineTest) Test_BuildHTTPClient_NoConfig() {
-	e.engine.Config = &Config{}
+	e.engine.Config = &config.Config{}
 	e.engine.BuildHTTPClient(x509.NewCertPool())
 
 	assert.NotNil(e.T(), e.engine.httpClient)
@@ -198,11 +204,11 @@ func (e *EngineTest) Test_BuildHTTPClient_NoConfig() {
 }
 
 func (e *EngineTest) Test_GetHTTPClientConfig() {
-	e.engine.Config = &Config{}
+	e.engine.Config = &config.Config{}
 	assert.Equal(e.T(), DefaultHTTPClientConfig, e.engine.GetHTTPClientConfig())
 
-	e.engine.Config = &Config{
-		HTTPClientConfig: &HTTPClientConfig{
+	e.engine.Config = &config.Config{
+		HTTPClientConfig: &config.HTTPClientConfig{
 			Timeout:         10,
 			SSLVerification: boolPtr(true),
 		},
@@ -230,7 +236,7 @@ func (e *EngineTest) Test_SetLogger() {
 	defer func() {
 		e.engine.logger = origLogger
 	}()
-	e.engine.logger = &Logger{}
+	e.engine.logger = &logger.StandardLogger{}
 	e.engine.SetLogger(nil)
 	assert.NotNil(e.T(), e.engine.logger)
 }
@@ -241,7 +247,7 @@ func (e *EngineTest) Test_SetHTTPClient() {
 		e.engine.httpClient = origClient
 	}()
 	e.engine.httpClient = nil
-	httpClient, err := NewHTTPClientBuilder().Build()
+	httpClient, err := httputil.NewHTTPClientBuilder().Build()
 	require.NoError(e.T(), err)
 	assert.NotNil(e.T(), httpClient)
 	e.engine.SetHTTPClient(&http.Client{})
@@ -257,7 +263,7 @@ func (e *EngineTest) Test_HTTPClient() {
 	}()
 	e.engine.httpClient = nil
 	require.Same(e.T(), http.DefaultClient, e.engine.HTTPClient())
-	httpClient, err := NewHTTPClientBuilder().Build()
+	httpClient, err := httputil.NewHTTPClientBuilder().Build()
 	require.NoError(e.T(), err)
 	e.engine.httpClient = httpClient
 	assert.Same(e.T(), httpClient, e.engine.HTTPClient())
@@ -270,7 +276,7 @@ func (e *EngineTest) Test_InitCSRF_Fail() {
 
 	e.engine.csrf = nil
 	e.engine.Sessions = nil
-	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r middleware.CSRFErrorReason) {}, middleware.DefaultCSRFTokenGetter)
 	assert.Nil(e.T(), e.engine.csrf)
 }
 
@@ -281,7 +287,7 @@ func (e *EngineTest) Test_InitCSRF() {
 
 	e.engine.csrf = nil
 	e.engine.WithCookieSessions(4)
-	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r middleware.CSRFErrorReason) {}, middleware.DefaultCSRFTokenGetter)
 	assert.NotNil(e.T(), e.engine.csrf)
 }
 
@@ -291,7 +297,7 @@ func (e *EngineTest) Test_VerifyCSRFMiddleware_Fail() {
 	}()
 
 	e.engine.csrf = nil
-	e.engine.VerifyCSRFMiddleware(DefaultIgnoredMethods)
+	e.engine.VerifyCSRFMiddleware(middleware.DefaultIgnoredMethods)
 }
 
 func (e *EngineTest) Test_VerifyCSRFMiddleware() {
@@ -301,8 +307,8 @@ func (e *EngineTest) Test_VerifyCSRFMiddleware() {
 
 	e.engine.csrf = nil
 	e.engine.WithCookieSessions(4)
-	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
-	e.engine.VerifyCSRFMiddleware(DefaultIgnoredMethods)
+	e.engine.InitCSRF("test", func(context *gin.Context, r middleware.CSRFErrorReason) {}, middleware.DefaultCSRFTokenGetter)
+	e.engine.VerifyCSRFMiddleware(middleware.DefaultIgnoredMethods)
 }
 
 func (e *EngineTest) Test_GenerateCSRFMiddleware_Fail() {
@@ -321,7 +327,7 @@ func (e *EngineTest) Test_GenerateCSRFMiddleware() {
 
 	e.engine.csrf = nil
 	e.engine.WithCookieSessions(4)
-	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r middleware.CSRFErrorReason) {}, middleware.DefaultCSRFTokenGetter)
 	e.engine.GenerateCSRFMiddleware()
 }
 
@@ -350,7 +356,7 @@ func (e *EngineTest) Test_GetCSRFToken() {
 
 	e.engine.csrf = nil
 	e.engine.WithCookieSessions(4)
-	e.engine.InitCSRF("test", func(context *gin.Context, r CSRFErrorReason) {}, DefaultCSRFTokenGetter)
+	e.engine.InitCSRF("test", func(context *gin.Context, r middleware.CSRFErrorReason) {}, middleware.DefaultCSRFTokenGetter)
 	assert.NotEmpty(e.T(), e.engine.GetCSRFToken(c))
 	assert.Equal(e.T(), "token", e.engine.GetCSRFToken(c))
 }

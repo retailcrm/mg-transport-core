@@ -5,7 +5,7 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
-	"github.com/retailcrm/mg-transport-core/core"
+	"github.com/retailcrm/mg-transport-core/v2/core/db"
 )
 
 // Options for tool command.
@@ -20,7 +20,7 @@ func init() {
 	_, err := parser.AddCommand("migration",
 		"Create new empty migration in specified directory.",
 		"Create new empty migration in specified directory.",
-		&core.NewMigrationCommand{},
+		&db.NewMigrationCommand{},
 	)
 
 	if err != nil {
@@ -30,7 +30,7 @@ func init() {
 
 func main() {
 	if _, err := parser.Parse(); err != nil {
-		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp {
+		if flagsErr, ok := err.(*flags.Error); ok && flagsErr.Type == flags.ErrHelp { // nolint:errorlint
 			os.Exit(0)
 		} else {
 			os.Exit(1)

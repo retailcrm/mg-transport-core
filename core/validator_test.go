@@ -8,6 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/db/models"
 )
 
 type ValidatorSuite struct {
@@ -49,7 +51,7 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 	}
 
 	for _, domain := range crmDomains {
-		conn := Connection{
+		conn := models.Connection{
 			Key: "key",
 			URL: domain,
 		}
@@ -81,7 +83,7 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 	}
 
 	for _, domain := range crmDomains {
-		conn := Connection{
+		conn := models.Connection{
 			Key: "key",
 			URL: domain,
 		}

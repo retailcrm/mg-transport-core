@@ -12,34 +12,42 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/op/go-logging"
 	"golang.org/x/text/language"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/config"
+	"github.com/retailcrm/mg-transport-core/v2/core/db"
+	"github.com/retailcrm/mg-transport-core/v2/core/middleware"
+	"github.com/retailcrm/mg-transport-core/v2/core/util"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/httputil"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
 var boolTrue = true
 
 // DefaultHTTPClientConfig is a default config for HTTP client. It will be used by Engine for building HTTP client
 // if HTTP client config is not present in the configuration.
-var DefaultHTTPClientConfig = &HTTPClientConfig{
+var DefaultHTTPClientConfig = &config.HTTPClientConfig{
 	Timeout:         30,
 	SSLVerification: &boolTrue,
 }
 
 // Engine struct.
 type Engine struct {
+	logger       logger.Logger
+	Sessions     sessions.Store
+	LogFormatter logging.Formatter
+	Config       config.Configuration
+	ginEngine    *gin.Engine
+	csrf         *middleware.CSRF
+	httpClient   *http.Client
+	jobManager   *JobManager
+	db.ORM
 	Localizer
-	ORM
-	Sentry
-	Utils
-	ginEngine        *gin.Engine
-	httpClient       *http.Client
-	logger           LoggerInterface
-	mutex            sync.RWMutex
-	csrf             *CSRF
-	jobManager       *JobManager
+	util.Utils
 	PreloadLanguages []language.Tag
-	Sessions         sessions.Store
-	Config           ConfigInterface
-	LogFormatter     logging.Formatter
-	prepared         bool
+	Sentry
+	mutex    sync.RWMutex
+	prepared bool
 }
 
 // New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or
@@ -52,9 +60,9 @@ func New() *Engine {
 			loadMutex:   &sync.RWMutex{},
 		},
 		PreloadLanguages: []language.Tag{},
-		ORM:              ORM{},
+		ORM:              db.ORM{},
 		Sentry:           Sentry{},
-		Utils:            Utils{},
+		Utils:            util.Utils{},
 		ginEngine:        nil,
 		logger:           nil,
 		mutex:            sync.RWMutex{},
@@ -91,7 +99,7 @@ func (e *Engine) Prepare() *Engine {
 		e.DefaultError = "error"
 	}
 	if e.LogFormatter == nil {
-		e.LogFormatter = DefaultLogFormatter()
+		e.LogFormatter = logger.DefaultLogFormatter()
 	}
 	if e.LocaleMatcher == nil {
 		e.LocaleMatcher = DefaultLocalizerMatcher()
@@ -107,10 +115,10 @@ func (e *Engine) Prepare() *Engine {
 		e.Localizer.Preload(e.PreloadLanguages)
 	}
 
-	e.createDB(e.Config.GetDBConfig())
+	e.CreateDB(e.Config.GetDBConfig())
 	e.createRavenClient(e.Config.GetSentryDSN())
-	e.resetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
-	e.SetLogger(NewLogger(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
+	e.ResetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
+	e.SetLogger(logger.NewStandard(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
 	e.Sentry.Localizer = &e.Localizer
 	e.Sentry.Stacktrace = true
 	e.Utils.Logger = e.Logger()
@@ -176,12 +184,12 @@ func (e *Engine) JobManager() *JobManager {
 }
 
 // Logger returns current logger.
-func (e *Engine) Logger() LoggerInterface {
+func (e *Engine) Logger() logger.Logger {
 	return e.logger
 }
 
 // SetLogger sets provided logger instance to engine.
-func (e *Engine) SetLogger(l LoggerInterface) *Engine {
+func (e *Engine) SetLogger(l logger.Logger) *Engine {
 	if l == nil {
 		return e
 	}
@@ -194,11 +202,11 @@ func (e *Engine) SetLogger(l LoggerInterface) *Engine {
 
 // BuildHTTPClient builds HTTP client with provided configuration.
 func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *Engine {
-	client, err := NewHTTPClientBuilder().
+	client, err := httputil.NewHTTPClientBuilder().
 		WithLogger(e.Logger()).
 		SetLogging(e.Config.IsDebug()).
 		SetCertPool(certs).
-		FromEngine(e).
+		FromConfig(e.GetHTTPClientConfig()).
 		Build(replaceDefault...)
 
 	if err != nil {
@@ -211,7 +219,7 @@ func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *
 }
 
 // GetHTTPClientConfig returns configuration for HTTP client.
-func (e *Engine) GetHTTPClientConfig() *HTTPClientConfig {
+func (e *Engine) GetHTTPClientConfig() *config.HTTPClientConfig {
 	if e.Config.GetHTTPClientConfig() != nil {
 		return e.Config.GetHTTPClientConfig()
 	}
@@ -266,12 +274,13 @@ func (e *Engine) WithFilesystemSessions(path string, keyLength ...int) *Engine {
 // InitCSRF initializes CSRF middleware. engine.Sessions must be already initialized,
 // use engine.WithCookieStore or engine.WithFilesystemStore for that.
 // Syntax is similar to core.NewCSRF, but you shouldn't pass sessionName, store and salt.
-func (e *Engine) InitCSRF(secret string, abortFunc CSRFAbortFunc, getter CSRFTokenGetter) *Engine {
+func (e *Engine) InitCSRF(
+	secret string, abortFunc middleware.CSRFAbortFunc, getter middleware.CSRFTokenGetter) *Engine {
 	if e.Sessions == nil {
 		panic("engine.Sessions must be initialized first")
 	}
 
-	e.csrf = NewCSRF("", secret, "", e.Sessions, abortFunc, getter)
+	e.csrf = middleware.NewCSRF("", secret, "", e.Sessions, abortFunc, getter)
 	return e
 }
 
