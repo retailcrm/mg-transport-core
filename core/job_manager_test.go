@@ -336,7 +336,7 @@ func (t *JobTest) Test_run() {
 
 	t.regularJob()
 	t.job.run("job", t.testLogger())
-	time.Sleep(time.Millisecond * 5)
+	time.Sleep(time.Millisecond * 10)
 	t.job.stop()
 	require.True(t.T(), t.executed())
 }
