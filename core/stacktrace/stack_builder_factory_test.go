@@ -7,7 +7,7 @@ import (
 	pkgErrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/errorutil"
 )
 
 func TestGetStackBuilderByErrorType_PkgErrors(t *testing.T) {

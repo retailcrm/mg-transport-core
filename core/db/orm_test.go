@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/retailcrm/mg-transport-core/core/config"
+	"github.com/retailcrm/mg-transport-core/v2/core/config"
 )
 
 func TestORM_NewORM(t *testing.T) {

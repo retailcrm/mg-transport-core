@@ -8,7 +8,7 @@ import (
 
 	"github.com/op/go-logging"
 
-	"github.com/retailcrm/mg-transport-core/core/logger"
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
 // ReadBuffer is implemented by the BufferLogger.

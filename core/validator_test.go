@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/retailcrm/mg-transport-core/core/db/models"
+	"github.com/retailcrm/mg-transport-core/v2/core/db/models"
 )
 
 type ValidatorSuite struct {

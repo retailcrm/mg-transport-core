@@ -5,7 +5,7 @@ import (
 
 	"github.com/jessevdk/go-flags"
 
-	"github.com/retailcrm/mg-transport-core/core/db"
+	"github.com/retailcrm/mg-transport-core/v2/core/db"
 )
 
 // Options for tool command.

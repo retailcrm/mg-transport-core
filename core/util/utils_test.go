@@ -16,11 +16,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	"gopkg.in/h2non/gock.v1"
 
-	"github.com/retailcrm/mg-transport-core/core/config"
+	"github.com/retailcrm/mg-transport-core/v2/core/config"
 
-	"github.com/retailcrm/mg-transport-core/core/logger"
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 
-	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/errorutil"
 )
 
 var (

@@ -13,13 +13,13 @@ import (
 	"github.com/op/go-logging"
 	"golang.org/x/text/language"
 
-	"github.com/retailcrm/mg-transport-core/core/config"
-	"github.com/retailcrm/mg-transport-core/core/db"
-	"github.com/retailcrm/mg-transport-core/core/middleware"
-	"github.com/retailcrm/mg-transport-core/core/util"
-	"github.com/retailcrm/mg-transport-core/core/util/httputil"
+	"github.com/retailcrm/mg-transport-core/v2/core/config"
+	"github.com/retailcrm/mg-transport-core/v2/core/db"
+	"github.com/retailcrm/mg-transport-core/v2/core/middleware"
+	"github.com/retailcrm/mg-transport-core/v2/core/util"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/httputil"
 
-	"github.com/retailcrm/mg-transport-core/core/logger"
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
 var boolTrue = true

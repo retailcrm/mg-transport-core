@@ -11,9 +11,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/retailcrm/mg-transport-core/core/config"
+	"github.com/retailcrm/mg-transport-core/v2/core/config"
 
-	"github.com/retailcrm/mg-transport-core/core/logger"
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
 // DefaultClient stores original http.DefaultClient.

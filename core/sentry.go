@@ -9,9 +9,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/retailcrm/mg-transport-core/core/logger"
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 
-	"github.com/retailcrm/mg-transport-core/core/stacktrace"
+	"github.com/retailcrm/mg-transport-core/v2/core/stacktrace"
 
 	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"

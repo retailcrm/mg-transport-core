@@ -10,7 +10,7 @@ import (
 	"github.com/getsentry/raven-go"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/errorutil"
 )
 
 type ErrCollectorBuilderTest struct {

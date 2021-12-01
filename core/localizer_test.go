@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/text/language"
 
-	"github.com/retailcrm/mg-transport-core/core/util/errorutil"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/errorutil"
 )
 
 var (

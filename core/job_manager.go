@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/retailcrm/mg-transport-core/core/logger"
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
 // JobFunc is empty func which should be executed in a parallel goroutine.

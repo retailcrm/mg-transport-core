@@ -5,7 +5,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 
-	"github.com/retailcrm/mg-transport-core/core/config"
+	"github.com/retailcrm/mg-transport-core/v2/core/config"
 
 	// PostgreSQL is an default.
 	_ "github.com/jinzhu/gorm/dialects/postgres"

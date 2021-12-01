@@ -1,4 +1,4 @@
-module github.com/retailcrm/mg-transport-core
+module github.com/retailcrm/mg-transport-core/v2
 
 go 1.12
 
