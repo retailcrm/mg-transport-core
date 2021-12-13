@@ -119,7 +119,8 @@ func (u *Utils) GenerateToken() string {
 
 // GetAPIClient will initialize RetailCRM api client from url and key.
 // Scopes will be used to determine if client is valid. If there are no scopes - credentials will be used instead.
-func (u *Utils) GetAPIClient(url, key string, scopes []string, credentials ...[]string) (*retailcrm.Client, int, error) {
+func (u *Utils) GetAPIClient(
+	url, key string, scopes []string, credentials ...[]string) (*retailcrm.Client, int, error) {
 	client := retailcrm.New(url, key).
 		WithLogger(retailcrm.DebugLoggerAdapter(u.Logger))
 	client.Debug = u.IsDebug
