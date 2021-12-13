@@ -20,10 +20,16 @@ import (
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 )
 
-var DefaultScopes = []string{
-	"integration_read",
-	"integration_write",
-}
+var (
+	DefaultScopes = []string{
+		"integration_read",
+		"integration_write",
+	}
+	DefaultCredentials = []string{
+		"/api/integration-modules/{code}",
+		"/api/integration-modules/{code}/edit",
+	}
+)
 
 var defaultCurrencies = map[string]string{
 	"rub": "₽",
@@ -112,7 +118,8 @@ func (u *Utils) GenerateToken() string {
 }
 
 // GetAPIClient will initialize RetailCRM api client from url and key.
-func (u *Utils) GetAPIClient(url, key string, scopes []string) (*retailcrm.Client, int, error) {
+// Scopes will be used to determine if client is valid. If there are no scopes - credentials will be used instead.
+func (u *Utils) GetAPIClient(url, key string, scopes []string, credentials ...[]string) (*retailcrm.Client, int, error) {
 	client := retailcrm.New(url, key).
 		WithLogger(retailcrm.DebugLoggerAdapter(u.Logger))
 	client.Debug = u.IsDebug
@@ -123,8 +130,15 @@ func (u *Utils) GetAPIClient(url, key string, scopes []string) (*retailcrm.Clien
 	}
 
 	if res := u.checkScopes(cr.Scopes, scopes); len(res) != 0 {
-		u.Logger.Error(url, status, res)
-		return nil, http.StatusBadRequest, NewInsufficientScopesErr(res)
+		if len(credentials) == 0 || len(cr.Scopes) > 0 {
+			u.Logger.Error(url, status, res)
+			return nil, http.StatusBadRequest, NewInsufficientScopesErr(res)
+		}
+
+		if res := u.checkScopes(cr.Credentials, credentials[0]); len(res) != 0 {
+			u.Logger.Error(url, status, res)
+			return nil, http.StatusBadRequest, NewInsufficientScopesErr(res)
+		}
 	}
 
 	return client, 0, nil
