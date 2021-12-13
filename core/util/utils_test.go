@@ -97,7 +97,7 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPI() {
 	}
 }
 
-func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
+func (u *UtilsTest) Test_GetAPIClient_FailAPIScopes() {
 	resp := retailcrm.CredentialResponse{
 		Success:        true,
 		Scopes:         []string{},
@@ -118,6 +118,50 @@ func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
 	if assert.NotNil(u.T(), err) {
 		assert.True(u.T(), errors.Is(err, errorutil.ErrInsufficientScopes))
 	}
+}
+
+func (u *UtilsTest) Test_GetAPIClient_FailAPICredentials() {
+	resp := retailcrm.CredentialResponse{
+		Success:        true,
+		Credentials:    []string{DefaultCredentials[0]},
+		SiteAccess:     "all",
+		SitesAvailable: []string{},
+	}
+
+	data, _ := json.Marshal(resp)
+
+	defer gock.Off()
+	gock.New(testCRMURL).
+		Get("/credentials").
+		Reply(http.StatusOK).
+		BodyString(string(data))
+
+	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", DefaultScopes, DefaultCredentials)
+	assert.Equal(u.T(), http.StatusBadRequest, status)
+	if assert.NotNil(u.T(), err) {
+		assert.True(u.T(), errors.Is(err, errorutil.ErrInsufficientScopes))
+	}
+}
+
+func (u *UtilsTest) Test_GetAPIClient_SuccessCredentials() {
+	resp := retailcrm.CredentialResponse{
+		Success:        true,
+		Credentials:    DefaultCredentials,
+		SiteAccess:     "all",
+		SitesAvailable: []string{"site"},
+	}
+
+	data, _ := json.Marshal(resp)
+
+	defer gock.Off()
+	gock.New(testCRMURL).
+		Get("/credentials").
+		Reply(http.StatusOK).
+		BodyString(string(data))
+
+	_, status, err := u.utils.GetAPIClient(testCRMURL, "key", DefaultScopes, DefaultCredentials)
+	require.NoError(u.T(), err)
+	assert.Equal(u.T(), 0, status)
 }
 
 func (u *UtilsTest) Test_GetAPIClient_Success() {
