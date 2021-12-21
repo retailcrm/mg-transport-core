@@ -1,18 +1,12 @@
 package core
 
 import (
-	"encoding/json"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"strings"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 )
-
-const crmDomainsURL string = "https://infra-data.retailcrm.tech/crm-domains.json"
-const boxDomainsURL string = "https://infra-data.retailcrm.tech/box-domains.json"
 
 // init here will register `validateCrmURL` function for gin validator.
 func init() {
@@ -39,20 +33,18 @@ func isDomainValid(crmURL string) bool {
 
 	mainDomain := getMainDomain(parseURL.Hostname())
 
-	if checkDomains(crmDomainsURL, mainDomain) {
+	if checkDomains(GetSaasDomains(), mainDomain) {
 		return true
 	}
 
-	if checkDomains(boxDomainsURL, parseURL.Hostname()) {
+	if checkDomains(GetBoxDomains(), parseURL.Hostname()) {
 		return true
 	}
 
 	return false
 }
 
-func checkDomains(domainsStoreURL string, domain string) bool {
-	crmDomains := getDomainsByStore(domainsStoreURL)
-
+func checkDomains(crmDomains []Domain, domain string) bool {
 	if nil == crmDomains {
 		return false
 	}
@@ -85,46 +77,4 @@ func checkURLString(parseURL *url.URL) bool {
 	}
 
 	return true
-}
-
-func getDomainsByStore(store string) []Domain {
-	req, reqErr := http.NewRequest(http.MethodGet, store, nil)
-
-	if reqErr != nil {
-		return nil
-	}
-
-	req.Header.Add("Accept", "application/json")
-	resp, respErr := http.DefaultClient.Do(req)
-
-	if respErr != nil {
-		return nil
-	}
-
-	respBody, readErr := ioutil.ReadAll(resp.Body)
-
-	if readErr != nil {
-		return nil
-	}
-
-	var crmDomains CrmDomains
-
-	err := json.Unmarshal(respBody, &crmDomains)
-
-	if err != nil {
-		return nil
-	}
-
-	_ = resp.Body.Close()
-
-	return crmDomains.Domains
-}
-
-type Domain struct {
-	Domain string `json:"domain"`
-}
-
-type CrmDomains struct {
-	CreateDate string   `json:"createDate"`
-	Domains    []Domain `json:"domains"`
 }
