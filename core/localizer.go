@@ -137,6 +137,23 @@ func (l *Localizer) LocalizationMiddleware() gin.HandlerFunc {
 func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 	return template.FuncMap{
 		"trans": l.GetLocalizedMessage,
+		"transTpl": func(messageID string, parts ...string) string {
+			if len(parts) == 0 {
+				return l.GetLocalizedMessage(messageID)
+			}
+
+			if len(parts)%2 != 0 {
+				parts = append(parts, "")
+			}
+
+			partsMap := make(map[string]interface{}, len(parts)/2)
+
+			for i := 0; i < len(parts)-1; i += 2 {
+				partsMap[parts[i]] = parts[i+1]
+			}
+
+			return l.GetLocalizedTemplateMessage(messageID, partsMap)
+		},
 	}
 }
 
