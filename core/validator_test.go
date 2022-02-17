@@ -73,7 +73,6 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 		"https://raisa.retailcrm.es",
 		"https://blabla.simla.com",
 		"https://blabla.simlachat.com",
-		"https://blabla.simlachat.ru",
 		"https://blabla.ecomlogic.com",
 		"https://crm.baucenter.ru",
 		"https://crm.holodilnik.ru",
