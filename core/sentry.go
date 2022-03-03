@@ -4,16 +4,13 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-	"runtime/debug"
 	"strconv"
 
+	"github.com/getsentry/sentry-go"
+	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/pkg/errors"
-
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 
-	"github.com/retailcrm/mg-transport-core/v2/core/stacktrace"
-
-	"github.com/getsentry/raven-go"
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,12 +33,13 @@ type SentryTagged interface {
 
 // Sentry struct. Holds SentryTaggedStruct list.
 type Sentry struct {
+	SentryConfig sentry.ClientOptions
+	ServerName   string
+	AppInfo      AppInfo
 	Logger       logger.Logger
-	Client       stacktrace.RavenClientInterface
 	Localizer    *Localizer
 	DefaultError string
 	TaggedTypes  SentryTaggedTypes
-	Stacktrace   bool
 }
 
 // SentryTaggedStruct holds information about type, it's key in gin.Context (for middleware), and it's properties.
@@ -59,21 +57,27 @@ type SentryTaggedScalar struct {
 
 // NewSentry constructor.
 func NewSentry(
-	sentryDSN string,
+	options sentry.ClientOptions,
 	defaultError string,
 	taggedTypes SentryTaggedTypes,
 	logger logger.Logger,
 	localizer *Localizer,
 ) *Sentry {
-	sentry := &Sentry{
+	s := &Sentry{
+		SentryConfig: options,
 		DefaultError: defaultError,
 		TaggedTypes:  taggedTypes,
 		Localizer:    localizer,
 		Logger:       logger,
-		Stacktrace:   true,
 	}
-	sentry.createRavenClient(sentryDSN)
-	return sentry
+	s.InitSentrySDK()
+	return s
+}
+
+func (s *Sentry) InitSentrySDK() {
+	if err := sentry.Init(s.SentryConfig); err != nil {
+		panic(err)
+	}
 }
 
 // NewTaggedStruct constructor.
@@ -102,22 +106,31 @@ func NewTaggedScalar(sample interface{}, ginCtxKey string, name string) *SentryT
 	}
 }
 
-// createRavenClient will init raven.Client.
-func (s *Sentry) createRavenClient(sentryDSN string) {
-	client, _ := raven.New(sentryDSN)
-	s.Client = client
+// CaptureException and send it to Sentry. Use stacktrace.ErrorWithStack to append the stacktrace to the errors without it!
+func (s *Sentry) CaptureException(c *gin.Context, exception error) {
+	if exception == nil {
+		return
+	}
+	if hub := sentrygin.GetHubFromContext(c); hub != nil {
+		s.setScopeTags(c, hub.Scope())
+		hub.CaptureException(exception)
+		return
+	}
+	_ = c.Error(exception)
 }
 
-// combineGinErrorHandlers calls several error handlers simultaneously.
-func (s *Sentry) combineGinErrorHandlers(handlers ...ErrorHandlerFunc) gin.HandlerFunc {
+func (s *Sentry) combineGinErrorHandlers(handlers []gin.HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		defer func() {
-			rec := recover()
 			for _, handler := range handlers {
-				handler(rec, c)
+				handler(c)
+
+				if c.IsAborted() {
+					return
+				}
 			}
 
-			if rec != nil || len(c.Errors) > 0 {
+			if len(c.Errors) > 0 {
 				c.Abort()
 			}
 		}()
@@ -126,132 +139,71 @@ func (s *Sentry) combineGinErrorHandlers(handlers ...ErrorHandlerFunc) gin.Handl
 	}
 }
 
-// ErrorMiddleware returns error handlers, attachable to gin.Engine.
-func (s *Sentry) ErrorMiddleware() gin.HandlerFunc {
-	defaultHandlers := []ErrorHandlerFunc{
-		s.ErrorResponseHandler(),
-		s.PanicLogger(),
-		s.ErrorLogger(),
-	}
-
-	if s.Client != nil {
-		defaultHandlers = append(defaultHandlers, s.ErrorCaptureHandler())
-	}
-
-	return s.combineGinErrorHandlers(defaultHandlers...)
-}
-
-// PanicLogger logs panic.
-func (s *Sentry) PanicLogger() ErrorHandlerFunc {
-	return func(recovery interface{}, c *gin.Context) {
-		if recovery != nil {
-			if s.Logger != nil {
-				s.Logger.Error(c.Request.RequestURI, recovery)
-			} else {
-				fmt.Print("ERROR =>", c.Request.RequestURI, recovery)
+func (s *Sentry) SentryMiddleware() gin.HandlerFunc {
+	return s.combineGinErrorHandlers([]gin.HandlerFunc{
+		func(c *gin.Context) {
+			hub := sentry.GetHubFromContext(c.Request.Context())
+			if hub == nil {
+				hub = sentry.CurrentHub().Clone()
 			}
-			debug.PrintStack()
-		}
-	}
-}
+			s.setScopeTags(c, hub.Scope())
+			c.Next()
+		},
+		sentrygin.New(sentrygin.Options{
+			Repanic: true,
+		}),
+		func(c *gin.Context) {
+			recovery := recover()
+			publicErrors := c.Errors.ByType(gin.ErrorTypePublic)
+			privateErrors := c.Errors.ByType(gin.ErrorTypePrivate)
+			publicLen := len(publicErrors)
+			privateLen := len(privateErrors)
 
-// ErrorLogger logs basic errors.
-func (s *Sentry) ErrorLogger() ErrorHandlerFunc {
-	return func(recovery interface{}, c *gin.Context) {
-		for _, err := range c.Errors {
-			if s.Logger != nil {
-				s.Logger.Error(c.Request.RequestURI, err.Err)
-			} else {
-				fmt.Print("ERROR =>", c.Request.RequestURI, err.Err)
+			if privateLen == 0 && publicLen == 0 && recovery == nil {
+				return
 			}
-		}
-	}
-}
 
-// ErrorResponseHandler will be executed in case of any unexpected error.
-func (s *Sentry) ErrorResponseHandler() ErrorHandlerFunc {
-	return func(recovery interface{}, c *gin.Context) {
-		publicErrors := c.Errors.ByType(gin.ErrorTypePublic)
-		privateLen := len(c.Errors.ByType(gin.ErrorTypePrivate))
-		publicLen := len(publicErrors)
-
-		if privateLen == 0 && publicLen == 0 && recovery == nil {
-			return
-		}
-
-		messagesLen := publicLen
-		if privateLen > 0 || recovery != nil {
-			messagesLen++
-		}
-
-		messages := make([]string, messagesLen)
-		index := 0
-		for _, err := range publicErrors {
-			messages[index] = err.Error()
-			index++
-		}
-
-		if privateLen > 0 || recovery != nil {
-			if s.Localizer == nil {
-				messages[index] = s.DefaultError
-			} else {
-				messages[index] = s.Localizer.GetLocalizedMessage(s.DefaultError)
+			messagesLen := publicLen
+			if privateLen > 0 || recovery != nil {
+				messagesLen++
 			}
-		}
 
-		c.JSON(http.StatusInternalServerError, gin.H{"error": messages})
-	}
+			messages := make([]string, messagesLen)
+			index := 0
+			for _, err := range publicErrors {
+				messages[index] = err.Error()
+				s.CaptureException(c, err)
+				index++
+			}
+
+			for _, err := range privateErrors {
+				s.CaptureException(c, err)
+			}
+
+			if privateLen > 0 || recovery != nil {
+				if s.Localizer == nil {
+					messages[index] = s.DefaultError
+				} else {
+					messages[index] = s.Localizer.GetLocalizedMessage(s.DefaultError)
+				}
+			}
+
+			c.JSON(http.StatusInternalServerError, gin.H{"error": messages})
+		},
+	})
 }
 
-// ErrorCaptureHandler will generate error data and send it to sentry.
-func (s *Sentry) ErrorCaptureHandler() ErrorHandlerFunc { // nolint:gocognit
-	return func(recovery interface{}, c *gin.Context) {
-		tags := map[string]string{
-			"endpoint": c.Request.RequestURI,
-		}
+func (s *Sentry) setScopeTags(c *gin.Context, scope *sentry.Scope) {
+	scope.SetTag("endpoint", c.Request.RequestURI)
 
-		if len(s.TaggedTypes) > 0 {
-			for _, tagged := range s.TaggedTypes {
-				if item, ok := c.Get(tagged.GetContextKey()); ok && item != nil {
-					if itemTags, err := tagged.BuildTags(item); err == nil {
-						for tagName, tagValue := range itemTags {
-							tags[tagName] = tagValue
-						}
+	if len(s.TaggedTypes) > 0 {
+		for _, tagged := range s.TaggedTypes {
+			if item, ok := c.Get(tagged.GetContextKey()); ok && item != nil {
+				if itemTags, err := tagged.BuildTags(item); err == nil {
+					for tagName, tagValue := range itemTags {
+						scope.SetTag(tagName, tagValue)
 					}
 				}
-			}
-		}
-
-		if recovery != nil {
-			stack := raven.NewStacktrace(4, 3, nil)
-			recStr := fmt.Sprint(recovery)
-			err := errors.New(recStr)
-			go s.Client.CaptureMessageAndWait(
-				recStr,
-				tags,
-				raven.NewException(err, stack),
-				raven.NewHttp(c.Request),
-			)
-		}
-
-		for _, err := range c.Errors {
-			if s.Stacktrace {
-				stackBuilder := stacktrace.GetStackBuilderByErrorType(err.Err)
-				stackBuilder.SetClient(s.Client)
-				stack, buildErr := stackBuilder.Build().GetResult()
-				if buildErr != nil {
-					go s.Client.CaptureErrorAndWait(buildErr, tags)
-					stack = stacktrace.GenericStack(s.Client)
-				}
-
-				go s.Client.CaptureMessageAndWait(
-					err.Error(),
-					tags,
-					raven.NewException(err.Err, stack),
-					raven.NewHttp(c.Request),
-				)
-			} else {
-				go s.Client.CaptureErrorAndWait(err.Err, tags)
 			}
 		}
 	}

@@ -25,6 +25,9 @@ import (
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
+// TestSentryDSN is a fake Sentry DSN in valid format.
+const TestSentryDSN = "https://9f4719e96b0fc2422c05a2f745f214d5@a000000.ingest.sentry.io/0000000"
+
 type EngineTest struct {
 	suite.Suite
 	engine *Engine
@@ -55,7 +58,7 @@ func (e *EngineTest) SetupTest() {
 			MaxIdleConnections: 10,
 			ConnectionLifetime: 60,
 		},
-		SentryDSN: "sentry dsn",
+		SentryDSN: TestSentryDSN,
 		HTTPServer: config.HTTPServerConfig{
 			Host:   "0.0.0.0",
 			Listen: ":3001",
@@ -110,7 +113,7 @@ func (e *EngineTest) Test_Prepare() {
 	assert.NotEmpty(e.T(), e.engine.LocaleMatcher)
 	assert.False(e.T(), e.engine.isUnd(e.engine.Localizer.LanguageTag))
 	assert.NotNil(e.T(), e.engine.DB)
-	assert.NotNil(e.T(), e.engine.Client)
+	assert.NotEmpty(e.T(), e.engine.DSN)
 	assert.NotNil(e.T(), e.engine.logger)
 	assert.NotNil(e.T(), e.engine.Sentry.Localizer)
 	assert.NotNil(e.T(), e.engine.Sentry.Logger)
