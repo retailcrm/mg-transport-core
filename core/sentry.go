@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"reflect"
 	"strconv"
+	"sync"
 
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
@@ -33,6 +34,7 @@ type SentryTagged interface {
 
 // Sentry struct. Holds SentryTaggedStruct list.
 type Sentry struct {
+	init         sync.Once
 	SentryConfig sentry.ClientOptions
 	ServerName   string
 	AppInfo      AppInfo
@@ -75,9 +77,11 @@ func NewSentry(
 }
 
 func (s *Sentry) InitSentrySDK() {
-	if err := sentry.Init(s.SentryConfig); err != nil {
-		panic(err)
-	}
+	s.init.Do(func() {
+		if err := sentry.Init(s.SentryConfig); err != nil {
+			panic(err)
+		}
+	})
 }
 
 // NewTaggedStruct constructor.
@@ -139,58 +143,74 @@ func (s *Sentry) combineGinErrorHandlers(handlers []gin.HandlerFunc) gin.Handler
 	}
 }
 
-func (s *Sentry) SentryMiddleware() gin.HandlerFunc {
-	return s.combineGinErrorHandlers([]gin.HandlerFunc{
+func (s *Sentry) SentryMiddlewares() []gin.HandlerFunc {
+	return []gin.HandlerFunc{
 		func(c *gin.Context) {
 			hub := sentry.GetHubFromContext(c.Request.Context())
 			if hub == nil {
 				hub = sentry.CurrentHub().Clone()
 			}
 			s.setScopeTags(c, hub.Scope())
+		},
+		func(c *gin.Context) {
+			defer func() {
+				recovery := recover()
+				publicErrors := c.Errors.ByType(gin.ErrorTypePublic)
+				privateErrors := c.Errors.ByType(gin.ErrorTypePrivate)
+				publicLen := len(publicErrors)
+				privateLen := len(privateErrors)
+
+				if privateLen == 0 && publicLen == 0 && recovery == nil {
+					return
+				}
+
+				messagesLen := publicLen
+				if privateLen > 0 || recovery != nil {
+					messagesLen++
+				}
+
+				messages := make([]string, messagesLen)
+				index := 0
+				for _, err := range publicErrors {
+					messages[index] = err.Error()
+					s.CaptureException(c, err)
+					index++
+				}
+
+				for _, err := range privateErrors {
+					s.CaptureException(c, err)
+				}
+
+				if privateLen > 0 || recovery != nil {
+					if s.Localizer == nil {
+						messages[index] = s.DefaultError
+					} else {
+						messages[index] = s.Localizer.GetLocalizedMessage(s.DefaultError)
+					}
+				}
+
+				c.JSON(http.StatusInternalServerError, gin.H{"error": messages})
+
+				// will be caught by Sentry middleware
+				if recovery != nil {
+					panic(recovery)
+				}
+			}()
+
 			c.Next()
 		},
-		sentrygin.New(sentrygin.Options{
-			Repanic: true,
-		}),
-		func(c *gin.Context) {
-			recovery := recover()
-			publicErrors := c.Errors.ByType(gin.ErrorTypePublic)
-			privateErrors := c.Errors.ByType(gin.ErrorTypePrivate)
-			publicLen := len(publicErrors)
-			privateLen := len(privateErrors)
-
-			if privateLen == 0 && publicLen == 0 && recovery == nil {
+		gin.CustomRecovery(func(c *gin.Context, err interface{}) {
+			if s.Localizer == nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": []string{s.DefaultError}})
 				return
 			}
 
-			messagesLen := publicLen
-			if privateLen > 0 || recovery != nil {
-				messagesLen++
-			}
-
-			messages := make([]string, messagesLen)
-			index := 0
-			for _, err := range publicErrors {
-				messages[index] = err.Error()
-				s.CaptureException(c, err)
-				index++
-			}
-
-			for _, err := range privateErrors {
-				s.CaptureException(c, err)
-			}
-
-			if privateLen > 0 || recovery != nil {
-				if s.Localizer == nil {
-					messages[index] = s.DefaultError
-				} else {
-					messages[index] = s.Localizer.GetLocalizedMessage(s.DefaultError)
-				}
-			}
-
-			c.JSON(http.StatusInternalServerError, gin.H{"error": messages})
-		},
-	})
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": []string{s.Localizer.GetLocalizedMessage(s.DefaultError)},
+			})
+		}),
+		sentrygin.New(sentrygin.Options{Repanic: true}),
+	}
 }
 
 func (s *Sentry) setScopeTags(c *gin.Context, scope *sentry.Scope) {

@@ -17,6 +17,11 @@ func AppendToError(err error, skip ...int) error {
 	if err == nil {
 		return nil
 	}
+	if _, hasTrace := err.(interface {
+		StackTrace() StackTrace
+	}); hasTrace {
+		return err
+	}
 	framesToSkip := 3
 	if len(skip) > 0 {
 		framesToSkip = skip[0]

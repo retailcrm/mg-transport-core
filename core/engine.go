@@ -108,9 +108,7 @@ func (e *Engine) initGin() {
 
 	e.buildSentryConfig()
 	e.InitSentrySDK()
-	r.Use(e.SentryMiddleware())
-
-	r.Use(gin.Recovery())
+	r.Use(e.SentryMiddlewares()...)
 
 	if e.Config.IsDebug() {
 		r.Use(gin.Logger())
