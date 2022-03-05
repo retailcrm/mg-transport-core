@@ -6,6 +6,7 @@ import (
 	"io"
 )
 
+// withStack is an error with stacktrace.
 type withStack struct {
 	error
 	*stack
@@ -32,11 +33,13 @@ func AppendToError(err error, skip ...int) error {
 	}
 }
 
+// Cause of error.
 func (w *withStack) Cause() error { return w.error }
 
 // Unwrap provides compatibility for Go 1.13 error chains.
 func (w *withStack) Unwrap() error { return w.error }
 
+// Format the error.
 func (w *withStack) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
