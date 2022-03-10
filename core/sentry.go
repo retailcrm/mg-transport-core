@@ -195,16 +195,19 @@ func (s *Sentry) exceptionCaptureMiddleware() gin.HandlerFunc {
 				messagesLen++
 			}
 
+			l := s.obtainErrorLogger(c)
 			messages := make([]string, messagesLen)
 			index := 0
 			for _, err := range publicErrors {
 				messages[index] = err.Error()
 				s.CaptureException(c, err)
+				l.Error(err)
 				index++
 			}
 
 			for _, err := range privateErrors {
 				s.CaptureException(c, err)
+				l.Error(err)
 			}
 
 			if privateLen > 0 || recovery != nil {
