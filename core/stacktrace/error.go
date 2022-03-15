@@ -18,7 +18,7 @@ func AppendToError(err error, skip ...int) error {
 	if err == nil {
 		return nil
 	}
-	if _, hasTrace := err.(interface {
+	if _, hasTrace := err.(interface { // nolint:errorlint
 		StackTrace() StackTrace
 	}); hasTrace {
 		return err

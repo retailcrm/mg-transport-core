@@ -163,6 +163,7 @@ issues:
     - path: _test\.go
       linters:
         - lll
+        - errorlint
         - bodyclose
         - errcheck
         - sqlclosecheck

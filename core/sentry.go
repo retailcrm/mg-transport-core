@@ -236,15 +236,16 @@ func (s *Sentry) exceptionCaptureMiddleware() gin.HandlerFunc { // nolint:gocogn
 func (s *Sentry) recoveryMiddleware() gin.HandlerFunc { // nolint
 	return func(c *gin.Context) {
 		defer func() {
-			if err := recover(); err != nil {
+			if err := recover(); err != nil { // nolint:nestif
 				l := s.obtainErrorLogger(c)
 
 				// Check for a broken connection, as it is not really a
 				// condition that warrants a panic stack trace.
 				var brokenPipe bool
 				if ne, ok := err.(*net.OpError); ok {
-					if se, ok := ne.Err.(*os.SyscallError); ok {
-						if strings.Contains(strings.ToLower(se.Error()), "broken pipe") || strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
+					if se, ok := ne.Err.(*os.SyscallError); ok { // nolint:errorlint
+						if strings.Contains(strings.ToLower(se.Error()), "broken pipe") ||
+							strings.Contains(strings.ToLower(se.Error()), "connection reset by peer") {
 							brokenPipe = true
 						}
 					}
@@ -262,12 +263,13 @@ func (s *Sentry) recoveryMiddleware() gin.HandlerFunc { // nolint
 						headers[idx] = l.Prefix() + " " + headers[idx]
 					}
 					headersToStr := strings.Join(headers, "\r\n")
-					if brokenPipe {
+					switch {
+					case brokenPipe:
 						l.Errorf("%s\n%s%s", formattedErr, headersToStr, reset)
-					} else if gin.IsDebugging() {
+					case gin.IsDebugging():
 						l.Errorf("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
 							timeFormat(time.Now()), headersToStr, formattedErr, stack, reset)
-					} else {
+					default:
 						l.Errorf("[Recovery] %s panic recovered:\n%s\n%s%s",
 							timeFormat(time.Now()), formattedErr, stack, reset)
 					}
