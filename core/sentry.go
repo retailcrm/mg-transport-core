@@ -114,7 +114,8 @@ func NewTaggedScalar(sample interface{}, ginCtxKey string, name string) *SentryT
 	}
 }
 
-// CaptureException and send it to Sentry. Use stacktrace.ErrorWithStack to append the stacktrace to the errors without it!
+// CaptureException and send it to Sentry.
+// Use stacktrace.ErrorWithStack to append the stacktrace to the errors without it!
 func (s *Sentry) CaptureException(c *gin.Context, exception error) {
 	if exception == nil {
 		return
@@ -177,7 +178,7 @@ func (s *Sentry) tagsSetterMiddleware() gin.HandlerFunc {
 }
 
 // exceptionCaptureMiddleware captures exceptions and sends a proper JSON response for them.
-func (s *Sentry) exceptionCaptureMiddleware() gin.HandlerFunc {
+func (s *Sentry) exceptionCaptureMiddleware() gin.HandlerFunc { // nolint:gocognit
 	return func(c *gin.Context) {
 		defer func() {
 			recovery := recover()
@@ -232,7 +233,7 @@ func (s *Sentry) exceptionCaptureMiddleware() gin.HandlerFunc {
 
 // recoveryMiddleware is mostly borrowed from the gin itself. It only contains several modifications to add logger
 // prefixes to all newlines in the log. The amount of changes is infinitesimal in comparison to the original code.
-func (s *Sentry) recoveryMiddleware() gin.HandlerFunc {
+func (s *Sentry) recoveryMiddleware() gin.HandlerFunc { // nolint
 	return func(c *gin.Context) {
 		defer func() {
 			if err := recover(); err != nil {
