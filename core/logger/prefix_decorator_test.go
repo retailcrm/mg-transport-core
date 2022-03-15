@@ -44,6 +44,7 @@ func (t *PrefixDecoratorTest) SetupTest() {
 
 func (t *PrefixDecoratorTest) Test_SetPrefix() {
 	t.logger.Info("message")
+	t.Assert().Equal(testPrefix, t.logger.Prefix())
 	t.Assert().Contains(t.buf.String(), "INFO")
 	t.Assert().Contains(t.buf.String(), testPrefix+" message")
 
