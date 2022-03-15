@@ -156,14 +156,10 @@ type StackTraced interface {
 }
 
 func (s *stack) Format(st fmt.State, verb rune) {
-	switch verb {
-	case 'v':
-		switch {
-		case st.Flag('+'):
-			for _, pc := range *s {
-				f := Frame(pc)
-				fmt.Fprintf(st, "\n%+v", f)
-			}
+	if verb == 'v' && st.Flag('+') {
+		for _, pc := range *s {
+			f := Frame(pc)
+			fmt.Fprintf(st, "\n%+v", f)
 		}
 	}
 }
@@ -232,7 +228,7 @@ func function(pc uintptr) []byte {
 	if period := bytes.Index(name, dot); period >= 0 {
 		name = name[period+1:]
 	}
-	name = bytes.Replace(name, centerDot, dot, -1)
+	name = bytes.ReplaceAll(name, centerDot, dot)
 	return name
 }
 
