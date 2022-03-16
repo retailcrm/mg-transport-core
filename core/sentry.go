@@ -149,7 +149,7 @@ func (s *Sentry) obtainErrorLogger(c *gin.Context) logger.AccountLogger {
 	}
 
 	connectionID := "{no connection ID}"
-	accountID := "{no accountID}"
+	accountID := "{no account ID}"
 	if s.SentryLoggerConfig.TagForConnection == "" && s.SentryLoggerConfig.TagForAccount == "" {
 		return logger.DecorateForAccount(s.Logger, "Sentry", connectionID, accountID)
 	}
@@ -169,11 +169,9 @@ func (s *Sentry) obtainErrorLogger(c *gin.Context) logger.AccountLogger {
 // tagsSetterMiddleware sets event tags into Sentry events.
 func (s *Sentry) tagsSetterMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		hub := sentry.GetHubFromContext(c.Request.Context())
-		if hub == nil {
-			hub = sentry.CurrentHub().Clone()
+		if hub := sentry.GetHubFromContext(c.Request.Context()); hub != nil {
+			s.setScopeTags(c, hub.Scope())
 		}
-		s.setScopeTags(c, hub.Scope())
 	}
 }
 

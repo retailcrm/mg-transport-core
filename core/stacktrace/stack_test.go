@@ -3,6 +3,7 @@ package stacktrace
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,10 +41,8 @@ func Test_callers(t *testing.T) {
 
 	assert.Len(t, *stack0, len(*stack1)+1)
 	assert.Len(t, *stack1, len(*stack2)+1)
-	// First function name starts from capital C because it is actually runtime.Callers function - not ours "callers" method.
-	// The last one is the test case itself.
-	assert.Equal(t, "Callers", string(function((*stack0)[0])))
-	assert.Equal(t, "callers", string(function((*stack1)[0])))
+	assert.Equal(t, "callers", strings.ToLower(string(function((*stack0)[0]))))
+	assert.Equal(t, "callers", strings.ToLower(string(function((*stack1)[0]))))
 	assert.Equal(t, "Test_callers", string(function((*stack2)[0])))
 }
 
