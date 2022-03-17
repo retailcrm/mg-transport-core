@@ -15,6 +15,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/pkg/errors"
+
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 	"github.com/retailcrm/mg-transport-core/v2/core/stacktrace"
 
@@ -43,15 +44,15 @@ type SentryTagged interface {
 
 // Sentry struct. Holds SentryTaggedStruct list.
 type Sentry struct {
-	init               sync.Once
 	SentryConfig       sentry.ClientOptions
-	ServerName         string
-	AppInfo            AppInfo
 	Logger             logger.Logger
-	SentryLoggerConfig SentryLoggerConfig
 	Localizer          *Localizer
+	AppInfo            AppInfo
+	SentryLoggerConfig SentryLoggerConfig
+	ServerName         string
 	DefaultError       string
 	TaggedTypes        SentryTaggedTypes
+	init               sync.Once
 }
 
 // SentryTaggedStruct holds information about type, it's key in gin.Context (for middleware), and it's properties.

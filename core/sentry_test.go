@@ -11,13 +11,14 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/retailcrm/mg-transport-core/v2/core/db/models"
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 	"github.com/retailcrm/mg-transport-core/v2/core/stacktrace"
 	"github.com/retailcrm/mg-transport-core/v2/core/util/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 )
 
 type sampleStruct struct {
@@ -27,8 +28,8 @@ type sampleStruct struct {
 }
 
 type sentryMockTransport struct {
-	sending   sync.RWMutex
 	lastEvent *sentry.Event
+	sending   sync.RWMutex
 }
 
 func (s *sentryMockTransport) Flush(timeout time.Duration) bool {
