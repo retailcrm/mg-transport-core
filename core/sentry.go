@@ -469,6 +469,5 @@ func (t *SentryTaggedScalar) BuildTags(v interface{}) (items map[string]string, 
 
 // timeFormat is a time format helper, borrowed from gin without any changes.
 func timeFormat(t time.Time) string {
-	timeString := t.Format("2006/01/02 - 15:04:05")
-	return timeString
+	return t.Format("2006/01/02 - 15:04:05")
 }

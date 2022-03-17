@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"sync"
 	"testing"
 	"time"
@@ -305,22 +306,45 @@ func (s *SentryTest) TestSentry_obtainErrorLogger_Constructed() {
 	s.Assert().Equal(fmt.Sprintf(logger.DefaultAccountLoggerFormat, "Sentry", "conn_url", "acc_name"), log.Prefix())
 }
 
-func (s *SentryTest) TestSentry_tagsSetterMiddleware() {
-	ctx, transport := s.ginCtxMock()
-	ctx.Set("connection", &models.Connection{URL: "conn_url"})
-	ctx.Set("account", &models.Account{Name: "acc_name"})
+func (s *SentryTest) TestSentry_MiddlewaresError() {
+	var transport *sentryMockTransport
+	g := gin.New()
+	g.Use(s.sentry.SentryMiddlewares()...)
+	g.Use(func(c *gin.Context) {
+		hub, t := s.hubMock()
+		transport = t
+		c.Set("sentry", hub)
+		c.Set("connection", &models.Connection{URL: "conn_url"})
+		c.Set("account", &models.Account{Name: "acc_name"})
+	})
 
-	s.sentry.tagsSetterMiddleware()(ctx)
+	g.GET("/", func(c *gin.Context) {
+		c.Error(stacktrace.AppendToError(errors.New("test error")))
+	})
 
-	hub := sentry.GetHubFromContext(ctx)
-	s.Require().NotNil(hub)
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
+	g.ServeHTTP(httptest.NewRecorder(), req)
 
-	hub.CaptureException(errors.New("test error"))
-
+	s.Require().NotNil(transport)
 	s.Require().NotNil(transport.lastEvent)
-	s.Require().Len(transport.lastEvent.Exception, 1)
+	s.Require().Equal(
+		"test_version (test_build, built test_build_date, commit \"test_commit\")", transport.lastEvent.Release)
+	s.Require().Len(transport.lastEvent.Exception, 3)
+	s.Assert().Equal(transport.lastEvent.Exception[0].Type, "*errors.errorString")
+	s.Assert().Equal(transport.lastEvent.Exception[0].Value, "test error")
+	s.Assert().Nil(transport.lastEvent.Exception[0].Stacktrace)
+	s.Assert().Equal(transport.lastEvent.Exception[1].Type, "*stacktrace.withStack")
+	s.Assert().Equal(transport.lastEvent.Exception[1].Value, "test error")
+	s.Assert().NotNil(transport.lastEvent.Exception[1].Stacktrace)
+	s.Assert().Equal(transport.lastEvent.Exception[2].Type, "*gin.Error")
+	s.Assert().Equal(transport.lastEvent.Exception[2].Value, "test error")
+	s.Assert().NotNil(transport.lastEvent.Exception[2].Stacktrace)
 }
 
 func TestSentry_Suite(t *testing.T) {
 	suite.Run(t, new(SentryTest))
+}
+
+func Test_timeFormat(t *testing.T) {
+	assert.Equal(t, "2022/03/17 - 14:16:28", timeFormat(time.Unix(1647515788, 0)))
 }
