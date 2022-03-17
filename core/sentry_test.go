@@ -346,5 +346,5 @@ func TestSentry_Suite(t *testing.T) {
 }
 
 func Test_timeFormat(t *testing.T) {
-	assert.Equal(t, "2022/03/17 - 14:16:28", timeFormat(time.Unix(1647515788, 0)))
+	assert.Regexp(t, `^\d{4}\/\d{2}\/\d{2} \- \d{2}\:\d{2}\:\d{2}$`, timeFormat(time.Unix(1647515788, 0)))
 }
