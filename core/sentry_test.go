@@ -1,23 +1,24 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
-	"math/rand"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/getsentry/raven-go"
+	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	"github.com/retailcrm/mg-transport-core/v2/core/util/errorutil"
+	"github.com/retailcrm/mg-transport-core/v2/core/db/models"
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+	"github.com/retailcrm/mg-transport-core/v2/core/stacktrace"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/testutil"
 )
 
 type sampleStruct struct {
@@ -26,117 +27,33 @@ type sampleStruct struct {
 	ID      int
 }
 
-type ravenPacket struct {
-	EventID    string
-	Message    string
-	Tags       map[string]string
-	Interfaces []raven.Interface
+type sentryMockTransport struct {
+	lastEvent *sentry.Event
+	sending   sync.RWMutex
 }
 
-func (r ravenPacket) getInterface(class string) (raven.Interface, bool) {
-	for _, v := range r.Interfaces {
-		if v.Class() == class {
-			return v, true
-		}
-	}
-
-	return nil, false
+func (s *sentryMockTransport) Flush(timeout time.Duration) bool {
+	// noop
+	return true
 }
 
-func (r ravenPacket) getException() (*raven.Exception, bool) {
-	if i, ok := r.getInterface("exception"); ok {
-		if r, ok := i.(*raven.Exception); ok {
-			return r, true
-		}
-	}
-
-	return nil, false
+func (s *sentryMockTransport) Configure(options sentry.ClientOptions) {
+	// noop
 }
 
-type ravenClientMock struct {
-	captured []ravenPacket
-	raven.Client
-	mu sync.RWMutex
-	wg sync.WaitGroup
+func (s *sentryMockTransport) SendEvent(event *sentry.Event) {
+	defer s.sending.Unlock()
+	s.sending.Lock()
+	s.lastEvent = event
 }
 
-func newRavenMock() *ravenClientMock {
-	rand.Seed(time.Now().UnixNano())
-	return &ravenClientMock{captured: []ravenPacket{}}
-}
-
-func (r *ravenClientMock) Reset() {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	r.captured = []ravenPacket{}
-}
-
-func (r *ravenClientMock) last() (ravenPacket, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	if len(r.captured) > 0 {
-		return r.captured[len(r.captured)-1], nil
-	}
-
-	return ravenPacket{}, errors.New("empty packet list")
-}
-
-func (r *ravenClientMock) CaptureMessageAndWait(message string, tags map[string]string, interfaces ...raven.Interface) string {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	defer r.wg.Done()
-	eventID := strconv.FormatUint(rand.Uint64(), 10) // nolint:gosec
-	r.captured = append(r.captured, ravenPacket{
-		EventID:    eventID,
-		Message:    message,
-		Tags:       tags,
-		Interfaces: interfaces,
-	})
-	return eventID
-}
-
-func (r *ravenClientMock) CaptureErrorAndWait(err error, tags map[string]string, interfaces ...raven.Interface) string {
-	return r.CaptureMessageAndWait(err.Error(), tags, interfaces...)
-}
-
-func (r *ravenClientMock) IncludePaths() []string {
-	return []string{}
-}
-
-// simpleError is a simplest error implementation possible. The only reason why it's here is tests.
-type simpleError struct {
-	msg string
-}
-
-func newSimpleError(msg string) error {
-	return &simpleError{msg: msg}
-}
-
-func (n *simpleError) Error() string {
-	return n.msg
-}
-
-// wrappableError is a simple implementation of wrappable error.
-type wrappableError struct {
-	err error
-	msg string
-}
-
-func newWrappableError(msg string, child error) error {
-	return &wrappableError{msg: msg, err: child}
-}
-
-func (e *wrappableError) Error() string {
-	return e.msg
-}
-
-func (e *wrappableError) Unwrap() error {
-	return e.err
+func newSentryMockTransport() *sentryMockTransport {
+	return &sentryMockTransport{}
 }
 
 type SentryTest struct {
 	suite.Suite
+	logger     testutil.BufferedLogger
 	sentry     *Sentry
 	gin        *gin.Engine
 	structTags *SentryTaggedStruct
@@ -151,10 +68,61 @@ func (s *SentryTest) SetupSuite() {
 	require.Equal(s.T(), "", s.structTags.GetName())
 	require.Equal(s.T(), "Scalar", s.scalarTags.GetName())
 	s.structTags.Tags = map[string]string{}
-	s.sentry = NewSentry("dsn", "unknown_error", SentryTaggedTypes{}, nil, nil)
-	s.sentry.Client = newRavenMock()
+	s.logger = testutil.NewBufferedLogger()
+	appInfo := AppInfo{
+		Version:   "test_version",
+		Commit:    "test_commit",
+		Build:     "test_build",
+		BuildDate: "test_build_date",
+	}
+	s.sentry = &Sentry{
+		init: sync.Once{},
+		SentryConfig: sentry.ClientOptions{
+			Dsn:              TestSentryDSN,
+			Debug:            true,
+			AttachStacktrace: true,
+			Release:          appInfo.Release(),
+		},
+		ServerName: "test",
+		AppInfo:    appInfo,
+		Logger:     s.logger,
+		SentryLoggerConfig: SentryLoggerConfig{
+			TagForConnection: "url",
+			TagForAccount:    "name",
+		},
+		Localizer:    nil,
+		DefaultError: "error_save",
+		TaggedTypes: SentryTaggedTypes{
+			NewTaggedStruct(models.Connection{}, "connection", map[string]string{
+				"url": "URL",
+			}),
+			NewTaggedStruct(models.Account{}, "account", map[string]string{
+				"name": "Name",
+			}),
+		},
+	}
+	s.sentry.InitSentrySDK()
 	s.gin = gin.New()
-	s.gin.Use(s.sentry.ErrorMiddleware())
+	s.gin.Use(s.sentry.SentryMiddlewares()...)
+}
+
+func (s *SentryTest) hubMock() (hub *sentry.Hub, transport *sentryMockTransport) {
+	client, err := sentry.NewClient(s.sentry.SentryConfig)
+	if err != nil {
+		panic(err)
+	}
+	transport = newSentryMockTransport()
+	client.Transport = transport
+	hub = sentry.NewHub(client, sentry.NewScope())
+	return
+}
+
+func (s *SentryTest) ginCtxMock() (ctx *gin.Context, transport *sentryMockTransport) {
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
+	ctx = &gin.Context{Request: req}
+	hub, transport := s.hubMock()
+	ctx.Set("sentry", hub)
+	return
 }
 
 func (s *SentryTest) TestStruct_AddTag() {
@@ -272,146 +240,112 @@ func (s *SentryTest) TestScalar_BuildTags() {
 }
 
 func (s *SentryTest) TestSentry_ErrorMiddleware() {
-	assert.NotNil(s.T(), s.sentry.ErrorMiddleware())
+	assert.NotNil(s.T(), s.sentry.SentryMiddlewares())
+	assert.NotEmpty(s.T(), s.sentry.SentryMiddlewares())
 }
 
-func (s *SentryTest) TestSentry_PanicLogger() {
-	assert.NotNil(s.T(), s.sentry.PanicLogger())
+func (s *SentryTest) TestSentry_CaptureException_Nil() {
+	defer func() {
+		s.Assert().Nil(recover())
+	}()
+	s.sentry.CaptureException(&gin.Context{}, nil)
 }
 
-func (s *SentryTest) TestSentry_ErrorLogger() {
-	assert.NotNil(s.T(), s.sentry.ErrorLogger())
+func (s *SentryTest) TestSentry_CaptureException_Error() {
+	ctx, transport := s.ginCtxMock()
+	ctx.Keys = make(map[string]interface{})
+	s.sentry.CaptureException(ctx, errors.New("test error"))
+
+	s.Require().Nil(transport.lastEvent)
+	s.Require().Len(ctx.Errors, 1)
 }
 
-func (s *SentryTest) TestSentry_ErrorResponseHandler() {
-	assert.NotNil(s.T(), s.sentry.ErrorResponseHandler())
+func (s *SentryTest) TestSentry_CaptureException() {
+	ctx, transport := s.ginCtxMock()
+	s.sentry.CaptureException(ctx, stacktrace.AppendToError(errors.New("test error")))
+
+	s.Require().NotNil(transport.lastEvent)
+	s.Require().Equal(
+		"test_version (test_build, built test_build_date, commit \"test_commit\")", transport.lastEvent.Release)
+	s.Require().Len(transport.lastEvent.Exception, 2)
+	s.Assert().Equal(transport.lastEvent.Exception[0].Type, "*errors.errorString")
+	s.Assert().Equal(transport.lastEvent.Exception[0].Value, "test error")
+	s.Assert().Nil(transport.lastEvent.Exception[0].Stacktrace)
+	s.Assert().Equal(transport.lastEvent.Exception[1].Type, "*stacktrace.withStack")
+	s.Assert().Equal(transport.lastEvent.Exception[1].Value, "test error")
+	s.Assert().NotNil(transport.lastEvent.Exception[1].Stacktrace)
 }
 
-func (s *SentryTest) TestSentry_ErrorCaptureHandler() {
-	assert.NotNil(s.T(), s.sentry.ErrorCaptureHandler())
+func (s *SentryTest) TestSentry_obtainErrorLogger_Existing() {
+	ctx, _ := s.ginCtxMock()
+	log := logger.DecorateForAccount(testutil.NewBufferedLogger(), "component", "conn", "acc")
+	ctx.Set("logger", log)
+
+	s.Assert().Equal(log, s.sentry.obtainErrorLogger(ctx))
 }
 
-func (s *SentryTest) TestSentry_CaptureRegularError() {
-	s.gin.GET("/test_regularError", func(c *gin.Context) {
-		c.Error(newSimpleError("test"))
-	})
+func (s *SentryTest) TestSentry_obtainErrorLogger_Constructed() {
+	ctx, _ := s.ginCtxMock()
+	ctx.Set("connection", &models.Connection{URL: "conn_url"})
+	ctx.Set("account", &models.Account{Name: "acc_name"})
 
-	var resp errorutil.ListResponse
-	req, err := http.NewRequest(http.MethodGet, "/test_regularError", nil)
-	require.NoError(s.T(), err)
-
-	ravenMock := s.sentry.Client.(*ravenClientMock)
-	ravenMock.wg.Add(1)
-	rec := httptest.NewRecorder()
-	s.gin.ServeHTTP(rec, req)
-	require.NoError(s.T(), json.Unmarshal(rec.Body.Bytes(), &resp))
-	assert.NotEmpty(s.T(), resp.Error)
-	assert.Equal(s.T(), s.sentry.DefaultError, resp.Error[0])
-
-	ravenMock.wg.Wait()
-	last, err := ravenMock.last()
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), "test", last.Message)
-
-	exception, ok := last.getException()
-	require.True(s.T(), ok, "cannot find exception")
-	require.NotNil(s.T(), exception.Stacktrace)
-	assert.NotEmpty(s.T(), exception.Stacktrace.Frames)
-}
-
-// TestSentry_CaptureWrappedError is used to check if Sentry component calls stacktrace builders properly
-// Actual stacktrace builder tests can be found in the corresponding package.
-func (s *SentryTest) TestSentry_CaptureWrappedError() {
-	third := newWrappableError("third", nil)
-	second := newWrappableError("second", third)
-	first := newWrappableError("first", second)
-
-	s.gin.GET("/test_wrappableError", func(c *gin.Context) {
-		c.Error(first)
-	})
-
-	var resp errorutil.ListResponse
-	req, err := http.NewRequest(http.MethodGet, "/test_wrappableError", nil)
-	require.NoError(s.T(), err)
-
-	ravenMock := s.sentry.Client.(*ravenClientMock)
-	ravenMock.wg.Add(1)
-	rec := httptest.NewRecorder()
-	s.gin.ServeHTTP(rec, req)
-	require.NoError(s.T(), json.Unmarshal(rec.Body.Bytes(), &resp))
-	assert.NotEmpty(s.T(), resp.Error)
-	assert.Equal(s.T(), s.sentry.DefaultError, resp.Error[0])
-
-	ravenMock.wg.Wait()
-	last, err := ravenMock.last()
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), "first", last.Message)
-
-	exception, ok := last.getException()
-	require.True(s.T(), ok, "cannot find exception")
-	require.NotNil(s.T(), exception.Stacktrace)
-	assert.NotEmpty(s.T(), exception.Stacktrace.Frames)
-	assert.Len(s.T(), exception.Stacktrace.Frames, 3)
-
-	// Error messages will be put into function names by parser
-	assert.Contains(s.T(), exception.Stacktrace.Frames[0].Function, third.Error())
-	assert.Contains(s.T(), exception.Stacktrace.Frames[1].Function, second.Error())
-	assert.Contains(s.T(), exception.Stacktrace.Frames[2].Function, first.Error())
-}
-
-func (s *SentryTest) TestSentry_CaptureTags() {
-	s.gin.GET("/test_taggedError", func(c *gin.Context) {
-		var intPointer = 147
-		c.Set("text_tag", "text contents")
-		c.Set("sample_struct", sampleStruct{
-			ID:      12,
-			Pointer: &intPointer,
-			Field:   "field content",
-		})
-	}, func(c *gin.Context) {
-		c.Error(newSimpleError("test"))
-	})
-
-	s.sentry.TaggedTypes = SentryTaggedTypes{
-		NewTaggedScalar("", "text_tag", "TextTag"),
-		NewTaggedStruct(sampleStruct{}, "sample_struct", map[string]string{
-			"id":         "ID",
-			"pointer":    "Pointer",
-			"field item": "Field",
-		}),
+	s.sentry.SentryLoggerConfig = SentryLoggerConfig{}
+	logNoConfig := s.sentry.obtainErrorLogger(ctx)
+	s.sentry.SentryLoggerConfig = SentryLoggerConfig{
+		TagForConnection: "url",
+		TagForAccount:    "name",
 	}
+	log := s.sentry.obtainErrorLogger(ctx)
 
-	var resp errorutil.ListResponse
-	req, err := http.NewRequest(http.MethodGet, "/test_taggedError", nil)
-	require.NoError(s.T(), err)
+	s.Assert().NotNil(log)
+	s.Assert().NotNil(logNoConfig)
+	s.Assert().Implements((*logger.AccountLogger)(nil), log)
+	s.Assert().Implements((*logger.AccountLogger)(nil), logNoConfig)
+	s.Assert().Equal(
+		fmt.Sprintf(logger.DefaultAccountLoggerFormat, "Sentry", "{no connection ID}", "{no account ID}"),
+		logNoConfig.Prefix())
+	s.Assert().Equal(fmt.Sprintf(logger.DefaultAccountLoggerFormat, "Sentry", "conn_url", "acc_name"), log.Prefix())
+}
 
-	ravenMock := s.sentry.Client.(*ravenClientMock)
-	ravenMock.wg.Add(1)
-	rec := httptest.NewRecorder()
-	s.gin.ServeHTTP(rec, req)
-	require.NoError(s.T(), json.Unmarshal(rec.Body.Bytes(), &resp))
-	assert.NotEmpty(s.T(), resp.Error)
-	assert.Equal(s.T(), s.sentry.DefaultError, resp.Error[0])
+func (s *SentryTest) TestSentry_MiddlewaresError() {
+	var transport *sentryMockTransport
+	g := gin.New()
+	g.Use(s.sentry.SentryMiddlewares()...)
+	g.Use(func(c *gin.Context) {
+		hub, t := s.hubMock()
+		transport = t
+		c.Set("sentry", hub)
+		c.Set("connection", &models.Connection{URL: "conn_url"})
+		c.Set("account", &models.Account{Name: "acc_name"})
+	})
 
-	ravenMock.wg.Wait()
-	last, err := ravenMock.last()
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), "test", last.Message)
+	g.GET("/", func(c *gin.Context) {
+		c.Error(stacktrace.AppendToError(errors.New("test error")))
+	})
 
-	exception, ok := last.getException()
-	require.True(s.T(), ok, "cannot find exception")
-	require.NotNil(s.T(), exception.Stacktrace)
-	assert.NotEmpty(s.T(), exception.Stacktrace.Frames)
+	req, _ := http.NewRequest(http.MethodGet, "/", nil)
+	g.ServeHTTP(httptest.NewRecorder(), req)
 
-	// endpoint tag is present by default
-	require.NotEmpty(s.T(), last.Tags)
-	assert.True(s.T(), len(last.Tags) == 5)
-	assert.Equal(s.T(), "text contents", last.Tags["TextTag"])
-	assert.Equal(s.T(), "12", last.Tags["id"])
-	assert.Equal(s.T(), "147", last.Tags["pointer"])
-	assert.Equal(s.T(), "field content", last.Tags["field item"])
+	s.Require().NotNil(transport)
+	s.Require().NotNil(transport.lastEvent)
+	s.Require().Equal(
+		"test_version (test_build, built test_build_date, commit \"test_commit\")", transport.lastEvent.Release)
+	s.Require().Len(transport.lastEvent.Exception, 3)
+	s.Assert().Equal(transport.lastEvent.Exception[0].Type, "*errors.errorString")
+	s.Assert().Equal(transport.lastEvent.Exception[0].Value, "test error")
+	s.Assert().Nil(transport.lastEvent.Exception[0].Stacktrace)
+	s.Assert().Equal(transport.lastEvent.Exception[1].Type, "*stacktrace.withStack")
+	s.Assert().Equal(transport.lastEvent.Exception[1].Value, "test error")
+	s.Assert().NotNil(transport.lastEvent.Exception[1].Stacktrace)
+	s.Assert().Equal(transport.lastEvent.Exception[2].Type, "*gin.Error")
+	s.Assert().Equal(transport.lastEvent.Exception[2].Value, "test error")
+	s.Assert().NotNil(transport.lastEvent.Exception[2].Stacktrace)
 }
 
 func TestSentry_Suite(t *testing.T) {
 	suite.Run(t, new(SentryTest))
+}
+
+func Test_timeFormat(t *testing.T) {
+	assert.Regexp(t, `^\d{4}\/\d{2}\/\d{2} \- \d{2}\:\d{2}\:\d{2}$`, timeFormat(time.Unix(1647515788, 0)))
 }

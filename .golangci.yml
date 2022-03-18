@@ -163,6 +163,7 @@ issues:
     - path: _test\.go
       linters:
         - lll
+        - errorlint
         - bodyclose
         - errcheck
         - sqlclosecheck
@@ -177,6 +178,8 @@ issues:
         - gocognit
         - gocyclo
         - godot
+    - path: \.go
+      text: "Error return value of `io.WriteString` is not checked"
   exclude-use-default: true
   exclude-case-sensitive: false
   max-issues-per-linter: 0

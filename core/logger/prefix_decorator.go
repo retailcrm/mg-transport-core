@@ -5,6 +5,7 @@ import "github.com/op/go-logging"
 // PrefixAware is implemented if the logger allows you to change the prefix.
 type PrefixAware interface {
 	SetPrefix(string)
+	Prefix() string
 }
 
 // PrefixedLogger is a base interface for the logger with prefix.
@@ -39,6 +40,10 @@ func (p *PrefixDecorator) SetPrefix(prefix string) {
 
 func (p *PrefixDecorator) getFormat(fmt string) string {
 	return p.prefix[0].(string) + " " + fmt
+}
+
+func (p *PrefixDecorator) Prefix() string {
+	return p.prefix[0].(string)
 }
 
 func (p *PrefixDecorator) Fatal(args ...interface{}) {

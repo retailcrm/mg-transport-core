@@ -2,11 +2,13 @@ package core
 
 import (
 	"crypto/x509"
+	"fmt"
 	"html/template"
 	"io/fs"
 	"net/http"
 	"sync"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
@@ -31,9 +33,35 @@ var DefaultHTTPClientConfig = &config.HTTPClientConfig{
 	SSLVerification: &boolTrue,
 }
 
+// AppInfo contains information about app version.
+type AppInfo struct {
+	Version   string
+	Commit    string
+	Build     string
+	BuildDate string
+}
+
+// Release information for Sentry.
+func (a AppInfo) Release() string {
+	if a.Version == "" {
+		a.Version = "<unknown version>"
+	}
+	if a.Build == "" {
+		a.Build = "<unknown build>"
+	}
+	if a.BuildDate == "" {
+		a.BuildDate = "<unknown build date>"
+	}
+	if a.Commit == "" {
+		a.Commit = "<no commit info>"
+	}
+	return fmt.Sprintf("%s (%s, built %s, commit \"%s\")", a.Version, a.Build, a.BuildDate, a.Commit)
+}
+
 // Engine struct.
 type Engine struct {
 	logger       logger.Logger
+	AppInfo      AppInfo
 	Sessions     sessions.Store
 	LogFormatter logging.Formatter
 	Config       config.Configuration
@@ -52,9 +80,10 @@ type Engine struct {
 
 // New Engine instance (must be configured manually, gin can be accessed via engine.Router() directly or
 // engine.ConfigureRouter(...) with callback).
-func New() *Engine {
+func New(appInfo AppInfo) *Engine {
 	return &Engine{
-		Config: nil,
+		Config:  nil,
+		AppInfo: appInfo,
 		Localizer: Localizer{
 			i18nStorage: &sync.Map{},
 			loadMutex:   &sync.RWMutex{},
@@ -76,13 +105,16 @@ func (e *Engine) initGin() {
 	}
 
 	r := gin.New()
-	r.Use(gin.Recovery())
+
+	e.buildSentryConfig()
+	e.InitSentrySDK()
+	r.Use(e.SentryMiddlewares()...)
 
 	if e.Config.IsDebug() {
 		r.Use(gin.Logger())
 	}
 
-	r.Use(e.LocalizationMiddleware(), e.ErrorMiddleware())
+	r.Use(e.LocalizationMiddleware())
 	e.ginEngine = r
 }
 
@@ -116,13 +148,13 @@ func (e *Engine) Prepare() *Engine {
 	}
 
 	e.CreateDB(e.Config.GetDBConfig())
-	e.createRavenClient(e.Config.GetSentryDSN())
 	e.ResetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
 	e.SetLogger(logger.NewStandard(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
 	e.Sentry.Localizer = &e.Localizer
-	e.Sentry.Stacktrace = true
 	e.Utils.Logger = e.Logger()
 	e.Sentry.Logger = e.Logger()
+	e.buildSentryConfig()
+	e.Sentry.InitSentrySDK()
 	e.prepared = true
 
 	return e
@@ -324,4 +356,18 @@ func (e *Engine) ConfigureRouter(callback func(*gin.Engine)) *Engine {
 // Run gin.Engine loop, or panic if engine is not present.
 func (e *Engine) Run() error {
 	return e.Router().Run(e.Config.GetHTTPConfig().Listen)
+}
+
+// buildSentryConfig from app configuration.
+func (e *Engine) buildSentryConfig() {
+	if e.AppInfo.Version == "" {
+		e.AppInfo.Version = e.Config.GetVersion()
+	}
+	e.SentryConfig = sentry.ClientOptions{
+		Dsn:              e.Config.GetSentryDSN(),
+		ServerName:       e.Config.GetHTTPConfig().Host,
+		Release:          e.AppInfo.Release(),
+		AttachStacktrace: true,
+		Debug:            e.Config.IsDebug(),
+	}
 }
