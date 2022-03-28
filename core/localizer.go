@@ -38,6 +38,12 @@ type Localizer struct {
 	TranslationsPath string
 }
 
+type LocalizerInterface interface {
+	GetLocalizedMessage(messageID string) string
+	GetLocalizedTemplateMessage(messageID string, templateData map[string]interface{}) string
+	Localize(messageID string) (string, error)
+}
+
 // NewLocalizer returns localizer instance with specified parameters.
 // Usage:
 //      NewLocalizer(language.English, DefaultLocalizerMatcher(), "translations")
