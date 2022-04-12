@@ -23,7 +23,12 @@ import (
 
 func main() {
     // Create new core.Engine instance
-    app := core.New()
+    app := core.New(core.AppInfo{
+	    Version: "v1.0",
+	    Commit: "bcef82e",
+	    Build: "v1.0-bcef82e",
+	    BuildDate: "1649766442",
+    })
 
     // Load configuration
     app.Config = core.NewConfig("config.yml")
