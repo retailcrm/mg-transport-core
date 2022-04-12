@@ -19,8 +19,14 @@ jobs:
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
+      - name: Set up Go 1.17
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.17'
+      - name: Get dependencies
+        run: go mod tidy
       - name: Lint code with golangci-lint
-        uses: golangci/golangci-lint-action@v2
+        uses: golangci/golangci-lint-action@v3
         with:
           version: v1.42.1
           only-new-issues: true
