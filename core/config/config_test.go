@@ -48,6 +48,7 @@ http_client:
 config_aws:
     access_key_id: key
     secret_access_key: secret
+    endpoint: https://endpoint.com
     region: region
     bucket: bucket
     folder_name: folder
@@ -100,6 +101,7 @@ func (c *ConfigTest) Test_GetUpdateInterval() {
 func (c *ConfigTest) Test_GetConfigAWS() {
 	assert.Equal(c.T(), "key", c.config.GetAWSConfig().AccessKeyID)
 	assert.Equal(c.T(), "secret", c.config.GetAWSConfig().SecretAccessKey)
+	assert.Equal(c.T(), "https://endpoint.com", c.config.GetAWSConfig().Endpoint)
 	assert.Equal(c.T(), "region", c.config.GetAWSConfig().Region)
 	assert.Equal(c.T(), "bucket", c.config.GetAWSConfig().Bucket)
 	assert.Equal(c.T(), "folder", c.config.GetAWSConfig().FolderName)

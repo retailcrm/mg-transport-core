@@ -185,6 +185,10 @@ func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
 		Region: aws.String(u.AWS.Region),
 	}
 
+	if u.AWS.Endpoint != "" {
+		s3Config.Endpoint = aws.String(u.AWS.Endpoint)
+	}
+
 	s := session.Must(session.NewSession(s3Config))
 	uploader := s3manager.NewUploader(s)
 
