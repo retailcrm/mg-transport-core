@@ -57,6 +57,7 @@ type Info struct {
 type AWS struct {
 	AccessKeyID     string `yaml:"access_key_id"`
 	SecretAccessKey string `yaml:"secret_access_key"`
+	Endpoint        string `yaml:"endpoint"`
 	Region          string `yaml:"region"`
 	Bucket          string `yaml:"bucket"`
 	FolderName      string `yaml:"folder_name"`
