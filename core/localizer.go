@@ -71,6 +71,7 @@ type LocaleControls interface {
 	Preload([]language.Tag)
 	SetLocale(string)
 	SetLanguage(language.Tag)
+	Language() language.Tag
 	LoadTranslations()
 }
 
@@ -90,7 +91,7 @@ type CloneableLocalizer interface {
 // NewLocalizer returns localizer instance with specified parameters.
 // Usage:
 //      NewLocalizer(language.English, DefaultLocalizerMatcher(), "translations")
-func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPath string) *Localizer {
+func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPath string) LocalizerInterface {
 	localizer := &Localizer{
 		i18nStorage:      &sync.Map{},
 		LocaleMatcher:    matcher,
@@ -109,7 +110,7 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 // TODO This code should be covered with tests.
 func NewLocalizerFS(
 	locale language.Tag, matcher language.Matcher, translationsFS fs.FS,
-) *Localizer {
+) LocalizerInterface {
 	localizer := &Localizer{
 		i18nStorage:    &sync.Map{},
 		LocaleMatcher:  matcher,
@@ -305,7 +306,7 @@ func (l *Localizer) isUnd(tag language.Tag) bool {
 
 // getCurrentLocalizer returns *i18n.Localizer with current language tag.
 func (l *Localizer) getCurrentLocalizer() *i18n.Localizer {
-	return l.getLocalizer(l.LanguageTag)
+	return l.getLocalizer(l.Language())
 }
 
 // SetLocale will change language for current localizer.
@@ -328,6 +329,11 @@ func (l *Localizer) SetLanguage(tag language.Tag) {
 
 	l.LanguageTag = tag
 	l.LoadTranslations()
+}
+
+// Language returns current language tag.
+func (l *Localizer) Language() language.Tag {
+	return l.LanguageTag
 }
 
 // FetchLanguage will load language from tag
@@ -387,13 +393,13 @@ func (l *Localizer) InternalServerErrorLocalized(err string) (int, interface{}) 
 
 // GetContextLocalizer returns localizer from context if it is present there.
 // Language will be set using Accept-Language header and root language tag.
-func GetContextLocalizer(c *gin.Context) (loc *Localizer, ok bool) {
+func GetContextLocalizer(c *gin.Context) (loc LocalizerInterface, ok bool) {
 	loc, ok = extractLocalizerFromContext(c)
 	if loc != nil {
 		loc.SetLocale(c.GetHeader("Accept-Language"))
 
-		lang := GetRootLanguageTag(loc.LanguageTag)
-		if lang != loc.LanguageTag {
+		lang := GetRootLanguageTag(loc.Language())
+		if lang != loc.Language() {
 			loc.SetLanguage(lang)
 			loc.LoadTranslations()
 		}
@@ -402,7 +408,7 @@ func GetContextLocalizer(c *gin.Context) (loc *Localizer, ok bool) {
 }
 
 // MustGetContextLocalizer returns Localizer instance if it exists in provided context. Panics otherwise.
-func MustGetContextLocalizer(c *gin.Context) *Localizer {
+func MustGetContextLocalizer(c *gin.Context) LocalizerInterface {
 	if localizer, ok := GetContextLocalizer(c); ok {
 		return localizer
 	}
@@ -410,13 +416,13 @@ func MustGetContextLocalizer(c *gin.Context) *Localizer {
 }
 
 // extractLocalizerFromContext returns localizer from context if it exist there.
-func extractLocalizerFromContext(c *gin.Context) (*Localizer, bool) {
+func extractLocalizerFromContext(c *gin.Context) (LocalizerInterface, bool) {
 	if c == nil {
 		return nil, false
 	}
 
 	if item, ok := c.Get(LocalizerContextKey); ok {
-		if localizer, ok := item.(*Localizer); ok {
+		if localizer, ok := item.(LocalizerInterface); ok {
 			return localizer, true
 		}
 	}

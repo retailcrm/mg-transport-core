@@ -48,7 +48,7 @@ func createTestLangFiles(t *testing.T) {
 
 type LocalizerTest struct {
 	suite.Suite
-	localizer *Localizer
+	localizer LocalizerInterface
 }
 
 func (l *LocalizerTest) SetupSuite() {
@@ -92,9 +92,9 @@ func (l *LocalizerTest) Test_LocalizationMiddleware_Context() {
 	assert.NotNil(l.T(), esLocalizer)
 	assert.NotNil(l.T(), ruLocalizer)
 
-	assert.Equal(l.T(), language.English, enLocalizer.LanguageTag)
-	assert.Equal(l.T(), language.Spanish, esLocalizer.LanguageTag)
-	assert.Equal(l.T(), language.Russian, ruLocalizer.LanguageTag)
+	assert.Equal(l.T(), language.English, enLocalizer.Language())
+	assert.Equal(l.T(), language.Spanish, esLocalizer.Language())
+	assert.Equal(l.T(), language.Russian, ruLocalizer.Language())
 
 	assert.Equal(l.T(), "Test message", enLocalizer.GetLocalizedMessage("message"))
 	assert.Equal(l.T(), "Mensaje de prueba", esLocalizer.GetLocalizedMessage("message"))
@@ -164,10 +164,10 @@ func (l *LocalizerTest) Test_Clone() {
 		require.Nil(l.T(), recover())
 	}()
 
-	localizer := l.localizer.Clone().(*Localizer)
+	localizer := l.localizer.Clone().(LocalizerInterface)
 	localizer.SetLanguage(language.Russian)
 
-	assert.NotEqual(l.T(), l.localizer.LanguageTag, localizer.LanguageTag)
+	assert.NotEqual(l.T(), l.localizer.Language(), localizer.Language())
 	assert.Equal(l.T(), "Test message", l.localizer.GetLocalizedMessage("message"))
 	assert.Equal(l.T(), "Тестовое сообщение", localizer.GetLocalizedMessage("message"))
 }
