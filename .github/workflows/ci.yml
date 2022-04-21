@@ -49,6 +49,6 @@ jobs:
         run: go test ./... -v -cpu 2 -timeout 10s -race -cover -coverprofile=coverage.txt -covermode=atomic
       - name: Coverage
         run: |
-          go get -v -u github.com/axw/gocov/gocov
+          go install github.com/axw/gocov/gocov@latest
           gocov convert ./coverage.txt | gocov report
           bash <(curl -s https://codecov.io/bash)
