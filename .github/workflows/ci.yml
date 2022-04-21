@@ -22,7 +22,8 @@ jobs:
       - name: Set up Go 1.17
         uses: actions/setup-go@v2
         with:
-          go-version: '1.18'
+          # TODO: Should migrate to 1.18 later
+          go-version: '1.17'
       - name: Get dependencies
         run: go mod tidy
       - name: Lint code with golangci-lint
