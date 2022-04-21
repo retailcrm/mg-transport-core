@@ -44,7 +44,7 @@ type LocalizerInterface interface {
 	LocalizerWithMiddleware
 	LocalizerWithFuncs
 	LocaleControls
-	HttpResponseLocalizer
+	HTTPResponseLocalizer
 	CloneableLocalizer
 }
 
@@ -75,8 +75,8 @@ type LocaleControls interface {
 	LoadTranslations()
 }
 
-// HttpResponseLocalizer can localize strings and return them with HTTP error codes.
-type HttpResponseLocalizer interface {
+// HTTPResponseLocalizer can localize strings and return them with HTTP error codes.
+type HTTPResponseLocalizer interface {
 	BadRequestLocalized(string) (int, interface{})
 	UnauthorizedLocalized(string) (int, interface{})
 	ForbiddenLocalized(string) (int, interface{})
