@@ -164,7 +164,7 @@ func (l *LocalizerTest) Test_Clone() {
 		require.Nil(l.T(), recover())
 	}()
 
-	localizer := l.localizer.Clone()
+	localizer := l.localizer.Clone().(*Localizer)
 	localizer.SetLanguage(language.Russian)
 
 	assert.NotEqual(l.T(), l.localizer.LanguageTag, localizer.LanguageTag)

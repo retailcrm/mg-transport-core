@@ -38,10 +38,53 @@ type Localizer struct {
 	TranslationsPath string
 }
 
+// LocalizerInterface contains entire public interface of the localizer component.
 type LocalizerInterface interface {
-	GetLocalizedMessage(messageID string) string
-	GetLocalizedTemplateMessage(messageID string, templateData map[string]interface{}) string
-	Localize(messageID string) (string, error)
+	MessageLocalizer
+	LocalizerWithMiddleware
+	LocalizerWithFuncs
+	LocaleControls
+	HttpResponseLocalizer
+	CloneableLocalizer
+}
+
+// MessageLocalizer can localize regular strings and strings with template parameters.
+type MessageLocalizer interface {
+	GetLocalizedMessage(string) string
+	GetLocalizedTemplateMessage(string, map[string]interface{}) string
+	Localize(string) (string, error)
+	LocalizeTemplateMessage(string, map[string]interface{}) (string, error)
+}
+
+// LocalizerWithMiddleware can provide middlewares for usage in the app.
+type LocalizerWithMiddleware interface {
+	LocalizationMiddleware() gin.HandlerFunc
+}
+
+// LocalizerWithFuncs can provide template functions.
+type LocalizerWithFuncs interface {
+	LocalizationFuncMap() template.FuncMap
+}
+
+// LocaleControls is an instance of localizer with exposed locale controls.
+type LocaleControls interface {
+	Preload([]language.Tag)
+	SetLocale(string)
+	SetLanguage(language.Tag)
+	LoadTranslations()
+}
+
+// HttpResponseLocalizer can localize strings and return them with HTTP error codes.
+type HttpResponseLocalizer interface {
+	BadRequestLocalized(string) (int, interface{})
+	UnauthorizedLocalized(string) (int, interface{})
+	ForbiddenLocalized(string) (int, interface{})
+	InternalServerErrorLocalized(string) (int, interface{})
+}
+
+// CloneableLocalizer is a localizer which can clone itself.
+type CloneableLocalizer interface {
+	Clone() CloneableLocalizer
 }
 
 // NewLocalizer returns localizer instance with specified parameters.
@@ -97,7 +140,7 @@ func DefaultLocalizerMatcher() language.Matcher {
 // Clone *core.Localizer. Clone shares it's translations with the parent localizer. Language tag will not be shared.
 // Because of that you can change clone's language without affecting parent localizer.
 // This method should be used when LocalizationMiddleware is not feasible (outside of *gin.HandlerFunc).
-func (l *Localizer) Clone() *Localizer {
+func (l *Localizer) Clone() CloneableLocalizer {
 	clone := &Localizer{
 		i18nStorage:      l.i18nStorage,
 		TranslationsFS:   l.TranslationsFS,
@@ -122,7 +165,7 @@ func (l *Localizer) Clone() *Localizer {
 //      engine.Use(localizer.LocalizationMiddleware())
 func (l *Localizer) LocalizationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		clone := l.Clone()
+		clone := l.Clone().(LocaleControls)
 		clone.SetLocale(c.GetHeader("Accept-Language"))
 		c.Set(LocalizerContextKey, clone)
 	}
