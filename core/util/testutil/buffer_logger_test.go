@@ -25,10 +25,6 @@ func (t *BufferLoggerTest) SetupTest() {
 	t.logger.Reset()
 }
 
-func (t *BufferLoggerTest) Log() string {
-	return t.logger.String()
-}
-
 func (t *BufferLoggerTest) Test_Read() {
 	t.logger.Debug("test")
 
@@ -40,4 +36,18 @@ func (t *BufferLoggerTest) Test_Read() {
 func (t *BufferLoggerTest) Test_Bytes() {
 	t.logger.Debug("test")
 	t.Assert().Equal([]byte(logging.DEBUG.String()+" => test\n"), t.logger.Bytes())
+}
+
+func (t *BufferLoggerTest) Test_String() {
+	t.logger.Debug("test")
+	t.Assert().Equal(logging.DEBUG.String()+" => test\n", t.logger.String())
+}
+
+func (t *BufferLoggerTest) TestRace() {
+	go func() {
+		t.logger.Debug("test")
+	}()
+	go func() {
+		t.logger.String()
+	}()
 }
