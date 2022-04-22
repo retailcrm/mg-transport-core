@@ -178,6 +178,7 @@ issues:
         - gocognit
         - gocyclo
         - godot
+        - unused
     - path: \.go
       text: "Error return value of `io.WriteString` is not checked"
   exclude-use-default: true
