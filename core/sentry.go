@@ -46,7 +46,7 @@ type SentryTagged interface {
 type Sentry struct {
 	SentryConfig       sentry.ClientOptions
 	Logger             logger.Logger
-	Localizer          *Localizer
+	Localizer          MessageLocalizer
 	AppInfo            AppInfo
 	SentryLoggerConfig SentryLoggerConfig
 	ServerName         string

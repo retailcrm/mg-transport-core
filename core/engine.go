@@ -137,7 +137,7 @@ func (e *Engine) Prepare() *Engine {
 		e.LocaleMatcher = DefaultLocalizerMatcher()
 	}
 
-	if e.isUnd(e.Localizer.LanguageTag) {
+	if e.isUnd(e.Localizer.Language()) {
 		e.Localizer.LanguageTag = DefaultLanguage
 	}
 
