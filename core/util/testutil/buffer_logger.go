@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/op/go-logging"
 
@@ -29,6 +30,7 @@ type BufferedLogger interface {
 // BufferLogger is an implementation of the BufferedLogger.
 type BufferLogger struct {
 	buf bytes.Buffer
+	rw  sync.RWMutex
 }
 
 // NewBufferedLogger returns new BufferedLogger instance.
@@ -38,29 +40,41 @@ func NewBufferedLogger() BufferedLogger {
 
 // Read bytes from the logger buffer. io.Reader implementation.
 func (l *BufferLogger) Read(p []byte) (n int, err error) {
+	defer l.rw.RUnlock()
+	l.rw.RLock()
 	return l.buf.Read(p)
 }
 
 // String contents of the logger buffer. fmt.Stringer implementation.
 func (l *BufferLogger) String() string {
+	defer l.rw.RUnlock()
+	l.rw.RLock()
 	return l.buf.String()
 }
 
 // Bytes is a shorthand for the underlying bytes.Buffer method. Returns byte slice with the buffer contents.
 func (l *BufferLogger) Bytes() []byte {
+	defer l.rw.RUnlock()
+	l.rw.RLock()
 	return l.buf.Bytes()
 }
 
 // Reset is a shorthand for the underlying bytes.Buffer method. It will reset buffer contents.
 func (l *BufferLogger) Reset() {
+	defer l.rw.Unlock()
+	l.rw.Lock()
 	l.buf.Reset()
 }
 
 func (l *BufferLogger) write(level logging.Level, args ...interface{}) {
+	defer l.rw.Unlock()
+	l.rw.Lock()
 	l.buf.WriteString(fmt.Sprintln(append([]interface{}{level.String(), "=>"}, args...)...))
 }
 
 func (l *BufferLogger) writef(level logging.Level, format string, args ...interface{}) {
+	defer l.rw.Unlock()
+	l.rw.Lock()
 	l.buf.WriteString(fmt.Sprintf(level.String()+" => "+format, args...))
 }
 
