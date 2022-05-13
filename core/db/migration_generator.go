@@ -5,21 +5,21 @@ import (
 	"os"
 	"path"
 	"strconv"
-	"strings"
+	"text/template"
 	"time"
 )
 
-var migrationTemplate = `package $package
+var migrationTemplate = `package {{.Package}}
 
 import (
 	"github.com/jinzhu/gorm"
-	"github.com/retailcrm/mg-transport-core/core"
+	"github.com/retailcrm/mg-transport-core/v2/core/db"
 	"gopkg.in/gormigrate.v1"
 )
 
 func init() {
-	core.Migrations().Add(&gormigrate.Migration{
-		ID: "$version",
+	db.Migrations().Add(&gormigrate.Migration{
+		ID: "{{.Version}}",
 		Migrate: func(db *gorm.DB) error {
 			// Write your migration code here...
 		},
@@ -29,6 +29,12 @@ func init() {
 	})
 }
 `
+
+// MigrationData contains base variables for the new migration.
+type MigrationData struct {
+	Package string
+	Version string
+}
 
 // NewMigrationCommand struct.
 type NewMigrationCommand struct {
@@ -46,29 +52,29 @@ func (x *NewMigrationCommand) FileExists(filename string) bool {
 
 // Execute migration generator command.
 func (x *NewMigrationCommand) Execute(args []string) error {
-	version := strconv.FormatInt(time.Now().Unix(), 10)
+	tpl, err := template.New("migration").Parse(migrationTemplate)
+	if err != nil {
+		return fmt.Errorf("fatal: cannot parse base migration template: %w", err)
+	}
+
 	directory := path.Clean(x.Directory)
-	packageName := "migrations"
+	migrationData := MigrationData{
+		Package: "migrations",
+		Version: strconv.FormatInt(time.Now().Unix(), 10),
+	}
 
 	if _, err := os.Stat(directory); os.IsNotExist(err) {
 		return fmt.Errorf("err: specified directory doesn't exist")
 	}
 
 	if base := path.Base(directory); base != "/" && base != "." {
-		packageName = base
+		migrationData.Package = base
 	}
 
-	filePath := path.Join(directory, version+"_app.go")
+	filePath := path.Join(directory, migrationData.Version+"_app.go")
 	if x.FileExists(filePath) {
 		return fmt.Errorf("\"%s\" already exists or it's a directory", filePath)
 	}
-
-	migrationData := strings.Replace(
-		strings.Replace(migrationTemplate, "$version", version, 1),
-		"$package",
-		packageName,
-		1,
-	)
 
 	file, err := os.Create(filePath)
 	if err != nil {
@@ -77,7 +83,7 @@ func (x *NewMigrationCommand) Execute(args []string) error {
 
 	defer file.Close()
 
-	if _, err := file.WriteString(migrationData); err != nil {
+	if err := tpl.Execute(file, migrationData); err != nil {
 		return err
 	}
 
