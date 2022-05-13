@@ -54,7 +54,7 @@ func (x *NewMigrationCommand) FileExists(filename string) bool {
 func (x *NewMigrationCommand) Execute(args []string) error {
 	tpl, err := template.New("migration").Parse(migrationTemplate)
 	if err != nil {
-		return fmt.Errorf("fatal: cannot parse base migration template: %s", err)
+		return fmt.Errorf("fatal: cannot parse base migration template: %w", err)
 	}
 
 	directory := path.Clean(x.Directory)
