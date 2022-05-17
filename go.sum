@@ -327,6 +327,8 @@ github.com/prometheus/procfs v0.0.0-20190117184657-bf6a532e95b1/go.mod h1:c3At6R
 github.com/rcrowley/go-metrics v0.0.0-20181016184325-3113b8401b8a/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
 github.com/retailcrm/api-client-go/v2 v2.0.3 h1:7oKwOZgRLM7eEJUvFNhzfnyIJVomy80ffOEBdYpQRIs=
 github.com/retailcrm/api-client-go/v2 v2.0.3/go.mod h1:1yTZl9+gd3+/k0kAJe7sYvC+mL4fqMwIwtnSgSWZlkQ=
+github.com/retailcrm/api-client-go/v2 v2.0.12 h1:0pMDsz4fzKpizUxoF1qtgwN+oJ+YJruncCj6OTOB3e8=
+github.com/retailcrm/api-client-go/v2 v2.0.12/go.mod h1:1yTZl9+gd3+/k0kAJe7sYvC+mL4fqMwIwtnSgSWZlkQ=
 github.com/retailcrm/mg-transport-api-client-go v1.1.32 h1:IBPltSoD5q2PPZJbNC/prK5F9rEVPXVx/ZzDpi7HKhs=
 github.com/retailcrm/mg-transport-api-client-go v1.1.32/go.mod h1:AWV6BueE28/6SCoyfKURTo4lF0oXYoOKmHTzehd5vAI=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
