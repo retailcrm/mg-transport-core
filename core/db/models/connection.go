@@ -14,4 +14,5 @@ type Connection struct {
 	Accounts  []Account `gorm:"foreignkey:ConnectionID" json:"accounts"`
 	ID        int       `gorm:"primary_key" json:"id"`
 	Active    bool      `json:"active,omitempty"`
+	Lang      string    `gorm:"column:lang; type:varchar(2)" json:"lang,omitempty" binding:"max=2"`
 }
