@@ -15,4 +15,5 @@ type Connection struct {
 	ID        int       `gorm:"primary_key" json:"id"`
 	Active    bool      `json:"active,omitempty"`
 	Lang      string    `gorm:"column:lang; type:varchar(2)" json:"lang,omitempty" binding:"max=2"`
+	PublicURL string    `gorm:"column:public_url; type:varchar(255);" json:"publicURL,omitempty" binding:"max=255"`
 }
