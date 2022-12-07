@@ -88,7 +88,6 @@ var defaultCurrencies = map[string]string{
 	"pen": "S/",
 	"svc": "₡",
 	"uyu": "$U",
-	"clp": "Ch$",
 	"gel": "₾",
 	"gbp": "£",
 }
