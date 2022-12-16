@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"io/fs"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -18,8 +17,12 @@ import (
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
+type S3PutObjectAPI interface {
+	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+}
+
 type ModuleFeaturesUploader struct {
-	client           *s3.Client
+	client           S3PutObjectAPI
 	log              logger.Logger
 	loc              LocalizerInterface
 	bucket           string
@@ -32,7 +35,7 @@ var languages = []language.Tag{language.Russian, language.English, language.Span
 func NewModuleFeaturesUploader(
 	log logger.Logger,
 	conf config.AWS,
-	translateFs fs.FS,
+	loc LocalizerInterface,
 	featuresFilename string,
 ) *ModuleFeaturesUploader {
 	customResolver := aws.EndpointResolverWithOptionsFunc(
@@ -63,7 +66,7 @@ func NewModuleFeaturesUploader(
 	return &ModuleFeaturesUploader{
 		client:           s3.NewFromConfig(cfg),
 		log:              log,
-		loc:              NewLocalizerFS(DefaultLanguage, DefaultLocalizerMatcher(), translateFs),
+		loc:              loc,
 		bucket:           conf.Bucket,
 		folder:           conf.FolderName,
 		featuresFilename: featuresFilename,
