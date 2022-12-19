@@ -9,6 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.17.2
 	github.com/aws/aws-sdk-go-v2/config v1.18.4
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.29.5
+	github.com/blacked/go-zabbix v0.0.0-20170118040903-3c6a95ec4fdc
 	github.com/denisenkom/go-mssqldb v0.0.0-20190830225923-3302f0226fbd // indirect
 	github.com/getsentry/sentry-go v0.12.0
 	github.com/gin-contrib/multitemplate v0.0.0-20190914010127-bba2ccfe37ec
@@ -30,7 +31,8 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/retailcrm/api-client-go/v2 v2.0.12
 	github.com/retailcrm/mg-transport-api-client-go v1.1.32
-	github.com/stretchr/testify v1.7.0
+	github.com/retailcrm/zabbix-metrics-collector v1.0.0
+	github.com/stretchr/testify v1.8.1
 	github.com/ugorji/go v1.2.6 // indirect
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1 // indirect
@@ -38,5 +40,4 @@ require (
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/h2non/gock.v1 v1.1.2
 	gopkg.in/yaml.v2 v2.4.0
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )

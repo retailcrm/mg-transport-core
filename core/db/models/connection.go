@@ -11,9 +11,9 @@ type Connection struct {
 	GateURL   string    `gorm:"column:mg_url; type:varchar(255); not null;" json:"mgUrl,omitempty" binding:"max=255"`
 	GateToken string    `gorm:"column:mg_token; type:varchar(100); not null; unique" json:"mgToken,omitempty" binding:"max=100"` // nolint:lll
 	ClientID  string    `gorm:"column:client_id; type:varchar(70); not null; unique" json:"clientId,omitempty"`
+	Lang      string    `gorm:"column:lang; type:varchar(2)" json:"lang,omitempty" binding:"max=2"`
+	PublicURL string    `gorm:"column:public_url; type:varchar(255);" json:"publicUrl,omitempty" binding:"max=255"`
 	Accounts  []Account `gorm:"foreignkey:ConnectionID" json:"accounts"`
 	ID        int       `gorm:"primary_key" json:"id"`
 	Active    bool      `json:"active,omitempty"`
-	Lang      string    `gorm:"column:lang; type:varchar(2)" json:"lang,omitempty" binding:"max=2"`
-	PublicURL string    `gorm:"column:public_url; type:varchar(255);" json:"publicUrl,omitempty" binding:"max=255"`
 }

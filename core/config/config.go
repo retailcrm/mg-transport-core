@@ -15,6 +15,7 @@ type Configuration interface {
 	GetSentryDSN() string
 	GetLogLevel() logging.Level
 	GetHTTPConfig() HTTPServerConfig
+	GetZabbixConfig() ZabbixConfig
 	GetDBConfig() DatabaseConfig
 	GetAWSConfig() AWS
 	GetTransportInfo() InfoInterface
@@ -37,6 +38,7 @@ type Config struct {
 	ConfigAWS        AWS               `yaml:"config_aws"`
 	TransportInfo    Info              `yaml:"transport_info"`
 	HTTPServer       HTTPServerConfig  `yaml:"http_server"`
+	ZabbixConfig     ZabbixConfig      `yaml:"zabbix"`
 	Version          string            `yaml:"version"`
 	SentryDSN        string            `yaml:"sentry_dsn"`
 	Database         DatabaseConfig    `yaml:"database"`
@@ -88,9 +90,18 @@ type HTTPServerConfig struct {
 	Listen string `yaml:"listen"`
 }
 
+// ZabbixConfig contains information about Zabbix connection.
+type ZabbixConfig struct {
+	ServerHost string `yaml:"server_host"`
+	Host       string `yaml:"host"`
+	ServerPort int    `yaml:"server_port"`
+	Interval   uint64 `yaml:"interval"`
+}
+
 // NewConfig reads configuration file and returns config instance
 // Usage:
-//      NewConfig("config.yml")
+//
+//	NewConfig("config.yml")
 func NewConfig(path string) *Config {
 	return (&Config{}).LoadConfig(path)
 }
@@ -164,6 +175,11 @@ func (c Config) GetDBConfig() DatabaseConfig {
 // GetHTTPConfig server configuration.
 func (c Config) GetHTTPConfig() HTTPServerConfig {
 	return c.HTTPServer
+}
+
+// GetZabbixConfig returns zabbix configuration.
+func (c Config) GetZabbixConfig() ZabbixConfig {
+	return c.ZabbixConfig
 }
 
 // GetUpdateInterval user data update interval.
