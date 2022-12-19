@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/blacked/go-zabbix"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/op/go-logging"
+	"github.com/retailcrm/zabbix-metrics-collector"
 	"golang.org/x/text/language"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
@@ -65,6 +67,7 @@ type Engine struct {
 	Sessions     sessions.Store
 	LogFormatter logging.Formatter
 	Config       config.Configuration
+	Zabbix       metrics.Transport
 	ginEngine    *gin.Engine
 	csrf         *middleware.CSRF
 	httpClient   *http.Client
@@ -157,6 +160,22 @@ func (e *Engine) Prepare() *Engine {
 	e.Sentry.InitSentrySDK()
 	e.prepared = true
 
+	return e
+}
+
+func (e *Engine) UseZabbix(collectors []metrics.Collector) *Engine {
+	if e.Config == nil || e.Config.GetZabbixConfig().Interval == 0 {
+		return e
+	}
+	if e.Zabbix != nil {
+		for _, col := range collectors {
+			e.Zabbix.WithCollector(col)
+		}
+		return e
+	}
+	cfg := e.Config.GetZabbixConfig()
+	sender := zabbix.NewSender(cfg.ServerHost, cfg.ServerPort)
+	e.Zabbix = metrics.NewZabbix(collectors, sender, cfg.Host, cfg.Interval, e.Logger())
 	return e
 }
 
@@ -318,7 +337,8 @@ func (e *Engine) InitCSRF(
 
 // VerifyCSRFMiddleware returns CSRF verifier middleware
 // Usage:
-// 		engine.Router().Use(engine.VerifyCSRFMiddleware(core.DefaultIgnoredMethods))
+//
+//	engine.Router().Use(engine.VerifyCSRFMiddleware(core.DefaultIgnoredMethods))
 func (e *Engine) VerifyCSRFMiddleware(ignoredMethods []string) gin.HandlerFunc {
 	if e.csrf == nil {
 		panic("csrf is not initialized")
@@ -329,7 +349,8 @@ func (e *Engine) VerifyCSRFMiddleware(ignoredMethods []string) gin.HandlerFunc {
 
 // GenerateCSRFMiddleware returns CSRF generator middleware
 // Usage:
-// 		engine.Router().Use(engine.GenerateCSRFMiddleware())
+//
+//	engine.Router().Use(engine.GenerateCSRFMiddleware())
 func (e *Engine) GenerateCSRFMiddleware() gin.HandlerFunc {
 	if e.csrf == nil {
 		panic("csrf is not initialized")
@@ -355,6 +376,9 @@ func (e *Engine) ConfigureRouter(callback func(*gin.Engine)) *Engine {
 
 // Run gin.Engine loop, or panic if engine is not present.
 func (e *Engine) Run() error {
+	if e.Zabbix != nil {
+		go e.Zabbix.Run()
+	}
 	return e.Router().Run(e.Config.GetHTTPConfig().Listen)
 }
 
