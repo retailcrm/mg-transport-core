@@ -93,8 +93,8 @@ type HTTPServerConfig struct {
 // ZabbixConfig contains information about Zabbix connection.
 type ZabbixConfig struct {
 	ServerHost string `yaml:"server_host"`
-	ServerPort int    `yaml:"server_port"`
 	Host       string `yaml:"host"`
+	ServerPort int    `yaml:"server_port"`
 	Interval   uint64 `yaml:"interval"`
 }
 
