@@ -34,6 +34,7 @@ require (
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
 	github.com/stretchr/testify v1.8.1
 	github.com/ugorji/go v1.2.6 // indirect
+	go.uber.org/atomic v1.10.0
 	golang.org/x/text v0.3.7
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f // indirect
