@@ -15,12 +15,14 @@ func NewSyncMapStorage(constructor CounterConstructor) Storage {
 	return &SyncMapStorage{constructor: constructor}
 }
 
-func (s *SyncMapStorage) Get(id int) Counter {
+func (s *SyncMapStorage) Get(id int, name string) Counter {
 	val, found := s.m.Load(id)
 	if found {
+		counter := val.(Counter)
+		counter.SetName(name)
 		return val.(Counter)
 	}
-	c := s.constructor()
+	c := s.constructor(name)
 	s.m.Store(id, c)
 	return c
 }

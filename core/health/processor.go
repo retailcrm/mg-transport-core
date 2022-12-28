@@ -26,8 +26,8 @@ func (c CounterProcessor) Process(id int, counter Counter) {
 			return
 		}
 
-		apiURL, apiKey, lang := c.ConnectionDataProvider(id)
-		c.Notifier(apiURL, apiKey, c.getErrorText(counter.Message(), lang))
+		apiURL, apiKey, _ := c.ConnectionDataProvider(id)
+		c.Notifier(apiURL, apiKey, counter.Message())
 		counter.FailureProcessed()
 		return
 	}
@@ -55,15 +55,15 @@ func (c CounterProcessor) Process(id int, counter Counter) {
 	}
 
 	apiURL, apiKey, lang := c.ConnectionDataProvider(id)
-	c.Notifier(apiURL, apiKey, c.getErrorText(c.Error, lang))
+	c.Notifier(apiURL, apiKey, c.getErrorText(counter.Name(), c.Error, lang))
 	counter.CountersProcessed()
 	return
 }
 
-func (c CounterProcessor) getErrorText(msg, lang string) string {
+func (c CounterProcessor) getErrorText(name, msg, lang string) string {
 	if c.Localizer == nil {
 		return msg
 	}
 	c.Localizer.SetLocale(lang)
-	return c.Localizer.GetLocalizedMessage(msg)
+	return c.Localizer.GetLocalizedTemplateMessage(msg, map[string]interface{}{"Name": name})
 }

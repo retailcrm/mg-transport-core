@@ -12,6 +12,7 @@ const DefaultResetPeriod = time.Minute * 15
 // AtomicCounter is a default Counter implementation.
 // It uses atomics under the hood (hence the name) and can be configured with custom reset timeout and
 type AtomicCounter struct {
+	name              atomic.String
 	msg               atomic.String
 	timestamp         atomic.Time
 	resetPeriod       time.Duration
@@ -23,16 +24,25 @@ type AtomicCounter struct {
 }
 
 // NewAtomicCounterWithPeriod returns AtomicCounter configured with provided period.
-func NewAtomicCounterWithPeriod(resetPeriod time.Duration) Counter {
+func NewAtomicCounterWithPeriod(name string, resetPeriod time.Duration) Counter {
 	c := &AtomicCounter{}
+	c.SetName(name)
 	c.resetPeriod = resetPeriod
 	c.timestamp.Store(time.Now())
 	return c
 }
 
 // NewAtomicCounter returns AtomicCounter with DefaultResetPeriod.
-func NewAtomicCounter() Counter {
-	return NewAtomicCounterWithPeriod(DefaultResetPeriod)
+func NewAtomicCounter(name string) Counter {
+	return NewAtomicCounterWithPeriod(name, DefaultResetPeriod)
+}
+
+func (a *AtomicCounter) Name() string {
+	return a.name.Load()
+}
+
+func (a *AtomicCounter) SetName(name string) {
+	a.name.Store(name)
 }
 
 func (a *AtomicCounter) HitSuccess() {

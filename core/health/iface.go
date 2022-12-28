@@ -3,7 +3,8 @@ package health
 // Storage stores different instances of Counter. Implementation should be goroutine-safe.
 type Storage interface {
 	// Get counter by its ID. The counter will be instantiated automatically if necessary.
-	Get(id int) Counter
+	// Name here is not used to identify the counter in the storage.
+	Get(id int, name string) Counter
 	// Remove counter if it exists.
 	Remove(id int)
 	// Process will iterate over counters and call Processor on each of them.
@@ -15,6 +16,10 @@ type Storage interface {
 // is not working properly (invalid credentials, too many failed requests, etc) and take further action based on the result.
 // Implementation should be goroutine-safe.
 type Counter interface {
+	// Name can be used as a more friendly identifier for the counter.
+	Name() string
+	// SetName of the counter.
+	SetName(name string)
 	// HitSuccess registers successful request. It should automatically clear error state because that state should be
 	// used only if error is totally unrecoverable.
 	HitSuccess()
@@ -55,8 +60,8 @@ type Processor interface {
 
 // NotifyMessageLocalizer is the smallest subset of core.Localizer used in the
 type NotifyMessageLocalizer interface {
-	SetLocale(string)
-	GetLocalizedMessage(string) string
+	SetLocale(locale string)
+	GetLocalizedTemplateMessage(messageID string, templateData map[string]interface{}) string
 }
 
 // NotifyFunc will send notification about error to the system with provided credentials.
@@ -64,7 +69,7 @@ type NotifyMessageLocalizer interface {
 type NotifyFunc func(apiURL, apiKey, msg string)
 
 // CounterConstructor is used to create counters. This way you can implement your own counter and still use default CounterStorage.
-type CounterConstructor func() Counter
+type CounterConstructor func(name string) Counter
 
 // ConnectionDataProvider should return the connection credentials and language by counter ID.
 // It's best to use account ID as a counter ID to be able to retrieve the necessary data as easy as possible.
