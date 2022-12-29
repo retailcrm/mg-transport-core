@@ -6,20 +6,33 @@ output:
   format: colored-line-number
   sort-results: true
 
+# Linters below do not support go1.18 yet because of generics.
+# See https://github.com/golangci/golangci-lint/issues/2649
+#    - bodyclose
+#    - sqlclosecheck
+
 linters:
   disable-all: true
   enable:
-    - deadcode
+    - paralleltest
+    - tparallel
+    - asciicheck
+    - asasalint
+    - varnamelen
+    - reassign
+    - nilnil
+    - nilerr
+    - nakedret
+    - goprintffuncname
+    - typecheck
+    - errchkjson
     - errcheck
     - gosimple
     - govet
     - ineffassign
     - staticcheck
-    - structcheck
     - unused
     - unparam
-    - varcheck
-    - bodyclose
     - dogsled
     - dupl
     - errorlint
@@ -34,14 +47,13 @@ linters:
     - goimports
     - revive
     - gosec
-    - ifshort
     - lll
     - makezero
     - misspell
     - nestif
     - prealloc
     - predeclared
-    - sqlclosecheck
+    - exportloopref
     - unconvert
     - whitespace
 
@@ -68,7 +80,6 @@ linters-settings:
       - unmarshal
       - unreachable
       - unsafeptr
-      - unused
     settings:
       printf:
         funcs:
@@ -136,11 +147,13 @@ linters-settings:
     threshold: 200
   errorlint:
     errorf: true
+    asserts: false
+    comparison: false
   exhaustive:
     check-generated: false
     default-signifies-exhaustive: false
   funlen:
-    lines: 60
+    lines: 90
     statements: 40
   gocognit:
     min-complexity: 25
@@ -153,25 +166,29 @@ linters-settings:
   misspell:
     locale: US
   nestif:
-    min-complexity: 6
+    min-complexity: 4
   whitespace:
     multi-if: false
     multi-func: false
-
+  varnamelen:
+    max-distance: 10
+    ignore-map-index-ok: true
+    ignore-type-assert-ok: true
+    ignore-chan-recv-ok: true
+    ignore-decls:
+      - t *testing.T
+      - e error
+      - i int
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
         - lll
-        - errorlint
-        - bodyclose
         - errcheck
-        - sqlclosecheck
         - misspell
         - ineffassign
         - whitespace
         - makezero
-        - ifshort
         - errcheck
         - funlen
         - goconst
@@ -179,6 +196,8 @@ issues:
         - gocyclo
         - godot
         - unused
+        - errchkjson
+        - varnamelen
     - path: \.go
       text: "Error return value of `io.WriteString` is not checked"
   exclude-use-default: true
@@ -192,4 +211,4 @@ severity:
   case-sensitive: false
 
 service:
-  golangci-lint-version: 1.36.x
+  golangci-lint-version: 1.50.x
