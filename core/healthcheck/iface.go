@@ -1,4 +1,13 @@
-package health
+package healthcheck
+
+var (
+	// compile-time checks to ensure that implementations are compatible with the interface
+	_ = Storage(&SyncMapStorage{})
+	_ = Counter(&AtomicCounter{})
+	_ = Processor(CounterProcessor{})
+	_ = NotifyFunc(DefaultNotifyFunc)
+	_ = CounterConstructor(NewAtomicCounter)
+)
 
 // Storage stores different instances of Counter. Implementation should be goroutine-safe.
 type Storage interface {
@@ -55,7 +64,7 @@ type Counter interface {
 // Processor is used to check if Counter is in error state and act accordingly.
 type Processor interface {
 	// Process counter data. This method is not goroutine-safe!
-	Process(id int, counter Counter)
+	Process(id int, counter Counter) bool
 }
 
 // NotifyMessageLocalizer is the smallest subset of core.Localizer used in the
@@ -66,11 +75,11 @@ type NotifyMessageLocalizer interface {
 
 // NotifyFunc will send notification about error to the system with provided credentials.
 // It will send the notification to system admins.
-type NotifyFunc func(apiURL, apiKey, msg string)
+type NotifyFunc func(apiURL, apiKey, msg string) error
 
 // CounterConstructor is used to create counters. This way you can implement your own counter and still use default CounterStorage.
 type CounterConstructor func(name string) Counter
 
 // ConnectionDataProvider should return the connection credentials and language by counter ID.
 // It's best to use account ID as a counter ID to be able to retrieve the necessary data as easy as possible.
-type ConnectionDataProvider func(id int) (apiURL, apiKey, lang string)
+type ConnectionDataProvider func(id int) (apiURL, apiKey, lang string, exists bool)

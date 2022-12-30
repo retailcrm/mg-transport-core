@@ -1,4 +1,4 @@
-package health
+package healthcheck
 
 import "sync"
 
@@ -33,7 +33,6 @@ func (s *SyncMapStorage) Remove(id int) {
 
 func (s *SyncMapStorage) Process(proc Processor) {
 	s.m.Range(func(key, value any) bool {
-		proc.Process(key.(int), value.(Counter))
-		return false
+		return proc.Process(key.(int), value.(Counter))
 	})
 }

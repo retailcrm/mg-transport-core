@@ -1,4 +1,12 @@
-package health
+package healthcheck
+
+import (
+	"errors"
+
+	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+)
+
+var ErrNoConnection = errors.New("no connection")
 
 const (
 	// DefaultMinRequests is a default minimal threshold of total requests. If Counter has less than this amount of requests
@@ -13,23 +21,34 @@ const (
 // CounterProcessor is a default implementation of Processor. It will try to localize the message in case of error.
 type CounterProcessor struct {
 	Localizer              NotifyMessageLocalizer
+	Logger                 logger.Logger
 	Notifier               NotifyFunc
 	ConnectionDataProvider ConnectionDataProvider
 	Error                  string
 	FailureThreshold       float64
 	MinRequests            uint32
+	Debug                  bool
 }
 
-func (c CounterProcessor) Process(id int, counter Counter) {
+func (c CounterProcessor) Process(id int, counter Counter) bool {
 	if counter.IsFailed() {
 		if counter.IsFailureProcessed() {
-			return
+			c.debugLog("skipping counter id=%d because its failure is already processed", id)
+			return true
 		}
 
-		apiURL, apiKey, _ := c.ConnectionDataProvider(id)
-		c.Notifier(apiURL, apiKey, counter.Message())
+		apiURL, apiKey, _, exists := c.ConnectionDataProvider(id)
+		if !exists {
+			c.debugLog("cannot find connection data for counter id=%d", id)
+			return true
+		}
+		err := c.Notifier(apiURL, apiKey, counter.Message())
+		if err != nil {
+			c.debugLog("cannot send notification for counter id=%d: %s (message: %s)",
+				id, err, counter.Message())
+		}
 		counter.FailureProcessed()
-		return
+		return true
 	}
 
 	succeeded := counter.TotalSucceeded()
@@ -38,7 +57,8 @@ func (c CounterProcessor) Process(id int, counter Counter) {
 	// Ignore this counter for now because total count of requests is less than minimal count.
 	// The results may not be representative.
 	if (succeeded + failed) < c.MinRequests {
-		return
+		c.debugLog("skipping counter id=%d because it has fewer than %d requests", id, c.MinRequests)
+		return true
 	}
 
 	// If more than FailureThreshold % of requests are successful, don't do anything.
@@ -46,18 +66,26 @@ func (c CounterProcessor) Process(id int, counter Counter) {
 	if (float64(succeeded) / float64(succeeded+failed)) >= c.FailureThreshold {
 		counter.ClearCountersProcessed()
 		counter.FlushCounters()
-		return
+		return true
 	}
 
-	// Do not process counters values twice if error ocurred.
+	// Do not process counters values twice if error occurred.
 	if counter.IsCountersProcessed() {
-		return
+		return true
 	}
 
-	apiURL, apiKey, lang := c.ConnectionDataProvider(id)
-	c.Notifier(apiURL, apiKey, c.getErrorText(counter.Name(), c.Error, lang))
+	apiURL, apiKey, lang, exists := c.ConnectionDataProvider(id)
+	if !exists {
+		c.debugLog("cannot find connection data for counter id=%d", id)
+		return true
+	}
+	err := c.Notifier(apiURL, apiKey, c.getErrorText(counter.Name(), c.Error, lang))
+	if err != nil {
+		c.debugLog("cannot send notification for counter id=%d: %s (message: %s)",
+			id, err, counter.Message())
+	}
 	counter.CountersProcessed()
-	return
+	return true
 }
 
 func (c CounterProcessor) getErrorText(name, msg, lang string) string {
@@ -65,5 +93,13 @@ func (c CounterProcessor) getErrorText(name, msg, lang string) string {
 		return msg
 	}
 	c.Localizer.SetLocale(lang)
-	return c.Localizer.GetLocalizedTemplateMessage(msg, map[string]interface{}{"Name": name})
+	return c.Localizer.GetLocalizedTemplateMessage(msg, map[string]interface{}{
+		"Name": name,
+	})
+}
+
+func (c CounterProcessor) debugLog(msg string, args ...interface{}) {
+	if c.Debug {
+		c.Logger.Debugf(msg, args...)
+	}
 }
