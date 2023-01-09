@@ -19,6 +19,7 @@ type CounterProcessorTest struct {
 }
 
 func TestCounterProcessor(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, new(CounterProcessorTest))
 }
 
@@ -349,10 +350,10 @@ func (cm *counterMock) FlushCounters() {
 }
 
 type notifierMock struct {
+	err     error
 	apiURL  string
 	apiKey  string
 	message string
-	err     error
 }
 
 func (n *notifierMock) Notify(apiURL, apiKey, msg string) error {

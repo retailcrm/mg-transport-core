@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	// DefaultMinRequests is a default minimal threshold of total requests. If Counter has less than this amount of requests
-	// total, it will be skipped because it can trigger false alerts otherwise.
+	// DefaultMinRequests is a default minimal threshold of total requests. If Counter has less than
+	// this amount of requests total, it will be skipped because it can trigger false alerts otherwise.
 	DefaultMinRequests = 10
 
 	// DefaultFailureThreshold is a default value of successful requests that should be passed in order to suppress any
@@ -26,7 +26,7 @@ type CounterProcessor struct {
 	Debug                  bool
 }
 
-func (c CounterProcessor) Process(id int, counter Counter) bool {
+func (c CounterProcessor) Process(id int, counter Counter) bool { // nolint:varnamelen
 	if counter.IsFailed() {
 		if counter.IsFailureProcessed() {
 			c.debugLog("skipping counter id=%d because its failure is already processed", id)

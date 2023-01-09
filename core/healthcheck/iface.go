@@ -21,8 +21,9 @@ type Storage interface {
 	Process(processor Processor)
 }
 
-// Counter will count successful and failed requests. Its contents can be used to judge if specific entity (e.g. Connection / Account)
-// is not working properly (invalid credentials, too many failed requests, etc) and take further action based on the result.
+// Counter will count successful and failed requests. Its contents can be used
+// to judge if specific entity (e.g. Connection / Account) is not working properly
+// (invalid credentials, too many failed requests, etc) and take further action based on the result.
 // Implementation should be goroutine-safe.
 type Counter interface {
 	// Name can be used as a more friendly identifier for the counter.
@@ -77,7 +78,8 @@ type NotifyMessageLocalizer interface {
 // It will send the notification to system admins.
 type NotifyFunc func(apiURL, apiKey, msg string) error
 
-// CounterConstructor is used to create counters. This way you can implement your own counter and still use default CounterStorage.
+// CounterConstructor is used to create counters.
+// This way you can implement your own counter and still use default CounterStorage.
 type CounterConstructor func(name string) Counter
 
 // ConnectionDataProvider should return the connection credentials and language by counter ID.

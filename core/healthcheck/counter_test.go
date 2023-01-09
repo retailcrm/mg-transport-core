@@ -13,6 +13,7 @@ type AtomicCounterTest struct {
 }
 
 func TestAtomicCounter(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, new(AtomicCounterTest))
 }
 

@@ -14,6 +14,7 @@ import (
 )
 
 func TestDefaultNotifyFunc(t *testing.T) {
+	t.Parallel()
 	apiURL := "https://test.retailcrm.pro"
 	apiKey := "key"
 	msg := "Notification"
@@ -37,6 +38,7 @@ func TestDefaultNotifyFunc(t *testing.T) {
 }
 
 func TestDefaultNotifyFunc_Error(t *testing.T) {
+	t.Parallel()
 	apiURL := "https://test.retailcrm.pro"
 	apiKey := "key"
 	msg := "Notification"
