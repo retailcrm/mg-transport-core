@@ -13,6 +13,7 @@ type SyncMapStorageTest struct {
 }
 
 func TestSyncMapStorage(t *testing.T) {
+	t.Parallel()
 	suite.Run(t, new(SyncMapStorageTest))
 }
 

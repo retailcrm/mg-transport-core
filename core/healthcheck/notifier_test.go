@@ -13,8 +13,7 @@ import (
 	"gopkg.in/h2non/gock.v1"
 )
 
-func TestDefaultNotifyFunc(t *testing.T) {
-	t.Parallel()
+func TestDefaultNotifyFunc(t *testing.T) { // nolint:paralleltest
 	apiURL := "https://test.retailcrm.pro"
 	apiKey := "key"
 	msg := "Notification"
@@ -37,8 +36,7 @@ func TestDefaultNotifyFunc(t *testing.T) {
 	testutil.AssertNoUnmatchedRequests(t)
 }
 
-func TestDefaultNotifyFunc_Error(t *testing.T) {
-	t.Parallel()
+func TestDefaultNotifyFunc_Error(t *testing.T) { // nolint:paralleltest
 	apiURL := "https://test.retailcrm.pro"
 	apiKey := "key"
 	msg := "Notification"
