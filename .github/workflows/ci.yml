@@ -19,11 +19,10 @@ jobs:
     steps:
       - name: Check out code into the Go module directory
         uses: actions/checkout@v2
-      - name: Set up Go 1.17
+      - name: Set up Go 1.20
         uses: actions/setup-go@v2
         with:
-          # TODO: Should migrate to 1.18 later
-          go-version: '1.17'
+          go-version: '1.20'
       - name: Get dependencies
         run: go mod tidy
       - name: Lint code with golangci-lint
@@ -36,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.16', '1.17', '1.18']
+        go-version: ['1.18', '1.19', '1.20']
     steps:
       - name: Set up Go ${{ matrix.go-version }}
         uses: actions/setup-go@v2
