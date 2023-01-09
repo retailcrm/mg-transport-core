@@ -1,12 +1,8 @@
 package healthcheck
 
 import (
-	"errors"
-
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
-
-var ErrNoConnection = errors.New("no connection")
 
 const (
 	// DefaultMinRequests is a default minimal threshold of total requests. If Counter has less than this amount of requests
