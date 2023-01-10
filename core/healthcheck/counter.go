@@ -99,7 +99,7 @@ func (a *AtomicCounter) ClearCountersProcessed() {
 }
 
 func (a *AtomicCounter) FlushCounters() {
-	if time.Now().After(a.timestamp.Load().Add(time.Minute * 15)) {
+	if time.Now().After(a.timestamp.Load().Add(a.resetPeriod)) {
 		a.timestamp.Store(time.Now())
 		a.success.Store(0)
 		a.failure.Store(0)
