@@ -68,7 +68,7 @@ type Processor interface {
 	Process(id int, counter Counter) bool
 }
 
-// NotifyMessageLocalizer is the smallest subset of core.Localizer used in the
+// NotifyMessageLocalizer is the smallest subset of core.Localizer used in the Processor implementation.
 type NotifyMessageLocalizer interface {
 	SetLocale(locale string)
 	GetLocalizedTemplateMessage(messageID string, templateData map[string]interface{}) string
