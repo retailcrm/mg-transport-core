@@ -12,6 +12,15 @@ import (
 // JobFunc is empty func which should be executed in a parallel goroutine.
 type JobFunc func(logger.Logger) error
 
+// JobAfterCallback will be called after specific job is done.
+// This can be used to run something after asynchronous job is done. The function will
+// receive an error from the job which can be used to alter the callback behavior. If callback
+// returns an error, it will be processed using job ErrorHandler.
+// The callback won't be executed in case of panic. Panicked callback will be show in logs
+// as if the job itself panicked, ergo, do not write jobs or callbacks that can panic,
+// or process the panic by yourself.
+type JobAfterCallback func(jobError error, log logger.Logger) error
+
 // JobErrorHandler is a function to handle jobs errors. First argument is a job name.
 type JobErrorHandler func(string, error, logger.Logger)
 
@@ -32,21 +41,22 @@ type Job struct {
 
 // JobManager controls jobs execution flow. Jobs can be added just for later use (e.g. JobManager can be used as
 // singleton), or jobs can be executed as regular jobs. Example initialization:
-// 	    manager := NewJobManager().
-// 			SetLogger(logger).
-// 			SetLogging(false)
-// 		_ = manager.RegisterJob("updateTokens", &Job{
-// 			Command: func(log logger.Logger) error {
-// 				// logic goes here...
-// 				logger.Info("All tokens were updated successfully")
-// 				return nil
-// 			},
-// 			ErrorHandler: DefaultJobErrorHandler(),
-// 			PanicHandler: DefaultJobPanicHandler(),
-// 			Interval:     time.Hour * 3,
-// 			Regular:      true,
-// 		})
-// 		manager.Start()
+//
+//	    manager := NewJobManager().
+//			SetLogger(logger).
+//			SetLogging(false)
+//		_ = manager.RegisterJob("updateTokens", &Job{
+//			Command: func(log logger.Logger) error {
+//				// logic goes here...
+//				logger.Info("All tokens were updated successfully")
+//				return nil
+//			},
+//			ErrorHandler: DefaultJobErrorHandler(),
+//			PanicHandler: DefaultJobPanicHandler(),
+//			Interval:     time.Hour * 3,
+//			Regular:      true,
+//		})
+//		manager.Start()
 type JobManager struct {
 	logger        logger.Logger
 	nilLogger     logger.Logger
@@ -55,16 +65,23 @@ type JobManager struct {
 }
 
 // getWrappedFunc wraps job into function.
-func (j *Job) getWrappedFunc(name string, log logger.Logger) func() {
-	return func() {
+func (j *Job) getWrappedFunc(name string, log logger.Logger) func(callback JobAfterCallback) {
+	return func(callback JobAfterCallback) {
 		defer func() {
 			if r := recover(); r != nil && j.PanicHandler != nil {
 				j.PanicHandler(name, r, log)
 			}
 		}()
 
-		if err := j.Command(log); err != nil && j.ErrorHandler != nil {
+		err := j.Command(log)
+		if err != nil && j.ErrorHandler != nil {
 			j.ErrorHandler(name, err, log)
+		}
+		if callback != nil {
+			err := callback(err, log)
+			if j.ErrorHandler != nil {
+				j.ErrorHandler(name, err, log)
+			}
 		}
 	}
 }
@@ -77,7 +94,7 @@ func (j *Job) getWrappedTimerFunc(name string, log logger.Logger) func(chan bool
 			case <-stopChannel:
 				return
 			default:
-				j.getWrappedFunc(name, log)()
+				j.getWrappedFunc(name, log)(nil)
 			}
 		}
 	}
@@ -118,13 +135,13 @@ func (j *Job) stop() {
 }
 
 // runOnce run job once.
-func (j *Job) runOnce(name string, log logger.Logger) {
-	go j.getWrappedFunc(name, log)()
+func (j *Job) runOnce(name string, log logger.Logger, callback JobAfterCallback) {
+	go j.getWrappedFunc(name, log)(callback)
 }
 
 // runOnceSync run job once in current goroutine.
 func (j *Job) runOnceSync(name string, log logger.Logger) {
-	j.getWrappedFunc(name, log)()
+	j.getWrappedFunc(name, log)(nil)
 }
 
 // NewJobManager is a JobManager constructor.
@@ -241,13 +258,50 @@ func (j *JobManager) StopJob(name string) error {
 }
 
 // RunJobOnce starts provided job once if it exists. It's also async.
-func (j *JobManager) RunJobOnce(name string) error {
+func (j *JobManager) RunJobOnce(name string, callback ...JobAfterCallback) error {
 	if job, ok := j.FetchJob(name); ok {
-		job.runOnce(name, j.Logger())
+		var cb JobAfterCallback
+		if len(callback) > 0 {
+			cb = callback[0]
+		}
+		job.runOnce(name, j.Logger(), cb)
 		return nil
 	}
 
 	return fmt.Errorf("cannot find job `%s`", name)
+}
+
+// RunJobsOnceSequentially will execute provided jobs asynchronously. It uses JobAfterCallback under the hood.
+// You can prevent subsequent jobs from running using stopOnError flag.
+func (j *JobManager) RunJobsOnceSequentially(names []string, stopOnError bool) error {
+	if len(names) == 0 {
+		return nil
+	}
+
+	var chained JobAfterCallback
+	for i := len(names) - 1; i > 0; i-- {
+		i := i
+		if chained == nil {
+			chained = func(jobError error, log logger.Logger) error {
+				if jobError != nil && stopOnError {
+					return jobError
+				}
+				return j.RunJobOnce(names[i])
+			}
+			continue
+		}
+
+		oldCallback := chained
+		chained = func(jobError error, log logger.Logger) error {
+			if jobError != nil && stopOnError {
+				return jobError
+			}
+			err := j.RunJobOnce(names[i], oldCallback)
+			return err
+		}
+	}
+
+	return j.RunJobOnce(names[0], chained)
 }
 
 // RunJobOnceSync starts provided job once in current goroutine if job exists. Will wait for job to end it's work.
