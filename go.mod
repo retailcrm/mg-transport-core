@@ -11,7 +11,7 @@ require (
 	github.com/blacked/go-zabbix v0.0.0-20170118040903-3c6a95ec4fdc
 	github.com/getsentry/sentry-go v0.12.0
 	github.com/gin-contrib/multitemplate v0.0.0-20190914010127-bba2ccfe37ec
-	github.com/gin-gonic/gin v1.7.2
+	github.com/gin-gonic/gin v1.7.7
 	github.com/go-playground/validator/v10 v10.8.0
 	github.com/gomarkdown/markdown v0.0.0-20221013030248-663e2500819c
 	github.com/gorilla/securecookie v1.1.1
