@@ -92,10 +92,11 @@ type HTTPServerConfig struct {
 
 // ZabbixConfig contains information about Zabbix connection.
 type ZabbixConfig struct {
-	ServerHost string `yaml:"server_host"`
-	Host       string `yaml:"host"`
-	ServerPort int    `yaml:"server_port"`
-	Interval   uint64 `yaml:"interval"`
+	ServerHost   string `yaml:"server_host"`
+	Host         string `yaml:"host"`
+	ServerPort   int    `yaml:"server_port"`
+	MetricPrefix string `yaml:"metric_prefix"`
+	Interval     uint64 `yaml:"interval"`
 }
 
 // NewConfig reads configuration file and returns config instance
