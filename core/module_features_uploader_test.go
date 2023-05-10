@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"context"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"os"
 	"testing"
 
@@ -67,19 +68,20 @@ func (t *ModuleFeaturesUploaderTest) TestModuleFeaturesUploader_uploadFile() {
 	uploader := NewModuleFeaturesUploader(log, conf, t.localizer, "source.md")
 	content := "test content"
 
-	uploader.client = mockPutObjectAPI(t.T(), "bucketName", "folder/name/filename.html")
-	err := uploader.uploadFile([]byte(content), "filename")
+	uploader.client = mockPutObjectAPI(t.T(), "bucketName", "folder/name/filename")
+	resp, err := uploader.uploadFile([]byte(content), "filename")
+	t.Assert().Equal("https://s3.local/folder/file", resp.Location)
 	t.Assert().Nil(err)
 }
 
-type putObjectAPI func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+type uploader func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(uploader *manager.Uploader)) (*manager.UploadOutput, error)
 
-func (m putObjectAPI) PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+func (m uploader) Upload(ctx context.Context, params *s3.PutObjectInput, optFns ...func(uploader *manager.Uploader)) (*manager.UploadOutput, error) {
 	return m(ctx, params, optFns...)
 }
 
-func mockPutObjectAPI(t *testing.T, bucket, key string) S3PutObjectAPI {
-	return putObjectAPI(func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+func mockPutObjectAPI(t *testing.T, bucket, key string) IUploader {
+	return uploader(func(ctx context.Context, params *s3.PutObjectInput, optFns ...func(uploader *manager.Uploader)) (*manager.UploadOutput, error) {
 		t.Helper()
 		if params.Bucket == nil {
 			t.Fatal("expect bucket to not be nil")
@@ -94,6 +96,6 @@ func mockPutObjectAPI(t *testing.T, bucket, key string) S3PutObjectAPI {
 			t.Errorf("expect %v, got %v", e, a)
 		}
 
-		return &s3.PutObjectOutput{}, nil
+		return &manager.UploadOutput{Location: "https://s3.local/folder/file"}, nil
 	})
 }
