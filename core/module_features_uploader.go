@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gomarkdown/markdown"
 	"golang.org/x/text/language"
@@ -17,17 +18,20 @@ import (
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
-type S3PutObjectAPI interface {
-	PutObject(ctx context.Context, params *s3.PutObjectInput, optFns ...func(*s3.Options)) (*s3.PutObjectOutput, error)
+type IUploader interface {
+	Upload(
+		ctx context.Context, input *s3.PutObjectInput, optFns ...func(uploader *manager.Uploader),
+	) (*manager.UploadOutput, error)
 }
 
 type ModuleFeaturesUploader struct {
-	client           S3PutObjectAPI
+	client           IUploader
 	log              logger.Logger
 	loc              LocalizerInterface
 	bucket           string
 	folder           string
 	featuresFilename string
+	contentType      string
 }
 
 var languages = []language.Tag{language.Russian, language.English, language.Spanish}
@@ -61,15 +65,24 @@ func NewModuleFeaturesUploader(
 	)
 	if err != nil {
 		log.Fatal(err)
+		return nil
+	}
+
+	client := manager.NewUploader(s3.NewFromConfig(cfg))
+
+	if err != nil {
+		log.Fatal(err)
+		return nil
 	}
 
 	return &ModuleFeaturesUploader{
-		client:           s3.NewFromConfig(cfg),
+		client:           client,
 		log:              log,
 		loc:              loc,
 		bucket:           conf.Bucket,
 		folder:           conf.FolderName,
 		featuresFilename: featuresFilename,
+		contentType:      conf.ContentType,
 	}
 }
 
@@ -90,13 +103,17 @@ func (s *ModuleFeaturesUploader) Upload() {
 		}
 
 		html := markdown.ToHTML(translated, nil, nil)
+		resp, err := s.uploadFile(html, lang.String())
 
-		if err := s.uploadFile(html, lang.String()); err != nil {
+		if err != nil {
 			s.log.Errorf("cannot upload file %s: %s", lang.String(), err.Error())
 			continue
 		}
+
+		fmt.Printf("\nURL of the module specifications file for the %s lang: %s", lang.String(), resp.Location)
 	}
 
+	fmt.Println()
 	s.log.Debugf("upload module features finished")
 }
 
@@ -115,12 +132,14 @@ func (s *ModuleFeaturesUploader) translate(content []byte, lang language.Tag) ([
 	return output.Bytes(), nil
 }
 
-func (s *ModuleFeaturesUploader) uploadFile(content []byte, filename string) error {
-	_, err := s.client.PutObject(context.TODO(), &s3.PutObjectInput{
-		Bucket: aws.String(s.bucket),
-		Key:    aws.String(fmt.Sprintf("%s/%s.html", s.folder, filename)),
-		Body:   bytes.NewReader(content),
+func (s *ModuleFeaturesUploader) uploadFile(content []byte, lang string) (*manager.UploadOutput, error) {
+	resp, err := s.client.Upload(context.TODO(), &s3.PutObjectInput{
+		Bucket:      aws.String(s.bucket),
+		Key:         aws.String(fmt.Sprintf("%s/%s", s.folder, lang)),
+		Body:        bytes.NewBuffer(content),
+		ContentType: aws.String(s.contentType),
+		ACL:         "public-read",
 	})
 
-	return err
+	return resp, err
 }
