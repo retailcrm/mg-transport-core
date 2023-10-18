@@ -1,19 +1,18 @@
 package core
 
 import (
-	"bytes"
 	"context"
-	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"os"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/retailcrm/mg-transport-core/v2/core/util/testutil"
+
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/op/go-logging"
 	"github.com/stretchr/testify/suite"
 	"golang.org/x/text/language"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
-	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
 type ModuleFeaturesUploaderTest struct {
@@ -36,8 +35,7 @@ func (t *ModuleFeaturesUploaderTest) TearDownSuite() {
 }
 
 func (t *ModuleFeaturesUploaderTest) TestModuleFeaturesUploader_NewModuleFeaturesUploader() {
-	logs := &bytes.Buffer{}
-	log := logger.NewBase(logs, "code", logging.DEBUG, logger.DefaultLogFormatter())
+	log := testutil.NewBufferedLogger()
 	conf := config.AWS{Bucket: "bucketName", FolderName: "folder/name"}
 
 	uploader := NewModuleFeaturesUploader(log, conf, t.localizer, "filename.txt")
@@ -50,8 +48,7 @@ func (t *ModuleFeaturesUploaderTest) TestModuleFeaturesUploader_NewModuleFeature
 }
 
 func (t *ModuleFeaturesUploaderTest) TestModuleFeaturesUploader_translate() {
-	logs := &bytes.Buffer{}
-	log := logger.NewBase(logs, "code", logging.DEBUG, logger.DefaultLogFormatter())
+	log := testutil.NewBufferedLogger()
 	conf := config.AWS{Bucket: "bucketName", FolderName: "folder/name"}
 	uploader := NewModuleFeaturesUploader(log, conf, t.localizer, "filename.txt")
 	content := "test content " + t.localizer.GetLocalizedMessage("message")
@@ -62,8 +59,7 @@ func (t *ModuleFeaturesUploaderTest) TestModuleFeaturesUploader_translate() {
 }
 
 func (t *ModuleFeaturesUploaderTest) TestModuleFeaturesUploader_uploadFile() {
-	logs := &bytes.Buffer{}
-	log := logger.NewBase(logs, "code", logging.DEBUG, logger.DefaultLogFormatter())
+	log := testutil.NewBufferedLogger()
 	conf := config.AWS{Bucket: "bucketName", FolderName: "folder/name"}
 	uploader := NewModuleFeaturesUploader(log, conf, t.localizer, "source.md")
 	content := "test content"

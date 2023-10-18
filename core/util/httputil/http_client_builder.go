@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
@@ -231,11 +232,11 @@ func (b *HTTPClientBuilder) buildMocks() error {
 	}
 
 	if b.mockHost != "" && b.mockPort != "" && len(b.mockedDomains) > 0 {
-		b.logf("Mock address is \"%s\"\n", net.JoinHostPort(b.mockHost, b.mockPort))
-		b.logf("Mocked domains: ")
+		b.log("Mock address has been set", slog.String("address", net.JoinHostPort(b.mockHost, b.mockPort)))
+		b.log("Mocked domains: ")
 
 		for _, domain := range b.mockedDomains {
-			b.logf(" - %s\n", domain)
+			b.log(fmt.Sprintf(" - %s\n", domain))
 		}
 
 		b.httpTransport.Proxy = nil
@@ -259,7 +260,7 @@ func (b *HTTPClientBuilder) buildMocks() error {
 						addr = net.JoinHostPort(b.mockHost, b.mockPort)
 					}
 
-					b.logf("Mocking \"%s\" with \"%s\"\n", oldAddr, addr)
+					b.log(fmt.Sprintf("Mocking \"%s\" with \"%s\"\n", oldAddr, addr))
 				}
 			}
 
@@ -270,13 +271,13 @@ func (b *HTTPClientBuilder) buildMocks() error {
 	return nil
 }
 
-// logf prints logs via Engine or via fmt.Printf.
-func (b *HTTPClientBuilder) logf(format string, args ...interface{}) {
+// log prints logs via Engine or via fmt.Println.
+func (b *HTTPClientBuilder) log(msg string, args ...interface{}) {
 	if b.logging {
 		if b.logger != nil {
-			b.logger.Infof(format, args...)
+			b.logger.Info(msg, args...)
 		} else {
-			fmt.Printf(format, args...)
+			fmt.Println(append([]any{msg}, args...))
 		}
 	}
 }

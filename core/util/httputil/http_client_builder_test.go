@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/op/go-logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -137,14 +136,14 @@ func (t *HTTPClientBuilderTest) Test_buildMocks() {
 }
 
 func (t *HTTPClientBuilderTest) Test_WithLogger() {
-	logger := logger.NewStandard("telegram", logging.ERROR, logger.DefaultLogFormatter())
 	builder := NewHTTPClientBuilder()
 	require.Nil(t.T(), builder.logger)
 
 	builder.WithLogger(nil)
 	assert.Nil(t.T(), builder.logger)
 
-	builder.WithLogger(logger)
+	log := logger.NewDefaultText()
+	builder.WithLogger(log)
 	assert.NotNil(t.T(), builder.logger)
 }
 
@@ -153,7 +152,7 @@ func (t *HTTPClientBuilderTest) Test_logf() {
 		assert.Nil(t.T(), recover())
 	}()
 
-	t.builder.logf("test %s", "string")
+	t.builder.log(fmt.Sprintf("test %s", "string"))
 }
 
 func (t *HTTPClientBuilderTest) Test_Build() {

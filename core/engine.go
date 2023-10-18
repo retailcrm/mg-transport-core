@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
+	"log/slog"
 	"net/http"
 	"sync"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/op/go-logging"
 	"github.com/retailcrm/zabbix-metrics-collector"
 	"golang.org/x/text/language"
 
@@ -62,16 +62,15 @@ func (a AppInfo) Release() string {
 
 // Engine struct.
 type Engine struct {
-	logger       logger.Logger
-	AppInfo      AppInfo
-	Sessions     sessions.Store
-	LogFormatter logging.Formatter
-	Config       config.Configuration
-	Zabbix       metrics.Transport
-	ginEngine    *gin.Engine
-	csrf         *middleware.CSRF
-	httpClient   *http.Client
-	jobManager   *JobManager
+	logger     logger.Logger
+	AppInfo    AppInfo
+	Sessions   sessions.Store
+	Config     config.Configuration
+	Zabbix     metrics.Transport
+	ginEngine  *gin.Engine
+	csrf       *middleware.CSRF
+	httpClient *http.Client
+	jobManager *JobManager
 	db.ORM
 	Localizer
 	util.Utils
@@ -133,9 +132,6 @@ func (e *Engine) Prepare() *Engine {
 	if e.DefaultError == "" {
 		e.DefaultError = "error"
 	}
-	if e.LogFormatter == nil {
-		e.LogFormatter = logger.DefaultLogFormatter()
-	}
 	if e.LocaleMatcher == nil {
 		e.LocaleMatcher = DefaultLocalizerMatcher()
 	}
@@ -150,9 +146,13 @@ func (e *Engine) Prepare() *Engine {
 		e.Localizer.Preload(e.PreloadLanguages)
 	}
 
+	if !e.Config.IsDebug() {
+		logger.DefaultOpts.Level = slog.LevelInfo
+	}
+
 	e.CreateDB(e.Config.GetDBConfig())
 	e.ResetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
-	e.SetLogger(logger.NewStandard(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
+	e.SetLogger(logger.NewDefaultText())
 	e.Sentry.Localizer = &e.Localizer
 	e.Utils.Logger = e.Logger()
 	e.Sentry.Logger = e.Logger()
@@ -175,7 +175,7 @@ func (e *Engine) UseZabbix(collectors []metrics.Collector) *Engine {
 	}
 	cfg := e.Config.GetZabbixConfig()
 	sender := zabbix.NewSender(cfg.ServerHost, cfg.ServerPort)
-	e.Zabbix = metrics.NewZabbix(collectors, sender, cfg.Host, cfg.Interval, e.Logger())
+	e.Zabbix = metrics.NewZabbix(collectors, sender, cfg.Host, cfg.Interval, logger.ZabbixCollectorAdapter(e.Logger()))
 	return e
 }
 

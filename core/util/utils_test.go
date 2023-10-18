@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/h2non/gock"
-	"github.com/op/go-logging"
+
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 	"github.com/stretchr/testify/assert"
@@ -38,7 +38,7 @@ func mgClient() *v1.MgClient {
 }
 
 func (u *UtilsTest) SetupSuite() {
-	logger := logger.NewStandard("code", logging.DEBUG, logger.DefaultLogFormatter())
+	logger := logger.NewDefaultText()
 	awsConfig := config.AWS{
 		AccessKeyID:     "access key id (will be removed)",
 		SecretAccessKey: "secret access key",

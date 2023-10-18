@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"log/slog"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -64,14 +65,13 @@ func NewModuleFeaturesUploader(
 		awsConfig.WithCredentialsProvider(customProvider),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Error("cannot load S3 configuration", logger.ErrAttr(err))
 		return nil
 	}
 
 	client := manager.NewUploader(s3.NewFromConfig(cfg))
-
 	if err != nil {
-		log.Fatal(err)
+		log.Error("cannot load S3 configuration", logger.ErrAttr(err))
 		return nil
 	}
 
@@ -87,18 +87,18 @@ func NewModuleFeaturesUploader(
 }
 
 func (s *ModuleFeaturesUploader) Upload() {
-	s.log.Debugf("upload module features started...")
+	s.log.Debug("upload module features started...")
 
 	content, err := os.ReadFile(s.featuresFilename)
 	if err != nil {
-		s.log.Errorf("cannot read markdown file %s %s", s.featuresFilename, err.Error())
+		s.log.Error("cannot read markdown file %s %s", slog.String("fileName", s.featuresFilename), logger.ErrAttr(err))
 		return
 	}
 
 	for _, lang := range languages {
 		translated, err := s.translate(content, lang)
 		if err != nil {
-			s.log.Errorf("cannot translate module features file to %s: %s", lang.String(), err.Error())
+			s.log.Error("cannot translate module features file", slog.String("lang", lang.String()), logger.ErrAttr(err))
 			continue
 		}
 
@@ -106,7 +106,7 @@ func (s *ModuleFeaturesUploader) Upload() {
 		resp, err := s.uploadFile(html, lang.String())
 
 		if err != nil {
-			s.log.Errorf("cannot upload file %s: %s", lang.String(), err.Error())
+			s.log.Error("cannot upload file", slog.String("lang", lang.String()), logger.ErrAttr(err))
 			continue
 		}
 
@@ -114,7 +114,7 @@ func (s *ModuleFeaturesUploader) Upload() {
 	}
 
 	fmt.Println()
-	s.log.Debugf("upload module features finished")
+	s.log.Debug("upload module features finished")
 }
 
 func (s *ModuleFeaturesUploader) translate(content []byte, lang language.Tag) ([]byte, error) {

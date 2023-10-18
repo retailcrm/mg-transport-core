@@ -3,6 +3,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -46,7 +47,7 @@ type Job struct {
 //			SetLogger(logger).
 //			SetLogging(false)
 //		_ = manager.RegisterJob("updateTokens", &Job{
-//			Command: func(log logger.Logger) error {
+//			Command: func(log logger.LoggerOld) error {
 //				// logic goes here...
 //				logger.Info("All tokens were updated successfully")
 //				return nil
@@ -146,14 +147,14 @@ func (j *Job) runOnceSync(name string, log logger.Logger) {
 
 // NewJobManager is a JobManager constructor.
 func NewJobManager() *JobManager {
-	return &JobManager{jobs: &sync.Map{}, nilLogger: logger.NewNil()}
+	return &JobManager{jobs: &sync.Map{}, nilLogger: logger.NewDefaultNil()}
 }
 
 // DefaultJobErrorHandler returns default error handler for a job.
 func DefaultJobErrorHandler() JobErrorHandler {
 	return func(name string, err error, log logger.Logger) {
 		if err != nil && name != "" {
-			log.Errorf("Job `%s` errored with an error: `%s`", name, err.Error())
+			log.Error("job failed with an error", slog.String("job", name), logger.ErrAttr(err))
 		}
 	}
 }
@@ -162,7 +163,7 @@ func DefaultJobErrorHandler() JobErrorHandler {
 func DefaultJobPanicHandler() JobPanicHandler {
 	return func(name string, recoverValue interface{}, log logger.Logger) {
 		if recoverValue != nil && name != "" {
-			log.Errorf("Job `%s` panicked with value: `%#v`", name, recoverValue)
+			log.Error("job panicked with the value", slog.String("job", name), slog.Any("value", recoverValue))
 		}
 	}
 }

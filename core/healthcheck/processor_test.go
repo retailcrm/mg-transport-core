@@ -95,7 +95,8 @@ func (t *CounterProcessorTest) Test_FailureProcessed() {
 
 	p.Process(1, c)
 	c.AssertExpectations(t.T())
-	t.Assert().Contains(log.String(), "skipping counter id=1 because its failure is already processed")
+	t.Assert().Contains(log.String(), "skipping counter because its failure is already processed")
+	t.Assert().Contains(log.String(), "id=1")
 }
 
 func (t *CounterProcessorTest) Test_CounterFailed_CannotFindConnection() {
@@ -107,7 +108,8 @@ func (t *CounterProcessorTest) Test_CounterFailed_CannotFindConnection() {
 
 	p.Process(1, c)
 	c.AssertExpectations(t.T())
-	t.Assert().Contains(log.String(), "cannot find connection data for counter id=1")
+	t.Assert().Contains(log.String(), "cannot find connection data for counter")
+	t.Assert().Contains(log.String(), "id=1")
 }
 
 func (t *CounterProcessorTest) Test_CounterFailed_ErrWhileNotifying() {
@@ -121,7 +123,10 @@ func (t *CounterProcessorTest) Test_CounterFailed_ErrWhileNotifying() {
 
 	p.Process(1, c)
 	c.AssertExpectations(t.T())
-	t.Assert().Contains(log.String(), "cannot send notification for counter id=1: http status code: 500 (message: error message)")
+	t.Assert().Contains(log.String(), "cannot send notification for counter")
+	t.Assert().Contains(log.String(), "id=1")
+	t.Assert().Contains(log.String(), `error="http status code: 500"`)
+	t.Assert().Contains(log.String(), `message="error message"`)
 	t.Assert().Equal(t.apiURL, n.apiURL)
 	t.Assert().Equal(t.apiKey, n.apiKey)
 	t.Assert().Equal("error message", n.message)
@@ -155,7 +160,7 @@ func (t *CounterProcessorTest) Test_TooFewRequests() {
 	p.Process(1, c)
 	c.AssertExpectations(t.T())
 	t.Assert().Contains(log.String(),
-		fmt.Sprintf("skipping counter id=%d because it has fewer than %d requests", 1, DefaultMinRequests))
+		fmt.Sprintf(`msg="skipping counter because it has too few requests" id=%d minRequests=%d`, 1, DefaultMinRequests))
 }
 
 func (t *CounterProcessorTest) Test_ThresholdNotPassed() {
@@ -200,7 +205,8 @@ func (t *CounterProcessorTest) Test_ThresholdPassed_NoConnectionFound() {
 
 	p.Process(1, c)
 	c.AssertExpectations(t.T())
-	t.Assert().Contains(log.String(), "cannot find connection data for counter id=1")
+	t.Assert().Contains(log.String(), "cannot find connection data for counter")
+	t.Assert().Contains(log.String(), "id=1")
 	t.Assert().Empty(n.message)
 }
 
@@ -218,7 +224,7 @@ func (t *CounterProcessorTest) Test_ThresholdPassed_NotifyingError() {
 
 	p.Process(1, c)
 	c.AssertExpectations(t.T())
-	t.Assert().Contains(log.String(), "cannot send notification for counter id=1: unknown error (message: )")
+	t.Assert().Contains(log.String(), `msg="cannot send notification for counter" id=1 error="unknown error" message=""`)
 	t.Assert().Equal(`default error [{"Name":"MockedCounter"}]`, n.message)
 }
 

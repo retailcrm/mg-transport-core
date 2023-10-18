@@ -1,15 +1,16 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"math/rand"
 	"strings"
 	"sync"
 	"testing"
 	"time"
 
-	"github.com/op/go-logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -25,7 +26,7 @@ type JobTest struct {
 	executeErr   chan error
 	panicValue   chan interface{}
 	lastLog      string
-	lastMsgLevel logging.Level
+	lastMsgLevel slog.Level
 	syncBool     bool
 }
 
@@ -36,68 +37,69 @@ type JobManagerTest struct {
 	syncRunnerFlag bool
 }
 
-type callbackLoggerFunc func(level logging.Level, format string, args ...interface{})
+type callbackLoggerFunc func(ctx context.Context, level slog.Level, msg string, args ...any)
 
 type callbackLogger struct {
 	fn callbackLoggerFunc
 }
 
-func (n *callbackLogger) Fatal(args ...interface{}) {
-	n.fn(logging.CRITICAL, "", args...)
+func (n *callbackLogger) Handler() slog.Handler {
+	return logger.NilHandler
 }
 
-func (n *callbackLogger) Fatalf(format string, args ...interface{}) {
-	n.fn(logging.CRITICAL, format, args...)
+func (n *callbackLogger) With(args ...any) logger.Logger {
+	return n
 }
 
-func (n *callbackLogger) Panic(args ...interface{}) {
-	n.fn(logging.CRITICAL, "", args...)
-}
-func (n *callbackLogger) Panicf(format string, args ...interface{}) {
-	n.fn(logging.CRITICAL, format, args...)
+func (n *callbackLogger) WithGroup(name string) logger.Logger {
+	return n
 }
 
-func (n *callbackLogger) Critical(args ...interface{}) {
-	n.fn(logging.CRITICAL, "", args...)
+func (n *callbackLogger) ForAccount(handler, conn, acc any) logger.Logger {
+	return n
 }
 
-func (n *callbackLogger) Criticalf(format string, args ...interface{}) {
-	n.fn(logging.CRITICAL, format, args...)
+func (n *callbackLogger) Enabled(ctx context.Context, level slog.Level) bool {
+	return true
 }
 
-func (n *callbackLogger) Error(args ...interface{}) {
-	n.fn(logging.ERROR, "", args...)
-}
-func (n *callbackLogger) Errorf(format string, args ...interface{}) {
-	n.fn(logging.ERROR, format, args...)
+func (n *callbackLogger) Log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	n.fn(ctx, level, msg, args...)
 }
 
-func (n *callbackLogger) Warning(args ...interface{}) {
-	n.fn(logging.WARNING, "", args...)
-}
-func (n *callbackLogger) Warningf(format string, args ...interface{}) {
-	n.fn(logging.WARNING, format, args...)
+func (n *callbackLogger) LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
 }
 
-func (n *callbackLogger) Notice(args ...interface{}) {
-	n.fn(logging.NOTICE, "", args...)
-}
-func (n *callbackLogger) Noticef(format string, args ...interface{}) {
-	n.fn(logging.NOTICE, format, args...)
+func (n *callbackLogger) Debug(msg string, args ...any) {
+	n.Log(nil, slog.LevelDebug, msg, args...)
 }
 
-func (n *callbackLogger) Info(args ...interface{}) {
-	n.fn(logging.INFO, "", args...)
-}
-func (n *callbackLogger) Infof(format string, args ...interface{}) {
-	n.fn(logging.INFO, format, args...)
+func (n *callbackLogger) DebugContext(ctx context.Context, msg string, args ...any) {
+	n.Log(ctx, slog.LevelDebug, msg, args...)
 }
 
-func (n *callbackLogger) Debug(args ...interface{}) {
-	n.fn(logging.DEBUG, "", args...)
+func (n *callbackLogger) Info(msg string, args ...any) {
+	n.Log(nil, slog.LevelInfo, msg, args...)
 }
-func (n *callbackLogger) Debugf(format string, args ...interface{}) {
-	n.fn(logging.DEBUG, format, args...)
+
+func (n *callbackLogger) InfoContext(ctx context.Context, msg string, args ...any) {
+	n.Log(ctx, slog.LevelInfo, msg, args...)
+}
+
+func (n *callbackLogger) Warn(msg string, args ...any) {
+	n.Log(nil, slog.LevelWarn, msg, args...)
+}
+
+func (n *callbackLogger) WarnContext(ctx context.Context, msg string, args ...any) {
+	n.Log(ctx, slog.LevelWarn, msg, args...)
+}
+
+func (n *callbackLogger) Error(msg string, args ...any) {
+	n.Log(nil, slog.LevelError, msg, args...)
+}
+
+func (n *callbackLogger) ErrorContext(ctx context.Context, msg string, args ...any) {
+	n.Log(ctx, slog.LevelError, msg, args...)
 }
 
 func TestJob(t *testing.T) {
@@ -115,9 +117,9 @@ func TestDefaultJobErrorHandler(t *testing.T) {
 
 	fn := DefaultJobErrorHandler()
 	require.NotNil(t, fn)
-	fn("job", errors.New("test"), &callbackLogger{fn: func(level logging.Level, s string, i ...interface{}) {
+	fn("job", errors.New("test"), &callbackLogger{fn: func(_ context.Context, level slog.Level, s string, i ...interface{}) {
 		require.Len(t, i, 2)
-		assert.Equal(t, fmt.Sprintf("%s", i[1]), "test")
+		assert.Equal(t, "error=test", fmt.Sprintf("%s", i[1]))
 	}})
 }
 
@@ -128,9 +130,9 @@ func TestDefaultJobPanicHandler(t *testing.T) {
 
 	fn := DefaultJobPanicHandler()
 	require.NotNil(t, fn)
-	fn("job", errors.New("test"), &callbackLogger{fn: func(level logging.Level, s string, i ...interface{}) {
+	fn("job", errors.New("test"), &callbackLogger{fn: func(_ context.Context, level slog.Level, s string, i ...interface{}) {
 		require.Len(t, i, 2)
-		assert.Equal(t, fmt.Sprintf("%s", i[1]), "test")
+		assert.Equal(t, "value=test", fmt.Sprintf("%s", i[1]))
 	}})
 }
 
@@ -147,7 +149,7 @@ func (t *JobTest) testPanicHandler() JobPanicHandler {
 }
 
 func (t *JobTest) testLogger() logger.Logger {
-	return &callbackLogger{fn: func(level logging.Level, format string, args ...interface{}) {
+	return &callbackLogger{fn: func(_ context.Context, level slog.Level, format string, args ...interface{}) {
 		if format == "" {
 			var sb strings.Builder
 			sb.Grow(3 * len(args)) // nolint:gomnd
@@ -404,11 +406,11 @@ func (t *JobManagerTest) WaitForJob() bool {
 
 func (t *JobManagerTest) Test_SetLogger() {
 	t.manager.logger = nil
-	t.manager.SetLogger(logger.NewStandard("test", logging.ERROR, logger.DefaultLogFormatter()))
-	assert.IsType(t.T(), &logger.StandardLogger{}, t.manager.logger)
+	t.manager.SetLogger(logger.NewDefaultText())
+	assert.IsType(t.T(), &logger.Default{}, t.manager.logger)
 
 	t.manager.SetLogger(nil)
-	assert.IsType(t.T(), &logger.StandardLogger{}, t.manager.logger)
+	assert.IsType(t.T(), &logger.Default{}, t.manager.logger)
 }
 
 func (t *JobManagerTest) Test_SetLogging() {

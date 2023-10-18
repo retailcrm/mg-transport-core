@@ -4,7 +4,6 @@ import (
 	"io"
 	"testing"
 
-	"github.com/op/go-logging"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -30,17 +29,17 @@ func (t *BufferLoggerTest) Test_Read() {
 
 	data, err := io.ReadAll(t.logger)
 	t.Require().NoError(err)
-	t.Assert().Equal([]byte(logging.DEBUG.String()+" => test\n"), data)
+	t.Assert().Contains(string(data), "level=DEBUG msg=test")
 }
 
 func (t *BufferLoggerTest) Test_Bytes() {
 	t.logger.Debug("test")
-	t.Assert().Equal([]byte(logging.DEBUG.String()+" => test\n"), t.logger.Bytes())
+	t.Assert().Contains(string(t.logger.Bytes()), "level=DEBUG msg=test")
 }
 
 func (t *BufferLoggerTest) Test_String() {
 	t.logger.Debug("test")
-	t.Assert().Equal(logging.DEBUG.String()+" => test\n", t.logger.String())
+	t.Assert().Contains(t.logger.String(), "level=DEBUG msg=test")
 }
 
 func (t *BufferLoggerTest) TestRace() {

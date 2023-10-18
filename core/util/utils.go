@@ -132,7 +132,7 @@ func (u *Utils) GenerateToken() string {
 func (u *Utils) GetAPIClient(
 	url, key string, scopes []string, credentials ...[]string) (*retailcrm.Client, int, error) {
 	client := retailcrm.New(url, key).
-		WithLogger(retailcrm.DebugLoggerAdapter(u.Logger))
+		WithLogger(logger.APIClientAdapter(u.Logger))
 	client.Debug = u.IsDebug
 
 	cr, status, err := client.APICredentials()

@@ -17,3 +17,10 @@ type Connection struct {
 	ID        int       `gorm:"primary_key" json:"id"`
 	Active    bool      `json:"active,omitempty"`
 }
+
+func (c Connection) Address() string {
+	if c.PublicURL != "" {
+		return c.PublicURL
+	}
+	return c.URL
+}

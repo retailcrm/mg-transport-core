@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -21,9 +22,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
-
-// reset is borrowed directly from the gin.
-const reset = "\033[0m"
 
 // ErrorHandlerFunc will handle errors.
 type ErrorHandlerFunc func(recovery interface{}, c *gin.Context)
@@ -142,17 +140,17 @@ func (s *Sentry) SentryMiddlewares() []gin.HandlerFunc {
 
 // obtainErrorLogger extracts logger from the context or builds it right here from tags used in Sentry events
 // Those tags can be configured with SentryLoggerConfig field.
-func (s *Sentry) obtainErrorLogger(c *gin.Context) logger.AccountLogger {
+func (s *Sentry) obtainErrorLogger(c *gin.Context) logger.Logger {
 	if item, ok := c.Get("logger"); ok {
-		if accountLogger, ok := item.(logger.AccountLogger); ok {
-			return accountLogger
+		if ctxLogger, ok := item.(logger.Logger); ok {
+			return ctxLogger
 		}
 	}
 
 	connectionID := "{no connection ID}"
 	accountID := "{no account ID}"
 	if s.SentryLoggerConfig.TagForConnection == "" && s.SentryLoggerConfig.TagForAccount == "" {
-		return logger.DecorateForAccount(s.Logger, "Sentry", connectionID, accountID)
+		return s.Logger.ForAccount("Sentry", connectionID, accountID)
 	}
 
 	for tag := range s.tagsFromContext(c) {
@@ -164,7 +162,7 @@ func (s *Sentry) obtainErrorLogger(c *gin.Context) logger.AccountLogger {
 		}
 	}
 
-	return logger.DecorateForAccount(s.Logger, "Sentry", connectionID, accountID)
+	return s.Logger.ForAccount("Sentry", connectionID, accountID)
 }
 
 // tagsSetterMiddleware sets event tags into Sentry events.
@@ -201,13 +199,13 @@ func (s *Sentry) exceptionCaptureMiddleware() gin.HandlerFunc { // nolint:gocogn
 			for _, err := range publicErrors {
 				messages[index] = err.Error()
 				s.CaptureException(c, err)
-				l.Error(err)
+				l.Error(err.Error())
 				index++
 			}
 
 			for _, err := range privateErrors {
 				s.CaptureException(c, err)
-				l.Error(err)
+				l.Error(err.Error())
 			}
 
 			if privateLen > 0 || recovery != nil {
@@ -250,8 +248,9 @@ func (s *Sentry) recoveryMiddleware() gin.HandlerFunc { // nolint
 					}
 				}
 				if l != nil {
-					stack := stacktrace.FormattedStack(3, l.Prefix()+" ")
-					formattedErr := fmt.Sprintf("%s %s", l.Prefix(), err)
+					// TODO: Check if we can output stacktraces with prefix data like before if we really need it.
+					stack := stacktrace.FormattedStack(3, "trace: ")
+					formattedErr := logger.ErrAttr(err)
 					httpRequest, _ := httputil.DumpRequest(c.Request, false)
 					headers := strings.Split(string(httpRequest), "\r\n")
 					for idx, header := range headers {
@@ -259,18 +258,17 @@ func (s *Sentry) recoveryMiddleware() gin.HandlerFunc { // nolint
 						if current[0] == "Authorization" {
 							headers[idx] = current[0] + ": *"
 						}
-						headers[idx] = l.Prefix() + " " + headers[idx]
+						headers[idx] = "header: " + headers[idx]
 					}
-					headersToStr := strings.Join(headers, "\r\n")
+					headersToStr := slog.String("headers", strings.Join(headers, "\r\n"))
+					formattedStack := slog.String("stacktrace", string(stack))
 					switch {
 					case brokenPipe:
-						l.Errorf("%s\n%s%s", formattedErr, headersToStr, reset)
+						l.Error("error", formattedErr, headersToStr)
 					case gin.IsDebugging():
-						l.Errorf("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
-							timeFormat(time.Now()), headersToStr, formattedErr, stack, reset)
+						l.Error("[Recovery] panic recovered", headersToStr, formattedErr, formattedStack)
 					default:
-						l.Errorf("[Recovery] %s panic recovered:\n%s\n%s%s",
-							timeFormat(time.Now()), formattedErr, stack, reset)
+						l.Error("[Recovery] panic recovered", formattedErr, formattedStack)
 					}
 				}
 				if brokenPipe {
