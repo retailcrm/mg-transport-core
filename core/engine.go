@@ -111,11 +111,6 @@ func (e *Engine) initGin() {
 	e.buildSentryConfig()
 	e.InitSentrySDK()
 	r.Use(e.SentryMiddlewares()...)
-
-	if e.Config.IsDebug() {
-		r.Use(gin.Logger())
-	}
-
 	r.Use(e.LocalizationMiddleware())
 	e.ginEngine = r
 }
@@ -179,6 +174,8 @@ func (e *Engine) UseZabbix(collectors []metrics.Collector) *Engine {
 	return e
 }
 
+// HijackGinLogs will take control of GIN debug logs and will convert them into structured logs.
+// It will also affect default logging middleware. Use logger.GinMiddleware to circumvent this.
 func (e *Engine) HijackGinLogs() *Engine {
 	if e.Logger() == nil {
 		return e

@@ -14,9 +14,9 @@ const (
 	ErrorAttr          = "error"
 	FailureMessageAttr = "failureMessage"
 	BodyAttr           = "body"
-	HTTPMethodAttr     = "httpMethod"
-	HTTPStatusAttr     = "httpStatusCode"
-	HTTPStatusNameAttr = "httpStatusName"
+	HTTPMethodAttr     = "method"
+	HTTPStatusAttr     = "statusCode"
+	HTTPStatusNameAttr = "statusName"
 )
 
 func Err(err any) slog.Attr {
