@@ -25,8 +25,12 @@ func ErrAttr(err any) slog.Attr {
 	return slog.Any(ErrorAttr, err)
 }
 
-func HTTPStatus(code int) []any {
-	return []any{slog.Int(HTTPStatusAttr, code), slog.String(HTTPStatusNameAttr, http.StatusText(code))}
+func HTTPStatusCode(code int) slog.Attr {
+	return slog.Int(HTTPStatusAttr, code)
+}
+
+func HTTPStatusName(code int) slog.Attr {
+	return slog.String(HTTPStatusNameAttr, http.StatusText(code))
 }
 
 func Body(val any) slog.Attr {
