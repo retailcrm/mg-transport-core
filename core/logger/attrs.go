@@ -12,6 +12,7 @@ const (
 	CounterIDAttr      = "counterId"
 	ErrorAttr          = "error"
 	FailureMessageAttr = "failureMessage"
+	BodyAttr           = "body"
 	HTTPMethodAttr     = "httpMethod"
 	HTTPStatusAttr     = "httpStatusCode"
 	HTTPStatusNameAttr = "httpStatusName"
@@ -26,4 +27,8 @@ func ErrAttr(err any) slog.Attr {
 
 func HTTPStatus(code int) []any {
 	return []any{slog.Int(HTTPStatusAttr, code), slog.String(HTTPStatusNameAttr, http.StatusText(code))}
+}
+
+func Body(val any) slog.Attr {
+	return slog.Any(BodyAttr, val)
 }
