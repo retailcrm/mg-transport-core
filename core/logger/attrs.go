@@ -1,6 +1,9 @@
 package logger
 
-import "log/slog"
+import (
+	"log/slog"
+	"net/http"
+)
 
 const (
 	HandlerAttr        = "handler"
@@ -19,4 +22,8 @@ func ErrAttr(err any) slog.Attr {
 		return slog.String(ErrorAttr, "<nil>")
 	}
 	return slog.Any(ErrorAttr, err)
+}
+
+func HTTPStatus(code int) (slog.Attr, slog.Attr) {
+	return slog.Int(HTTPStatusAttr, code), slog.String(HTTPStatusNameAttr, http.StatusText(code))
 }
