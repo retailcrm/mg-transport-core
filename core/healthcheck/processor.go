@@ -43,7 +43,7 @@ func (c CounterProcessor) Process(id int, counter Counter) bool { // nolint:varn
 		err := c.Notifier(apiURL, apiKey, counter.Message())
 		if err != nil {
 			c.debugLog("cannot send notification for counter",
-				slog.Int(logger.CounterIDAttr, id), logger.ErrAttr(err), slog.String(logger.FailureMessageAttr, counter.Message()))
+				slog.Int(logger.CounterIDAttr, id), logger.Err(err), slog.String(logger.FailureMessageAttr, counter.Message()))
 		}
 		counter.FailureProcessed()
 		return true
@@ -81,7 +81,7 @@ func (c CounterProcessor) Process(id int, counter Counter) bool { // nolint:varn
 	err := c.Notifier(apiURL, apiKey, c.getErrorText(counter.Name(), c.Error, lang))
 	if err != nil {
 		c.debugLog("cannot send notification for counter",
-			slog.Int(logger.CounterIDAttr, id), logger.ErrAttr(err), slog.String(logger.FailureMessageAttr, counter.Message()))
+			slog.Int(logger.CounterIDAttr, id), logger.Err(err), slog.String(logger.FailureMessageAttr, counter.Message()))
 	}
 	counter.CountersProcessed()
 	return true

@@ -24,7 +24,7 @@ require (
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pkg/errors v0.9.1
 	github.com/retailcrm/api-client-go/v2 v2.1.3
-	github.com/retailcrm/mg-transport-api-client-go v1.1.32
+	github.com/retailcrm/mg-transport-api-client-go v1.3.4
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
 	github.com/stretchr/testify v1.8.3
 	go.uber.org/atomic v1.10.0

@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"log/slog"
 	"net/http"
 )
@@ -18,7 +19,7 @@ const (
 	HTTPStatusNameAttr = "httpStatusName"
 )
 
-func ErrAttr(err any) slog.Attr {
+func Err(err any) slog.Attr {
 	if err == nil {
 		return slog.String(ErrorAttr, "<nil>")
 	}
@@ -34,5 +35,12 @@ func HTTPStatusName(code int) slog.Attr {
 }
 
 func Body(val any) slog.Attr {
-	return slog.Any(BodyAttr, val)
+	switch item := val.(type) {
+	case string:
+		return slog.String(BodyAttr, item)
+	case []byte:
+		return slog.String(BodyAttr, string(item))
+	default:
+		return slog.String(BodyAttr, fmt.Sprintf("%#v", val))
+	}
 }

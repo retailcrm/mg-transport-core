@@ -250,7 +250,7 @@ func (s *Sentry) recoveryMiddleware() gin.HandlerFunc { // nolint
 				if l != nil {
 					// TODO: Check if we can output stacktraces with prefix data like before if we really need it.
 					stack := stacktrace.FormattedStack(3, "trace: ")
-					formattedErr := logger.ErrAttr(err)
+					formattedErr := logger.Err(err)
 					httpRequest, _ := httputil.DumpRequest(c.Request, false)
 					headers := strings.Split(string(httpRequest), "\r\n")
 					for idx, header := range headers {

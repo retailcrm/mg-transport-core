@@ -65,13 +65,13 @@ func NewModuleFeaturesUploader(
 		awsConfig.WithCredentialsProvider(customProvider),
 	)
 	if err != nil {
-		log.Error("cannot load S3 configuration", logger.ErrAttr(err))
+		log.Error("cannot load S3 configuration", logger.Err(err))
 		return nil
 	}
 
 	client := manager.NewUploader(s3.NewFromConfig(cfg))
 	if err != nil {
-		log.Error("cannot load S3 configuration", logger.ErrAttr(err))
+		log.Error("cannot load S3 configuration", logger.Err(err))
 		return nil
 	}
 
@@ -91,14 +91,14 @@ func (s *ModuleFeaturesUploader) Upload() {
 
 	content, err := os.ReadFile(s.featuresFilename)
 	if err != nil {
-		s.log.Error("cannot read markdown file %s %s", slog.String("fileName", s.featuresFilename), logger.ErrAttr(err))
+		s.log.Error("cannot read markdown file %s %s", slog.String("fileName", s.featuresFilename), logger.Err(err))
 		return
 	}
 
 	for _, lang := range languages {
 		translated, err := s.translate(content, lang)
 		if err != nil {
-			s.log.Error("cannot translate module features file", slog.String("lang", lang.String()), logger.ErrAttr(err))
+			s.log.Error("cannot translate module features file", slog.String("lang", lang.String()), logger.Err(err))
 			continue
 		}
 
@@ -106,7 +106,7 @@ func (s *ModuleFeaturesUploader) Upload() {
 		resp, err := s.uploadFile(html, lang.String())
 
 		if err != nil {
-			s.log.Error("cannot upload file", slog.String("lang", lang.String()), logger.ErrAttr(err))
+			s.log.Error("cannot upload file", slog.String("lang", lang.String()), logger.Err(err))
 			continue
 		}
 

@@ -154,7 +154,7 @@ func NewJobManager() *JobManager {
 func DefaultJobErrorHandler() JobErrorHandler {
 	return func(name string, err error, log logger.Logger) {
 		if err != nil && name != "" {
-			log.Error("job failed with an error", slog.String("job", name), logger.ErrAttr(err))
+			log.Error("job failed with an error", slog.String("job", name), logger.Err(err))
 		}
 	}
 }
