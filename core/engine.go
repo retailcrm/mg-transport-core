@@ -179,6 +179,22 @@ func (e *Engine) UseZabbix(collectors []metrics.Collector) *Engine {
 	return e
 }
 
+func (e *Engine) HijackGinLogs() *Engine {
+	if e.Logger() == nil {
+		return e
+	}
+	gin.DefaultWriter = logger.WriterAdapter(e.Logger(), slog.LevelDebug)
+	gin.DefaultErrorWriter = logger.WriterAdapter(e.Logger(), slog.LevelError)
+	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
+		e.Logger().Debug("route",
+			slog.String(logger.HTTPMethodAttr, httpMethod),
+			slog.String("path", absolutePath),
+			slog.String(logger.HandlerAttr, handlerName),
+			slog.Int("handlerCount", nuHandlers))
+	}
+	return e
+}
+
 // TemplateFuncMap combines func map for templates.
 func (e *Engine) TemplateFuncMap(functions template.FuncMap) template.FuncMap {
 	funcMap := e.LocalizationFuncMap()

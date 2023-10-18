@@ -74,6 +74,7 @@ func (j *Job) getWrappedFunc(name string, log logger.Logger) func(callback JobAf
 			}
 		}()
 
+		log = log.With(logger.HandlerAttr, name)
 		err := j.Command(log)
 		if err != nil && j.ErrorHandler != nil {
 			j.ErrorHandler(name, err, log)
