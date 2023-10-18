@@ -9,6 +9,9 @@ const (
 	CounterIDAttr      = "counterId"
 	ErrorAttr          = "error"
 	FailureMessageAttr = "failureMessage"
+	HTTPMethodAttr     = "httpMethod"
+	HTTPStatusAttr     = "httpStatusCode"
+	HTTPStatusNameAttr = "httpStatusName"
 )
 
 func ErrAttr(err any) slog.Attr {
