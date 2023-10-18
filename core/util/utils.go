@@ -1,11 +1,13 @@
 package util
 
 import (
+	"bytes"
 	// nolint:gosec
 	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -16,6 +18,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/gin-gonic/gin"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 
@@ -280,4 +283,16 @@ func GetCurrencySymbol(code string) string {
 
 func FormatCurrencyValue(value float32) string {
 	return fmt.Sprintf("%.2f", value)
+}
+
+// BindJSONWithRaw will perform usual ShouldBindJSON and will return the original body data.
+func BindJSONWithRaw(c *gin.Context, obj any) ([]byte, error) {
+	closer := c.Request.Body
+	defer func() { _ = closer.Close() }()
+	data, err := io.ReadAll(closer)
+	if err != nil {
+		return []byte, err
+	}
+	c.Request.Body = io.NopCloser(bytes.NewReader(data))
+	return data, c.ShouldBindJSON(obj)
 }
