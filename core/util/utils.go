@@ -291,7 +291,7 @@ func BindJSONWithRaw(c *gin.Context, obj any) ([]byte, error) {
 	defer func() { _ = closer.Close() }()
 	data, err := io.ReadAll(closer)
 	if err != nil {
-		return []byte, err
+		return []byte{}, err
 	}
 	c.Request.Body = io.NopCloser(bytes.NewReader(data))
 	return data, c.ShouldBindJSON(obj)
