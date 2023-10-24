@@ -260,6 +260,9 @@ func (e *Engine) SetLogger(l logger.Logger) *Engine {
 
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
+	if !e.prepared && e.logger != nil {
+		return e
+	}
 	e.logger = l
 	return e
 }
