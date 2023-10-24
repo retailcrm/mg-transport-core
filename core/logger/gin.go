@@ -22,7 +22,8 @@ func GinMiddleware(log Logger) gin.HandlerFunc {
 			path = path + "?" + raw
 		}
 
-		log.Info("[GIN] request",
+		log.Info("request",
+			slog.String(HandlerAttr, "GIN"),
 			slog.String("startTime", start.Format(time.RFC3339)),
 			slog.String("endTime", end.Format(time.RFC3339)),
 			slog.Any("latency", end.Sub(start)/time.Millisecond),
