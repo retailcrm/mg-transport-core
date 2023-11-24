@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 )
 

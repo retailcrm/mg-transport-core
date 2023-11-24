@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"log/slog"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gomarkdown/markdown"
+	"go.uber.org/zap"
 	"golang.org/x/text/language"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
@@ -91,14 +91,14 @@ func (s *ModuleFeaturesUploader) Upload() {
 
 	content, err := os.ReadFile(s.featuresFilename)
 	if err != nil {
-		s.log.Error("cannot read markdown file %s %s", slog.String("fileName", s.featuresFilename), logger.Err(err))
+		s.log.Error("cannot read markdown file %s %s", zap.String("fileName", s.featuresFilename), logger.Err(err))
 		return
 	}
 
 	for _, lang := range languages {
 		translated, err := s.translate(content, lang)
 		if err != nil {
-			s.log.Error("cannot translate module features file", slog.String("lang", lang.String()), logger.Err(err))
+			s.log.Error("cannot translate module features file", zap.String("lang", lang.String()), logger.Err(err))
 			continue
 		}
 
@@ -106,7 +106,7 @@ func (s *ModuleFeaturesUploader) Upload() {
 		resp, err := s.uploadFile(html, lang.String())
 
 		if err != nil {
-			s.log.Error("cannot upload file", slog.String("lang", lang.String()), logger.Err(err))
+			s.log.Error("cannot upload file", zap.String("lang", lang.String()), logger.Err(err))
 			continue
 		}
 

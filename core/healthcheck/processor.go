@@ -1,9 +1,8 @@
 package healthcheck
 
 import (
-	"log/slog"
-
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+	"go.uber.org/zap"
 )
 
 const (
@@ -31,19 +30,19 @@ type CounterProcessor struct {
 func (c CounterProcessor) Process(id int, counter Counter) bool { // nolint:varnamelen
 	if counter.IsFailed() {
 		if counter.IsFailureProcessed() {
-			c.debugLog("skipping counter because its failure is already processed", slog.Int(logger.CounterIDAttr, id))
+			c.debugLog("skipping counter because its failure is already processed", zap.Int(logger.CounterIDAttr, id))
 			return true
 		}
 
 		apiURL, apiKey, _, exists := c.ConnectionDataProvider(id)
 		if !exists {
-			c.debugLog("cannot find connection data for counter", slog.Int(logger.CounterIDAttr, id))
+			c.debugLog("cannot find connection data for counter", zap.Int(logger.CounterIDAttr, id))
 			return true
 		}
 		err := c.Notifier(apiURL, apiKey, counter.Message())
 		if err != nil {
 			c.debugLog("cannot send notification for counter",
-				slog.Int(logger.CounterIDAttr, id), logger.Err(err), slog.String(logger.FailureMessageAttr, counter.Message()))
+				zap.Int(logger.CounterIDAttr, id), logger.Err(err), zap.String(logger.FailureMessageAttr, counter.Message()))
 		}
 		counter.FailureProcessed()
 		return true
@@ -56,7 +55,7 @@ func (c CounterProcessor) Process(id int, counter Counter) bool { // nolint:varn
 	// The results may not be representative.
 	if (succeeded + failed) < c.MinRequests {
 		c.debugLog("skipping counter because it has too few requests",
-			slog.Int(logger.CounterIDAttr, id), slog.Any("minRequests", c.MinRequests))
+			zap.Int(logger.CounterIDAttr, id), zap.Any("minRequests", c.MinRequests))
 		return true
 	}
 
@@ -75,13 +74,13 @@ func (c CounterProcessor) Process(id int, counter Counter) bool { // nolint:varn
 
 	apiURL, apiKey, lang, exists := c.ConnectionDataProvider(id)
 	if !exists {
-		c.debugLog("cannot find connection data for counter", slog.Int(logger.CounterIDAttr, id))
+		c.debugLog("cannot find connection data for counter", zap.Int(logger.CounterIDAttr, id))
 		return true
 	}
 	err := c.Notifier(apiURL, apiKey, c.getErrorText(counter.Name(), c.Error, lang))
 	if err != nil {
 		c.debugLog("cannot send notification for counter",
-			slog.Int(logger.CounterIDAttr, id), logger.Err(err), slog.String(logger.FailureMessageAttr, counter.Message()))
+			zap.Int(logger.CounterIDAttr, id), logger.Err(err), zap.String(logger.FailureMessageAttr, counter.Message()))
 	}
 	counter.CountersProcessed()
 	return true
@@ -99,6 +98,6 @@ func (c CounterProcessor) getErrorText(name, msg, lang string) string {
 
 func (c CounterProcessor) debugLog(msg string, args ...interface{}) {
 	if c.Debug {
-		c.Logger.Debug(msg, args...)
+		c.Logger.Debug(msg, logger.AnyZapFields(args)...)
 	}
 }

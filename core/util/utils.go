@@ -21,7 +21,6 @@ import (
 	"github.com/gin-gonic/gin"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
-
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
@@ -145,12 +144,12 @@ func (u *Utils) GetAPIClient(
 
 	if res := u.checkScopes(cr.Scopes, scopes); len(res) != 0 {
 		if len(credentials) == 0 || len(cr.Scopes) > 0 {
-			u.Logger.Error(url, status, res)
+			u.Logger.Error(url, logger.HTTPStatusCode(status), logger.Body(res))
 			return nil, http.StatusBadRequest, errorutil.NewInsufficientScopesErr(res)
 		}
 
 		if res := u.checkScopes(cr.Credentials, credentials[0]); len(res) != 0 {
-			u.Logger.Error(url, status, res)
+			u.Logger.Error(url, logger.HTTPStatusCode(status), logger.Body(res))
 			return nil, http.StatusBadRequest, errorutil.NewInsufficientScopesErr(res)
 		}
 	}

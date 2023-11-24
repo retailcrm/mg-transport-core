@@ -142,7 +142,7 @@ func (t *HTTPClientBuilderTest) Test_WithLogger() {
 	builder.WithLogger(nil)
 	assert.Nil(t.T(), builder.logger)
 
-	log := logger.NewDefaultText()
+	log := logger.NewDefault(true)
 	builder.WithLogger(log)
 	assert.NotNil(t.T(), builder.logger)
 }

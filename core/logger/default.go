@@ -1,87 +1,59 @@
 package logger
 
 import (
-	"context"
-	"log/slog"
-	"os"
+	"strconv"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
+type Logger interface {
+	With(fields ...zap.Field) Logger
+	WithLazy(fields ...zap.Field) Logger
+	Level() zapcore.Level
+	Check(lvl zapcore.Level, msg string) *zapcore.CheckedEntry
+	Log(lvl zapcore.Level, msg string, fields ...zap.Field)
+	Debug(msg string, fields ...zap.Field)
+	Info(msg string, fields ...zap.Field)
+	Warn(msg string, fields ...zap.Field)
+	Error(msg string, fields ...zap.Field)
+	DPanic(msg string, fields ...zap.Field)
+	Panic(msg string, fields ...zap.Field)
+	Fatal(msg string, fields ...zap.Field)
+	ForAccount(handler, conn, acc any) Logger
+	Sync() error
+}
+
 type Default struct {
-	Logger *slog.Logger
+	*zap.Logger
 }
 
-func NewDefault(log *slog.Logger) Logger {
-	return &Default{Logger: log}
+func NewDefault(debug bool) Logger {
+	return &Default{
+		Logger: NewZap(debug),
+	}
 }
 
-func NewDefaultText() Logger {
-	return NewDefault(slog.New(slog.NewTextHandler(os.Stdout, DefaultOpts)))
+func (l *Default) With(fields ...zap.Field) Logger {
+	return l.With(fields...).(Logger)
 }
 
-func NewDefaultJSON() Logger {
-	return NewDefault(slog.New(slog.NewJSONHandler(os.Stdout, DefaultOpts)))
+func (l *Default) WithLazy(fields ...zap.Field) Logger {
+	return l.WithLazy(fields...).(Logger)
 }
 
-func NewDefaultNil() Logger {
-	return NewDefault(slog.New(NilHandler))
+func (l *Default) ForAccount(handler, conn, acc any) Logger {
+	return l.WithLazy(zap.Any(HandlerAttr, handler), zap.Any(ConnectionAttr, conn), zap.Any(AccountAttr, acc))
 }
 
-func (d *Default) Handler() slog.Handler {
-	return d.Logger.Handler()
-}
-
-func (d *Default) ForAccount(handler, conn, acc any) Logger {
-	return d.With(slog.Any(HandlerAttr, handler), slog.Any(ConnectionAttr, conn), slog.Any(AccountAttr, acc))
-}
-
-func (d *Default) With(args ...any) Logger {
-	return &Default{Logger: d.Logger.With(args...)}
-}
-
-func (d *Default) WithGroup(name string) Logger {
-	return &Default{Logger: d.Logger.WithGroup(name)}
-}
-
-func (d *Default) Enabled(ctx context.Context, level slog.Level) bool {
-	return d.Logger.Enabled(ctx, level)
-}
-
-func (d *Default) Log(ctx context.Context, level slog.Level, msg string, args ...any) {
-	d.Logger.Log(ctx, level, msg, args...)
-}
-
-func (d *Default) LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
-	d.Logger.LogAttrs(ctx, level, msg, attrs...)
-}
-
-func (d *Default) Debug(msg string, args ...any) {
-	d.Logger.Debug(msg, args...)
-}
-
-func (d *Default) DebugContext(ctx context.Context, msg string, args ...any) {
-	d.Logger.DebugContext(ctx, msg, args...)
-}
-
-func (d *Default) Info(msg string, args ...any) {
-	d.Logger.Info(msg, args...)
-}
-
-func (d *Default) InfoContext(ctx context.Context, msg string, args ...any) {
-	d.Logger.InfoContext(ctx, msg, args...)
-}
-
-func (d *Default) Warn(msg string, args ...any) {
-	d.Logger.Warn(msg, args...)
-}
-
-func (d *Default) WarnContext(ctx context.Context, msg string, args ...any) {
-	d.Logger.WarnContext(ctx, msg, args...)
-}
-
-func (d *Default) Error(msg string, args ...any) {
-	d.Logger.Error(msg, args...)
-}
-
-func (d *Default) ErrorContext(ctx context.Context, msg string, args ...any) {
-	d.Logger.ErrorContext(ctx, msg, args...)
+func AnyZapFields(args []interface{}) []zap.Field {
+	fields := make([]zap.Field, len(args))
+	for i := 0; i < len(fields); i++ {
+		if val, ok := args[i].(zap.Field); ok {
+			fields[i] = val
+			continue
+		}
+		fields[i] = zap.Any("arg"+strconv.Itoa(i), args[i])
+	}
+	return fields
 }

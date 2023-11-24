@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -16,6 +15,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	sentrygin "github.com/getsentry/sentry-go/gin"
 	"github.com/pkg/errors"
+	"go.uber.org/zap"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 	"github.com/retailcrm/mg-transport-core/v2/core/stacktrace"
@@ -260,8 +260,8 @@ func (s *Sentry) recoveryMiddleware() gin.HandlerFunc { // nolint
 						}
 						headers[idx] = "header: " + headers[idx]
 					}
-					headersToStr := slog.String("headers", strings.Join(headers, "\r\n"))
-					formattedStack := slog.String("stacktrace", string(stack))
+					headersToStr := zap.String("headers", strings.Join(headers, "\r\n"))
+					formattedStack := zap.String("stacktrace", string(stack))
 					switch {
 					case brokenPipe:
 						l.Error("error", formattedErr, headersToStr)

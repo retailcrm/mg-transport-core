@@ -1,10 +1,8 @@
 package core
 
 import (
-	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"math/rand"
 	"strings"
 	"sync"
@@ -14,6 +12,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
@@ -26,7 +26,7 @@ type JobTest struct {
 	executeErr   chan error
 	panicValue   chan interface{}
 	lastLog      string
-	lastMsgLevel slog.Level
+	lastMsgLevel zapcore.Level
 	syncBool     bool
 }
 
@@ -37,18 +37,58 @@ type JobManagerTest struct {
 	syncRunnerFlag bool
 }
 
-type callbackLoggerFunc func(ctx context.Context, level slog.Level, msg string, args ...any)
+type callbackLoggerFunc func(level zapcore.Level, msg string, args ...zap.Field)
 
 type callbackLogger struct {
-	fn callbackLoggerFunc
+	fields []zap.Field
+	fn     callbackLoggerFunc
 }
 
-func (n *callbackLogger) Handler() slog.Handler {
-	return logger.NilHandler
+func (n *callbackLogger) Check(lvl zapcore.Level, msg string) *zapcore.CheckedEntry {
+	return &zapcore.CheckedEntry{}
 }
 
-func (n *callbackLogger) With(args ...any) logger.Logger {
-	return n
+func (n *callbackLogger) DPanic(msg string, fields ...zap.Field) {
+	n.fn(zap.PanicLevel, msg, fields...)
+}
+
+func (n *callbackLogger) Panic(msg string, fields ...zap.Field) {
+	n.fn(zap.PanicLevel, msg, fields...)
+}
+
+func (n *callbackLogger) Fatal(msg string, fields ...zap.Field) {
+	n.fn(zap.FatalLevel, msg, fields...)
+}
+
+func (n *callbackLogger) Sync() error {
+	return nil
+}
+
+func (n *callbackLogger) clone() *callbackLogger {
+	return &callbackLogger{fn: n.fn, fields: n.fields}
+}
+
+func (n *callbackLogger) cloneWithFields(fields []zap.Field) *callbackLogger {
+	cl := &callbackLogger{fn: n.fn, fields: n.fields}
+	existing := cl.fields
+	if len(existing) == 0 {
+		cl.fields = fields
+		return cl
+	}
+	cl.fields = append(existing, fields...)
+	return cl
+}
+
+func (n *callbackLogger) Level() zapcore.Level {
+	return zapcore.DebugLevel
+}
+
+func (n *callbackLogger) With(args ...zap.Field) logger.Logger {
+	return n.cloneWithFields(args)
+}
+
+func (n *callbackLogger) WithLazy(args ...zap.Field) logger.Logger {
+	return n.cloneWithFields(args)
 }
 
 func (n *callbackLogger) WithGroup(name string) logger.Logger {
@@ -59,47 +99,24 @@ func (n *callbackLogger) ForAccount(handler, conn, acc any) logger.Logger {
 	return n
 }
 
-func (n *callbackLogger) Enabled(ctx context.Context, level slog.Level) bool {
-	return true
+func (n *callbackLogger) Log(level zapcore.Level, msg string, args ...zap.Field) {
+	n.fn(level, msg, args...)
 }
 
-func (n *callbackLogger) Log(ctx context.Context, level slog.Level, msg string, args ...any) {
-	n.fn(ctx, level, msg, args...)
+func (n *callbackLogger) Debug(msg string, args ...zap.Field) {
+	n.Log(zap.DebugLevel, msg, args...)
 }
 
-func (n *callbackLogger) LogAttrs(ctx context.Context, level slog.Level, msg string, attrs ...slog.Attr) {
+func (n *callbackLogger) Info(msg string, args ...zap.Field) {
+	n.Log(zap.InfoLevel, msg, args...)
 }
 
-func (n *callbackLogger) Debug(msg string, args ...any) {
-	n.Log(nil, slog.LevelDebug, msg, args...)
+func (n *callbackLogger) Warn(msg string, args ...zap.Field) {
+	n.Log(zap.WarnLevel, msg, args...)
 }
 
-func (n *callbackLogger) DebugContext(ctx context.Context, msg string, args ...any) {
-	n.Log(ctx, slog.LevelDebug, msg, args...)
-}
-
-func (n *callbackLogger) Info(msg string, args ...any) {
-	n.Log(nil, slog.LevelInfo, msg, args...)
-}
-
-func (n *callbackLogger) InfoContext(ctx context.Context, msg string, args ...any) {
-	n.Log(ctx, slog.LevelInfo, msg, args...)
-}
-
-func (n *callbackLogger) Warn(msg string, args ...any) {
-	n.Log(nil, slog.LevelWarn, msg, args...)
-}
-
-func (n *callbackLogger) WarnContext(ctx context.Context, msg string, args ...any) {
-	n.Log(ctx, slog.LevelWarn, msg, args...)
-}
-
-func (n *callbackLogger) Error(msg string, args ...any) {
-	n.Log(nil, slog.LevelError, msg, args...)
-}
-
-func (n *callbackLogger) ErrorContext(ctx context.Context, msg string, args ...any) {
-	n.Log(ctx, slog.LevelError, msg, args...)
+func (n *callbackLogger) Error(msg string, args ...zap.Field) {
+	n.Log(zap.ErrorLevel, msg, args...)
 }
 
 func TestJob(t *testing.T) {
@@ -117,9 +134,9 @@ func TestDefaultJobErrorHandler(t *testing.T) {
 
 	fn := DefaultJobErrorHandler()
 	require.NotNil(t, fn)
-	fn("job", errors.New("test"), &callbackLogger{fn: func(_ context.Context, level slog.Level, s string, i ...interface{}) {
+	fn("job", errors.New("test"), &callbackLogger{fn: func(level zapcore.Level, s string, i ...zap.Field) {
 		require.Len(t, i, 2)
-		assert.Equal(t, "error=test", fmt.Sprintf("%s", i[1]))
+		assert.Equal(t, "error=test", fmt.Sprintf("%s=%v", i[1].Key, i[1].Interface))
 	}})
 }
 
@@ -130,9 +147,9 @@ func TestDefaultJobPanicHandler(t *testing.T) {
 
 	fn := DefaultJobPanicHandler()
 	require.NotNil(t, fn)
-	fn("job", errors.New("test"), &callbackLogger{fn: func(_ context.Context, level slog.Level, s string, i ...interface{}) {
+	fn("job", errors.New("test"), &callbackLogger{fn: func(level zapcore.Level, s string, i ...zap.Field) {
 		require.Len(t, i, 2)
-		assert.Equal(t, "value=test", fmt.Sprintf("%s", i[1]))
+		assert.Equal(t, "value=test", fmt.Sprintf("%s=%s", i[1].Key, i[1].Interface))
 	}})
 }
 
@@ -149,7 +166,7 @@ func (t *JobTest) testPanicHandler() JobPanicHandler {
 }
 
 func (t *JobTest) testLogger() logger.Logger {
-	return &callbackLogger{fn: func(_ context.Context, level slog.Level, format string, args ...interface{}) {
+	return &callbackLogger{fn: func(level zapcore.Level, format string, args ...zap.Field) {
 		if format == "" {
 			var sb strings.Builder
 			sb.Grow(3 * len(args)) // nolint:gomnd
@@ -161,7 +178,12 @@ func (t *JobTest) testLogger() logger.Logger {
 			format = strings.TrimRight(sb.String(), " ")
 		}
 
-		t.lastLog = fmt.Sprintf(format, args...)
+		anyFields := []any{}
+		for _, item := range args {
+			anyFields = append(anyFields, item.Key+"="+fmt.Sprint(item.Interface))
+		}
+
+		t.lastLog = fmt.Sprintf(format, anyFields...)
 		t.lastMsgLevel = level
 	}}
 }
@@ -406,7 +428,7 @@ func (t *JobManagerTest) WaitForJob() bool {
 
 func (t *JobManagerTest) Test_SetLogger() {
 	t.manager.logger = nil
-	t.manager.SetLogger(logger.NewDefaultText())
+	t.manager.SetLogger(logger.NewDefault(true))
 	assert.IsType(t.T(), &logger.Default{}, t.manager.logger)
 
 	t.manager.SetLogger(nil)

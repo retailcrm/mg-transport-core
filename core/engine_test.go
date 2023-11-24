@@ -252,7 +252,7 @@ func (e *EngineTest) Test_SetLogger() {
 	defer func() {
 		e.engine.logger = origLogger
 	}()
-	e.engine.logger = logger.NewDefaultNil()
+	e.engine.logger = logger.NewNil()
 	e.engine.SetLogger(nil)
 	assert.NotNil(e.T(), e.engine.logger)
 }

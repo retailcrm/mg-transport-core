@@ -1,9 +1,10 @@
 package logger
 
 import (
-	"github.com/gin-gonic/gin"
-	"log/slog"
 	"time"
+
+	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 // GinMiddleware will construct Gin middleware which will log requests.
@@ -23,14 +24,14 @@ func GinMiddleware(log Logger) gin.HandlerFunc {
 		}
 
 		log.Info("request",
-			slog.String(HandlerAttr, "GIN"),
-			slog.String("startTime", start.Format(time.RFC3339)),
-			slog.String("endTime", end.Format(time.RFC3339)),
-			slog.Any("latency", end.Sub(start)/time.Millisecond),
-			slog.String("remoteAddress", c.ClientIP()),
-			slog.String(HTTPMethodAttr, c.Request.Method),
-			slog.String("path", path),
-			slog.Int("bodySize", c.Writer.Size()),
+			zap.String(HandlerAttr, "GIN"),
+			zap.String("startTime", start.Format(time.RFC3339)),
+			zap.String("endTime", end.Format(time.RFC3339)),
+			zap.Any("latency", end.Sub(start)/time.Millisecond),
+			zap.String("remoteAddress", c.ClientIP()),
+			zap.String(HTTPMethodAttr, c.Request.Method),
+			zap.String("path", path),
+			zap.Int("bodySize", c.Writer.Size()),
 		)
 	}
 }

@@ -12,9 +12,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
-
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
@@ -275,7 +273,7 @@ func (b *HTTPClientBuilder) buildMocks() error {
 func (b *HTTPClientBuilder) log(msg string, args ...interface{}) {
 	if b.logging {
 		if b.logger != nil {
-			b.logger.Info(msg, args...)
+			b.logger.Info(msg, logger.AnyZapFields(args)...)
 		} else {
 			fmt.Println(append([]any{msg}, args...))
 		}

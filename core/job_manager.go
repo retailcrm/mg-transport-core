@@ -3,11 +3,11 @@ package core
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+	"go.uber.org/zap"
 )
 
 // JobFunc is empty func which should be executed in a parallel goroutine.
@@ -74,7 +74,7 @@ func (j *Job) getWrappedFunc(name string, log logger.Logger) func(callback JobAf
 			}
 		}()
 
-		log = log.With(logger.HandlerAttr, name)
+		log = log.With(logger.Handler(name))
 		err := j.Command(log)
 		if err != nil && j.ErrorHandler != nil {
 			j.ErrorHandler(name, err, log)
@@ -148,14 +148,14 @@ func (j *Job) runOnceSync(name string, log logger.Logger) {
 
 // NewJobManager is a JobManager constructor.
 func NewJobManager() *JobManager {
-	return &JobManager{jobs: &sync.Map{}, nilLogger: logger.NewDefaultNil()}
+	return &JobManager{jobs: &sync.Map{}, nilLogger: logger.NewNil()}
 }
 
 // DefaultJobErrorHandler returns default error handler for a job.
 func DefaultJobErrorHandler() JobErrorHandler {
 	return func(name string, err error, log logger.Logger) {
 		if err != nil && name != "" {
-			log.Error("job failed with an error", slog.String("job", name), logger.Err(err))
+			log.Error("job failed with an error", zap.String("job", name), logger.Err(err))
 		}
 	}
 }
@@ -164,7 +164,7 @@ func DefaultJobErrorHandler() JobErrorHandler {
 func DefaultJobPanicHandler() JobPanicHandler {
 	return func(name string, recoverValue interface{}, log logger.Logger) {
 		if recoverValue != nil && name != "" {
-			log.Error("job panicked with the value", slog.String("job", name), slog.Any("value", recoverValue))
+			log.Error("job panicked with the value", zap.String("job", name), zap.Any("value", recoverValue))
 		}
 	}
 }

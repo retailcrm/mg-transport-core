@@ -3,9 +3,11 @@ package testutil
 import (
 	"fmt"
 	"io"
-	"log/slog"
+	"os"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // ReadBuffer is implemented by the BufferLogger.
@@ -32,21 +34,32 @@ type BufferLogger struct {
 // NewBufferedLogger returns new BufferedLogger instance.
 func NewBufferedLogger() BufferedLogger {
 	bl := &BufferLogger{}
-	bl.Logger = slog.New(slog.NewTextHandler(&bl.buf, logger.DefaultOpts))
+	bl.Logger = zap.New(
+		zapcore.NewCore(
+			zapcore.NewConsoleEncoder(
+				logger.EncoderConfig()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), zapcore.DebugLevel))
 	return bl
 }
 
-// With doesn't do anything here and only added for backwards compatibility with the interface.
-func (l *BufferLogger) With(args ...any) logger.Logger {
+func (l *BufferLogger) With(fields ...zapcore.Field) logger.Logger {
 	return &BufferLogger{
 		Default: logger.Default{
-			Logger: l.Logger.With(args...),
+			Logger: l.Logger.With(fields...),
+		},
+	}
+}
+
+func (l *BufferLogger) WithLazy(fields ...zapcore.Field) logger.Logger {
+	return &BufferLogger{
+		Default: logger.Default{
+			Logger: l.Logger.WithLazy(fields...),
 		},
 	}
 }
 
 func (l *BufferLogger) ForAccount(handler, conn, acc any) logger.Logger {
-	return l.With(slog.Any(logger.HandlerAttr, handler), slog.Any(logger.ConnectionAttr, conn), slog.Any(logger.AccountAttr, acc))
+	return l.WithLazy(
+		zap.Any(logger.HandlerAttr, handler), zap.Any(logger.ConnectionAttr, conn), zap.Any(logger.AccountAttr, acc))
 }
 
 // Read bytes from the logger buffer. io.Reader implementation.

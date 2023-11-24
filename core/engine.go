@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
-	"log/slog"
 	"net/http"
 	"sync"
 
@@ -15,6 +14,7 @@ import (
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
 	"github.com/retailcrm/zabbix-metrics-collector"
+	"go.uber.org/zap"
 	"golang.org/x/text/language"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
@@ -141,13 +141,9 @@ func (e *Engine) Prepare() *Engine {
 		e.Localizer.Preload(e.PreloadLanguages)
 	}
 
-	if !e.Config.IsDebug() {
-		logger.DefaultOpts.Level = slog.LevelInfo
-	}
-
 	e.CreateDB(e.Config.GetDBConfig())
 	e.ResetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
-	e.SetLogger(logger.NewDefaultText())
+	e.SetLogger(logger.NewDefault(e.Config.IsDebug()))
 	e.Sentry.Localizer = &e.Localizer
 	e.Utils.Logger = e.Logger()
 	e.Sentry.Logger = e.Logger()
@@ -180,14 +176,14 @@ func (e *Engine) HijackGinLogs() *Engine {
 	if e.Logger() == nil {
 		return e
 	}
-	gin.DefaultWriter = logger.WriterAdapter(e.Logger(), slog.LevelDebug)
-	gin.DefaultErrorWriter = logger.WriterAdapter(e.Logger(), slog.LevelError)
+	gin.DefaultWriter = logger.WriterAdapter(e.Logger(), zap.DebugLevel)
+	gin.DefaultErrorWriter = logger.WriterAdapter(e.Logger(), zap.ErrorLevel)
 	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
 		e.Logger().Debug("route",
-			slog.String(logger.HTTPMethodAttr, httpMethod),
-			slog.String("path", absolutePath),
-			slog.String(logger.HandlerAttr, handlerName),
-			slog.Int("handlerCount", nuHandlers))
+			zap.String(logger.HTTPMethodAttr, httpMethod),
+			zap.String("path", absolutePath),
+			zap.String(logger.HandlerAttr, handlerName),
+			zap.Int("handlerCount", nuHandlers))
 	}
 	return e
 }

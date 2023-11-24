@@ -148,3 +148,8 @@ func (b *LockableBuffer) ReadString(delim byte) (line string, err error) {
 	b.rw.Lock()
 	return b.buf.ReadString(delim)
 }
+
+// Sync is a no-op.
+func (b *LockableBuffer) Sync() error {
+	return nil
+}

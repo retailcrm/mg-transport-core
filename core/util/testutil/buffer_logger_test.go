@@ -29,17 +29,17 @@ func (t *BufferLoggerTest) Test_Read() {
 
 	data, err := io.ReadAll(t.logger)
 	t.Require().NoError(err)
-	t.Assert().Contains(string(data), "level=DEBUG msg=test")
+	t.Assert().Contains(string(data), "level=debug test")
 }
 
 func (t *BufferLoggerTest) Test_Bytes() {
 	t.logger.Debug("test")
-	t.Assert().Contains(string(t.logger.Bytes()), "level=DEBUG msg=test")
+	t.Assert().Contains(string(t.logger.Bytes()), "level=debug test")
 }
 
 func (t *BufferLoggerTest) Test_String() {
 	t.logger.Debug("test")
-	t.Assert().Contains(t.logger.String(), "level=DEBUG msg=test")
+	t.Assert().Contains(t.logger.String(), "level=debug test")
 }
 
 func (t *BufferLoggerTest) TestRace() {

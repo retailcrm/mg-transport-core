@@ -2,8 +2,9 @@ package logger
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 const (
@@ -19,28 +20,32 @@ const (
 	HTTPStatusNameAttr = "statusName"
 )
 
-func Err(err any) slog.Attr {
+func Err(err any) zap.Field {
 	if err == nil {
-		return slog.String(ErrorAttr, "<nil>")
+		return zap.String(ErrorAttr, "<nil>")
 	}
-	return slog.Any(ErrorAttr, err)
+	return zap.Any(ErrorAttr, err)
 }
 
-func HTTPStatusCode(code int) slog.Attr {
-	return slog.Int(HTTPStatusAttr, code)
+func Handler(name string) zap.Field {
+	return zap.String(HandlerAttr, name)
 }
 
-func HTTPStatusName(code int) slog.Attr {
-	return slog.String(HTTPStatusNameAttr, http.StatusText(code))
+func HTTPStatusCode(code int) zap.Field {
+	return zap.Int(HTTPStatusAttr, code)
 }
 
-func Body(val any) slog.Attr {
+func HTTPStatusName(code int) zap.Field {
+	return zap.String(HTTPStatusNameAttr, http.StatusText(code))
+}
+
+func Body(val any) zap.Field {
 	switch item := val.(type) {
 	case string:
-		return slog.String(BodyAttr, item)
+		return zap.String(BodyAttr, item)
 	case []byte:
-		return slog.String(BodyAttr, string(item))
+		return zap.String(BodyAttr, string(item))
 	default:
-		return slog.String(BodyAttr, fmt.Sprintf("%#v", val))
+		return zap.String(BodyAttr, fmt.Sprintf("%#v", val))
 	}
 }
