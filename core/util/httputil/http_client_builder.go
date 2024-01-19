@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"log/slog"
+	"go.uber.org/zap"
 	"net"
 	"net/http"
 	"net/url"
@@ -230,7 +230,7 @@ func (b *HTTPClientBuilder) buildMocks() error {
 	}
 
 	if b.mockHost != "" && b.mockPort != "" && len(b.mockedDomains) > 0 {
-		b.log("Mock address has been set", slog.String("address", net.JoinHostPort(b.mockHost, b.mockPort)))
+		b.log("Mock address has been set", zap.String("address", net.JoinHostPort(b.mockHost, b.mockPort)))
 		b.log("Mocked domains: ")
 
 		for _, domain := range b.mockedDomains {
