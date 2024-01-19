@@ -43,7 +43,15 @@ func (l *Nil) Panic(msg string, fields ...zap.Field) {}
 
 func (l *Nil) Fatal(msg string, fields ...zap.Field) {}
 
-func (l *Nil) ForAccount(handler, conn, acc any) Logger {
+func (l *Nil) ForHandler(handler any) Logger {
+	return l
+}
+
+func (l *Nil) ForConnection(conn any) Logger {
+	return l
+}
+
+func (l *Nil) ForAccount(acc any) Logger {
 	return l
 }
 

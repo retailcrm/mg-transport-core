@@ -20,7 +20,9 @@ type Logger interface {
 	DPanic(msg string, fields ...zap.Field)
 	Panic(msg string, fields ...zap.Field)
 	Fatal(msg string, fields ...zap.Field)
-	ForAccount(handler, conn, acc any) Logger
+	ForHandler(handler any) Logger
+	ForConnection(conn any) Logger
+	ForAccount(acc any) Logger
 	Sync() error
 }
 
@@ -42,8 +44,16 @@ func (l *Default) WithLazy(fields ...zap.Field) Logger {
 	return l.WithLazy(fields...).(Logger)
 }
 
-func (l *Default) ForAccount(handler, conn, acc any) Logger {
-	return l.WithLazy(zap.Any(HandlerAttr, handler), zap.Any(ConnectionAttr, conn), zap.Any(AccountAttr, acc))
+func (l *Default) ForHandler(handler any) Logger {
+	return l.WithLazy(zap.Any(HandlerAttr, handler))
+}
+
+func (l *Default) ForConnection(conn any) Logger {
+	return l.WithLazy(zap.Any(ConnectionAttr, conn))
+}
+
+func (l *Default) ForAccount(acc any) Logger {
+	return l.WithLazy(zap.Any(AccountAttr, acc))
 }
 
 func AnyZapFields(args []interface{}) []zap.Field {

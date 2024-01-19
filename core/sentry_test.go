@@ -277,7 +277,7 @@ func (s *SentryTest) TestSentry_CaptureException() {
 
 func (s *SentryTest) TestSentry_obtainErrorLogger_Existing() {
 	ctx, _ := s.ginCtxMock()
-	log := testutil.NewBufferedLogger().ForAccount("component", "conn", "acc")
+	log := testutil.NewBufferedLogger().ForHandler("component").ForConnection("conn").ForAccount("acc")
 	ctx.Set("logger", log)
 
 	s.Assert().Equal(log, s.sentry.obtainErrorLogger(ctx))

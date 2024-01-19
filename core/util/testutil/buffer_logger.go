@@ -57,9 +57,16 @@ func (l *BufferLogger) WithLazy(fields ...zapcore.Field) logger.Logger {
 	}
 }
 
-func (l *BufferLogger) ForAccount(handler, conn, acc any) logger.Logger {
-	return l.WithLazy(
-		zap.Any(logger.HandlerAttr, handler), zap.Any(logger.ConnectionAttr, conn), zap.Any(logger.AccountAttr, acc))
+func (l *BufferLogger) ForHandler(handler any) logger.Logger {
+	return l.WithLazy(zap.Any(logger.HandlerAttr, handler))
+}
+
+func (l *BufferLogger) ForConnection(conn any) logger.Logger {
+	return l.WithLazy(zap.Any(logger.ConnectionAttr, conn))
+}
+
+func (l *BufferLogger) ForAccount(acc any) logger.Logger {
+	return l.WithLazy(zap.Any(logger.AccountAttr, acc))
 }
 
 // Read bytes from the logger buffer. io.Reader implementation.

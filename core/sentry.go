@@ -150,7 +150,7 @@ func (s *Sentry) obtainErrorLogger(c *gin.Context) logger.Logger {
 	connectionID := "{no connection ID}"
 	accountID := "{no account ID}"
 	if s.SentryLoggerConfig.TagForConnection == "" && s.SentryLoggerConfig.TagForAccount == "" {
-		return s.Logger.ForAccount("Sentry", connectionID, accountID)
+		return s.Logger.ForHandler("Sentry").ForConnection(connectionID).ForAccount(accountID)
 	}
 
 	for tag := range s.tagsFromContext(c) {
@@ -162,7 +162,7 @@ func (s *Sentry) obtainErrorLogger(c *gin.Context) logger.Logger {
 		}
 	}
 
-	return s.Logger.ForAccount("Sentry", connectionID, accountID)
+	return s.Logger.ForHandler("Sentry").ForConnection(connectionID).ForAccount(accountID)
 }
 
 // tagsSetterMiddleware sets event tags into Sentry events.

@@ -95,7 +95,15 @@ func (n *callbackLogger) WithGroup(name string) logger.Logger {
 	return n
 }
 
-func (n *callbackLogger) ForAccount(handler, conn, acc any) logger.Logger {
+func (n *callbackLogger) ForHandler(handler any) logger.Logger {
+	return n
+}
+
+func (n *callbackLogger) ForConnection(conn any) logger.Logger {
+	return n
+}
+
+func (n *callbackLogger) ForAccount(acc any) logger.Logger {
 	return n
 }
 
