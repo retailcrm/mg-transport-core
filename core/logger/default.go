@@ -37,11 +37,11 @@ func NewDefault(debug bool) Logger {
 }
 
 func (l *Default) With(fields ...zap.Field) Logger {
-	return l.With(fields...).(Logger)
+	return l.clone(l.Logger.With(fields...))
 }
 
 func (l *Default) WithLazy(fields ...zap.Field) Logger {
-	return l.WithLazy(fields...).(Logger)
+	return l.clone(l.Logger.WithLazy(fields...))
 }
 
 func (l *Default) ForHandler(handler any) Logger {
@@ -54,6 +54,10 @@ func (l *Default) ForConnection(conn any) Logger {
 
 func (l *Default) ForAccount(acc any) Logger {
 	return l.WithLazy(zap.Any(AccountAttr, acc))
+}
+
+func (l *Default) clone(log *zap.Logger) Logger {
+	return &Default{Logger: log}
 }
 
 func AnyZapFields(args []interface{}) []zap.Field {
