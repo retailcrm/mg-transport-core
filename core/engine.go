@@ -13,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/retailcrm/zabbix-metrics-collector"
+	metrics "github.com/retailcrm/zabbix-metrics-collector"
 	"go.uber.org/zap"
 	"golang.org/x/text/language"
 
@@ -141,9 +141,14 @@ func (e *Engine) Prepare() *Engine {
 		e.Localizer.Preload(e.PreloadLanguages)
 	}
 
+	logFormat := "json"
+	if format := e.Config.GetLogFormat(); format != "" {
+		logFormat = format
+	}
+
 	e.CreateDB(e.Config.GetDBConfig())
 	e.ResetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
-	e.SetLogger(logger.NewDefault(e.Config.IsDebug()))
+	e.SetLogger(logger.NewDefault(logFormat, e.Config.IsDebug()))
 	e.Sentry.Localizer = &e.Localizer
 	e.Utils.Logger = e.Logger()
 	e.Sentry.Logger = e.Logger()

@@ -30,9 +30,9 @@ type Default struct {
 	*zap.Logger
 }
 
-func NewDefault(debug bool) Logger {
+func NewDefault(format string, debug bool) Logger {
 	return &Default{
-		Logger: NewZap(debug),
+		Logger: NewZap(format, debug),
 	}
 }
 

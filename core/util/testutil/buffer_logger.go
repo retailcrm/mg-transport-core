@@ -37,7 +37,7 @@ func NewBufferedLogger() BufferedLogger {
 	bl.Logger = zap.New(
 		zapcore.NewCore(
 			zapcore.NewConsoleEncoder(
-				logger.EncoderConfig()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), zapcore.DebugLevel))
+				logger.EncoderConfigConsole()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), zapcore.DebugLevel))
 	return bl
 }
 

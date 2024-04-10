@@ -38,6 +38,7 @@ transport_info:
 
 sentry_dsn: dsn string
 log_level: 5
+log_format: console
 debug: true
 update_interval: 24
 
@@ -88,6 +89,10 @@ func (c *ConfigTest) Test_GetSentryDSN() {
 
 func (c *ConfigTest) Test_GetLogLevel() {
 	assert.Equal(c.T(), logging.Level(5), c.config.GetLogLevel())
+}
+
+func (c *ConfigTest) Test_GetLogFormat() {
+	assert.Equal(c.T(), "console", c.config.GetLogFormat())
 }
 
 func (c *ConfigTest) Test_IsDebug() {
