@@ -6,26 +6,9 @@ output:
   format: colored-line-number
   sort-results: true
 
-# Linters below do not support go1.18 yet because of generics.
-# See https://github.com/golangci/golangci-lint/issues/2649
-#    - bodyclose
-#    - sqlclosecheck
-
 linters:
   disable-all: true
   enable:
-    - paralleltest
-    - tparallel
-    - asciicheck
-    - asasalint
-    - varnamelen
-    - reassign
-    - nilnil
-    - nilerr
-    - nakedret
-    - goprintffuncname
-    - typecheck
-    - errchkjson
     - errcheck
     - gosimple
     - govet
@@ -33,6 +16,7 @@ linters:
     - staticcheck
     - unused
     - unparam
+    - bodyclose
     - dogsled
     - dupl
     - errorlint
@@ -46,6 +30,7 @@ linters:
     - godot
     - goimports
     - revive
+    - gomnd
     - gosec
     - lll
     - makezero
@@ -53,9 +38,10 @@ linters:
     - nestif
     - prealloc
     - predeclared
-    - exportloopref
+    - sqlclosecheck
     - unconvert
     - whitespace
+    - unused
 
 linters-settings:
   govet:
@@ -64,11 +50,9 @@ linters-settings:
     enable:
       - assign
       - atomic
-      - atomicalign
       - bools
       - buildtag
       - copylocks
-      - fieldalignment
       - httpresponse
       - loopclosure
       - lostcancel
@@ -80,6 +64,7 @@ linters-settings:
       - unmarshal
       - unreachable
       - unsafeptr
+      - unused
     settings:
       printf:
         funcs:
@@ -147,20 +132,18 @@ linters-settings:
     threshold: 200
   errorlint:
     errorf: true
-    asserts: false
-    comparison: false
   exhaustive:
     check-generated: false
     default-signifies-exhaustive: false
   funlen:
-    lines: 90
+    lines: 60
     statements: 40
   gocognit:
     min-complexity: 25
   gocyclo:
     min-complexity: 25
   goimports:
-    local-prefixes: github.com/retailcrm/mg-transport-core
+    local-prefixes: github.com/retailcrm/mg-transport-api-client-go
   lll:
     line-length: 120
   misspell:
@@ -170,25 +153,23 @@ linters-settings:
   whitespace:
     multi-if: false
     multi-func: false
-  varnamelen:
-    max-distance: 10
-    ignore-map-index-ok: true
-    ignore-type-assert-ok: true
-    ignore-chan-recv-ok: true
-    ignore-decls:
-      - t *testing.T
-      - e error
-      - i int
+
 issues:
   exclude-rules:
     - path: _test\.go
       linters:
+        - dupl
+        - gomnd
         - lll
+        - bodyclose
         - errcheck
+        - sqlclosecheck
         - misspell
         - ineffassign
         - whitespace
         - makezero
+        - maligned
+        - ifshort
         - errcheck
         - funlen
         - goconst
@@ -196,10 +177,6 @@ issues:
         - gocyclo
         - godot
         - unused
-        - errchkjson
-        - varnamelen
-    - path: \.go
-      text: "Error return value of `io.WriteString` is not checked"
   exclude-use-default: true
   exclude-case-sensitive: false
   max-issues-per-linter: 0
@@ -211,4 +188,4 @@ severity:
   case-sensitive: false
 
 service:
-  golangci-lint-version: 1.50.x
+  golangci-lint-version: 1.55.x
