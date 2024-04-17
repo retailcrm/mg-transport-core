@@ -6,11 +6,11 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/h2non/gock"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	"github.com/retailcrm/mg-transport-core/v2/core/util/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"gopkg.in/h2non/gock.v1"
 )
 
 func TestDefaultNotifyFunc(t *testing.T) { // nolint:paralleltest
