@@ -122,7 +122,6 @@ linters-settings:
           - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Noticef
           - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Infof
           - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Debugf
-  :
   unused:
     check-exported: false
   unparam:
