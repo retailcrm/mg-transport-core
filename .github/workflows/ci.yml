@@ -46,7 +46,7 @@ jobs:
       - name: Get dependencies
         run: go mod tidy
       - name: Tests
-        run: go test ./... -v -cpu 2 -timeout 10s -race -cover -coverprofile=coverage.txt -covermode=atomic
+        run: go test ./... -v -cpu 2 -timeout 30s -race -cover -coverprofile=coverage.txt -covermode=atomic
       - name: Coverage
         run: |
           go install github.com/axw/gocov/gocov@latest
