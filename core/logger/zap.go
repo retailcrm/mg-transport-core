@@ -42,17 +42,17 @@ func EncoderConfigConsole() zapcore.EncoderConfig {
 	return zapcore.EncoderConfig{
 		MessageKey:    "message",
 		LevelKey:      "level",
-		TimeKey:       "timestamp",
+		TimeKey:       "datetime",
 		NameKey:       "logger",
 		CallerKey:     "caller",
 		FunctionKey:   zapcore.OmitKey,
 		StacktraceKey: "",
 		LineEnding:    "\n",
 		EncodeLevel: func(level zapcore.Level, encoder zapcore.PrimitiveArrayEncoder) {
-			encoder.AppendString("level=" + level.CapitalString())
+			encoder.AppendString("level_name=" + level.CapitalString())
 		},
 		EncodeTime: func(t time.Time, encoder zapcore.PrimitiveArrayEncoder) {
-			encoder.AppendString("time=" + t.Format(time.RFC3339))
+			encoder.AppendString("datetime=" + t.Format(time.RFC3339))
 		},
 		EncodeDuration: zapcore.StringDurationEncoder,
 		EncodeCaller: func(caller zapcore.EntryCaller, encoder zapcore.PrimitiveArrayEncoder) {
@@ -85,8 +85,8 @@ func NewZapJSON(debug bool) *zap.Logger {
 func EncoderConfigJSON() zapcore.EncoderConfig {
 	return zapcore.EncoderConfig{
 		MessageKey:       "message",
-		LevelKey:         "level",
-		TimeKey:          "timestamp",
+		LevelKey:         "level_name",
+		TimeKey:          "datetime",
 		NameKey:          "logger",
 		CallerKey:        "caller",
 		FunctionKey:      zapcore.OmitKey,
