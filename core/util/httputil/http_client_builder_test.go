@@ -92,6 +92,13 @@ func (t *HTTPClientBuilderTest) Test_SetCertPool() {
 	assert.Equal(t.T(), pool, t.builder.httpTransport.TLSClientConfig.RootCAs)
 }
 
+func (t *HTTPClientBuilderTest) Test_SetProxy() {
+	t.builder.SetProxy(nil)
+	assert.Nil(t.T(), t.builder.httpTransport.Proxy)
+	t.builder.SetProxy(http.ProxyFromEnvironment)
+	assert.NotNil(t.T(), t.builder.httpTransport.Proxy)
+}
+
 func (t *HTTPClientBuilderTest) Test_FromConfigNil() {
 	defer func() {
 		assert.Nil(t.T(), recover())
@@ -161,6 +168,7 @@ func (t *HTTPClientBuilderTest) Test_Build() {
 
 	assert.NoError(t.T(), err)
 	assert.NotNil(t.T(), client)
+	assert.Nil(t.T(), client.Transport.(*http.Transport).Proxy)
 	assert.Equal(t.T(), client, http.DefaultClient)
 	assert.Equal(t.T(), timeout*time.Second, client.Timeout)
 	assert.Equal(t.T(), pool, client.Transport.(*http.Transport).TLSClientConfig.RootCAs)
@@ -290,6 +298,7 @@ uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 		SetSSLVerification(false).
 		Build()
 	require.NoError(t.T(), err, "cannot build client")
+	assert.Nil(t.T(), client.Transport.(*http.Transport).Proxy)
 
 	resp, err := client.Get(mockProto + mockDomainAddr)
 	if err != nil && strings.Contains(err.Error(), "connection refused") {
@@ -314,6 +323,7 @@ func (t *HTTPClientBuilderTest) Test_UseTLS10() {
 	t.Require().NotNil(client.Transport)
 	t.Require().NotNil(client.Transport.(*http.Transport).TLSClientConfig)
 	t.Assert().Equal(uint16(tls.VersionTLS10), client.Transport.(*http.Transport).TLSClientConfig.MinVersion)
+	t.Assert().NotNil(client.Transport.(*http.Transport).Proxy)
 }
 
 // taken from https://stackoverflow.com/questions/23558425/how-do-i-get-the-local-ip-address-in-go

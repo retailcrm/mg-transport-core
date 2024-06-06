@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/pkg/errors"
@@ -14,6 +15,14 @@ import (
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+)
+
+const (
+	defaultDialerTimeout         = 30 * time.Second
+	defaultIdleConnTimeout       = 90 * time.Second
+	defaultTLSHandshakeTimeout   = 10 * time.Second
+	defaultExpectContinueTimeout = 1 * time.Second
+	defaultMaxIdleConns          = 100
 )
 
 // DefaultClient stores original http.DefaultClient.
@@ -24,28 +33,29 @@ var DefaultTransport = http.DefaultTransport
 
 // HTTPClientBuilder builds http client with mocks (if necessary) and timeout.
 // Example:
-// 		// Build HTTP client with timeout = 10 sec, without SSL certificates verification and with mocked google.com
-// 		client, err := NewHTTPClientBuilder().
-// 			SetTimeout(10).
-// 			SetMockAddress("api_mock:3004").
-// 			AddMockedDomain("google.com").
-// 			SetSSLVerification(false).
-// 			Build()
 //
-// 		if err != nil {
-// 			fmt.Print(err)
-// 		}
+//	// Build HTTP client with timeout = 10 sec, without SSL certificates verification and with mocked google.com
+//	client, err := NewHTTPClientBuilder().
+//		SetTimeout(10).
+//		SetMockAddress("api_mock:3004").
+//		AddMockedDomain("google.com").
+//		SetSSLVerification(false).
+//		Build()
 //
-// 		// Actual response will be returned from "api_mock:3004" (it should provide any ssl certificate)
-// 		if resp, err := client.Get("https://google.com"); err == nil {
-// 			if data, err := ioutil.ReadAll(resp.Body); err == nil {
-// 				fmt.Printf("Data: %s", string(data))
-// 			} else {
-// 				fmt.Print(err)
-// 			}
-// 		} else {
-// 			fmt.Print(err)
-// 		}
+//	if err != nil {
+//		fmt.Print(err)
+//	}
+//
+//	// Actual response will be returned from "api_mock:3004" (it should provide any ssl certificate)
+//	if resp, err := client.Get("https://google.com"); err == nil {
+//		if data, err := ioutil.ReadAll(resp.Body); err == nil {
+//			fmt.Printf("Data: %s", string(data))
+//		} else {
+//			fmt.Print(err)
+//		}
+//	} else {
+//		fmt.Print(err)
+//	}
 type HTTPClientBuilder struct {
 	logger        logger.Logger
 	httpClient    *http.Client
@@ -64,11 +74,22 @@ type HTTPClientBuilder struct {
 // NewHTTPClientBuilder returns HTTPClientBuilder with default values.
 func NewHTTPClientBuilder() *HTTPClientBuilder {
 	return &HTTPClientBuilder{
-		built:         false,
-		httpClient:    &http.Client{},
-		httpTransport: &http.Transport{},
+		built:      false,
+		httpClient: &http.Client{},
+		httpTransport: &http.Transport{
+			Proxy: http.ProxyFromEnvironment,
+			DialContext: (&net.Dialer{
+				Timeout:   defaultDialerTimeout,
+				KeepAlive: defaultDialerTimeout,
+			}).DialContext,
+			ForceAttemptHTTP2:     true,
+			MaxIdleConns:          defaultMaxIdleConns,
+			IdleConnTimeout:       defaultIdleConnTimeout,
+			TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
+			ExpectContinueTimeout: defaultExpectContinueTimeout,
+		},
 		tlsVersion:    tls.VersionTLS12,
-		timeout:       30 * time.Second,
+		timeout:       defaultDialerTimeout,
 		mockAddress:   "",
 		mockedDomains: []string{},
 		logging:       false,
@@ -147,6 +168,11 @@ func (b *HTTPClientBuilder) SetLogging(flag bool) *HTTPClientBuilder {
 	return b
 }
 
+func (b *HTTPClientBuilder) SetProxy(proxy func(*http.Request) (*url.URL, error)) *HTTPClientBuilder {
+	b.httpTransport.Proxy = proxy
+	return b
+}
+
 // FromConfig fulfills mock configuration from HTTPClientConfig.
 func (b *HTTPClientBuilder) FromConfig(config *config.HTTPClientConfig) *HTTPClientBuilder {
 	if config == nil {
@@ -212,6 +238,7 @@ func (b *HTTPClientBuilder) buildMocks() error {
 			b.logf(" - %s\n", domain)
 		}
 
+		b.httpTransport.Proxy = nil
 		b.httpTransport.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
 			var (
 				host string
