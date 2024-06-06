@@ -17,6 +17,14 @@ import (
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
+const (
+	defaultDialerTimeout         = 30 * time.Second
+	defaultIdleConnTimeout       = 90 * time.Second
+	defaultTLSHandshakeTimeout   = 10 * time.Second
+	defaultExpectContinueTimeout = 1 * time.Second
+	defaultMaxIdleConns          = 100
+)
+
 // DefaultClient stores original http.DefaultClient.
 var DefaultClient = http.DefaultClient
 
@@ -71,17 +79,17 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 		httpTransport: &http.Transport{
 			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
-				Timeout:   30 * time.Second,
-				KeepAlive: 30 * time.Second,
+				Timeout:   defaultDialerTimeout,
+				KeepAlive: defaultDialerTimeout,
 			}).DialContext,
 			ForceAttemptHTTP2:     true,
-			MaxIdleConns:          100,
-			IdleConnTimeout:       90 * time.Second,
-			TLSHandshakeTimeout:   10 * time.Second,
-			ExpectContinueTimeout: 1 * time.Second,
+			MaxIdleConns:          defaultMaxIdleConns,
+			IdleConnTimeout:       defaultIdleConnTimeout,
+			TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
+			ExpectContinueTimeout: defaultExpectContinueTimeout,
 		},
 		tlsVersion:    tls.VersionTLS12,
-		timeout:       30 * time.Second,
+		timeout:       defaultDialerTimeout,
 		mockAddress:   "",
 		mockedDomains: []string{},
 		logging:       false,
