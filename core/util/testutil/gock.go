@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"gopkg.in/h2non/gock.v1"
+	"github.com/h2non/gock"
 )
 
 // UnmatchedRequestsTestingT contains all of *testing.T methods which are needed for AssertNoUnmatchedRequests.

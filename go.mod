@@ -17,6 +17,7 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20221013030248-663e2500819c
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
+	github.com/h2non/gock v1.2.0
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jinzhu/gorm v1.9.11
 	github.com/nicksnyder/go-i18n/v2 v2.0.2
@@ -29,7 +30,6 @@ require (
 	go.uber.org/atomic v1.10.0
 	golang.org/x/text v0.9.0
 	gopkg.in/gormigrate.v1 v1.6.0
-	gopkg.in/h2non/gock.v1 v1.1.2
 	gopkg.in/yaml.v2 v2.4.0
 )
 

@@ -8,13 +8,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/h2non/gock"
 	"github.com/op/go-logging"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
-	"gopkg.in/h2non/gock.v1"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
 
