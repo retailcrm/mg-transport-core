@@ -436,7 +436,7 @@ func (t *JobManagerTest) WaitForJob() bool {
 
 func (t *JobManagerTest) Test_SetLogger() {
 	t.manager.logger = nil
-	t.manager.SetLogger(logger.NewDefault("console", true))
+	t.manager.SetLogger(logger.NewDefault("json", true))
 	assert.IsType(t.T(), &logger.Default{}, t.manager.logger)
 
 	t.manager.SetLogger(nil)

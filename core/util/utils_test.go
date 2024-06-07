@@ -38,7 +38,7 @@ func mgClient() *v1.MgClient {
 }
 
 func (u *UtilsTest) SetupSuite() {
-	logger := logger.NewDefault("console", true)
+	logger := logger.NewDefault("json", true)
 	awsConfig := config.AWS{
 		AccessKeyID:     "access key id (will be removed)",
 		SecretAccessKey: "secret access key",

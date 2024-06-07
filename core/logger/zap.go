@@ -71,7 +71,7 @@ func NewZapJSON(debug bool) *zap.Logger {
 	log, err := zap.Config{
 		Level:            zap.NewAtomicLevelAt(level),
 		Development:      debug,
-		Encoding:         "json",
+		Encoding:         "json-with-context",
 		EncoderConfig:    EncoderConfigJSON(),
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},

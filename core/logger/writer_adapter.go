@@ -11,6 +11,7 @@ type writerAdapter struct {
 	level zapcore.Level
 }
 
+// WriterAdapter returns an io.Writer that can be used to write log messages. Message level is preconfigured.
 func WriterAdapter(log Logger, level zapcore.Level) io.Writer {
 	return &writerAdapter{log: log, level: level}
 }

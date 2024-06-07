@@ -5,8 +5,10 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Nil logger doesn't do anything.
 type Nil struct{}
 
+// NewNil constructs new *Nil.
 func NewNil() Logger {
 	return &Nil{}
 }

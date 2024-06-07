@@ -36,8 +36,8 @@ func NewBufferedLogger() BufferedLogger {
 	bl := &BufferLogger{}
 	bl.Logger = zap.New(
 		zapcore.NewCore(
-			zapcore.NewConsoleEncoder(
-				logger.EncoderConfigConsole()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), zapcore.DebugLevel))
+			logger.NewJSONWithContextEncoder(
+				logger.EncoderConfigJSON()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), zapcore.DebugLevel))
 	return bl
 }
 

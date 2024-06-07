@@ -1,6 +1,8 @@
 module github.com/retailcrm/mg-transport-core/v2
 
-go 1.21
+go 1.21.4
+
+toolchain go1.22.0
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
@@ -17,6 +19,7 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20221013030248-663e2500819c
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
+	github.com/guregu/null/v5 v5.0.0
 	github.com/h2non/gock v1.2.0
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jinzhu/gorm v1.9.11
