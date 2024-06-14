@@ -11,7 +11,7 @@ import (
 
 func TestMGTransportClientAdapter(t *testing.T) {
 	httpClient := &http.Client{}
-	log := newJSONBufferedLogger()
+	log := newJSONBufferedLogger(nil)
 	client := v1.NewWithClient("https://mg.dev", "test_token", httpClient).
 		WithLogger(MGTransportClientAdapter(log.Logger()))
 	client.Debug = true

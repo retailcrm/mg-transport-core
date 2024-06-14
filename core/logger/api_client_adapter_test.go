@@ -10,7 +10,7 @@ import (
 )
 
 func TestAPIClientAdapter(t *testing.T) {
-	log := newJSONBufferedLogger()
+	log := newJSONBufferedLogger(nil)
 	client := retailcrm.New("https://example.com", "test_key").WithLogger(APIClientAdapter(log.Logger()))
 	client.Debug = true
 

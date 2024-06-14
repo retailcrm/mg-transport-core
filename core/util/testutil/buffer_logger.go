@@ -26,6 +26,16 @@ type BufferedLogger interface {
 }
 
 // BufferLogger is an implementation of the BufferedLogger.
+//
+// BufferLogger can be used in tests to match specific log messages. It uses JSON by default (hardcoded for now).
+// It implements fmt.Stringer and provides an adapter to the underlying buffer, which means it can also return
+// Bytes(), can be used like io.Reader and can be cleaned using Reset() method.
+//
+// Usage:
+//
+//	log := NewBufferedLogger()
+//	// Some other code that works with logger.
+//	fmt.Println(log.String())
 type BufferLogger struct {
 	logger.Default
 	buf LockableBuffer

@@ -13,10 +13,10 @@ type zabbixCollectorAdapter struct {
 func (a *zabbixCollectorAdapter) Errorf(format string, args ...interface{}) {
 	baseMsg := "cannot send metrics to Zabbix"
 	switch format {
-	case "cannot send metrics to Zabbix: %v":
-		baseMsg = "cannot stop collector"
-		fallthrough
 	case "cannot stop collector: %s":
+		baseMsg = "cannot stop Zabbix collector"
+		fallthrough
+	case "cannot send metrics to Zabbix: %v":
 		var err interface{}
 		if len(args) > 0 {
 			err = args[0]

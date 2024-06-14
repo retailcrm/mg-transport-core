@@ -29,8 +29,10 @@ type jSONRecordScanner struct {
 	buf  *bufferLogger
 }
 
-func newJSONBufferedLogger() *jSONRecordScanner {
-	buf := newBufferLogger()
+func newJSONBufferedLogger(buf *bufferLogger) *jSONRecordScanner {
+	if buf == nil {
+		buf = newBufferLogger()
+	}
 	return &jSONRecordScanner{scan: bufio.NewScanner(buf), buf: buf}
 }
 
