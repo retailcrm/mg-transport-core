@@ -102,7 +102,6 @@ func (l *LocalizerTest) Test_LocalizationMiddleware_Context() {
 
 func (l *LocalizerTest) Test_LocalizationMiddleware_Httptest() {
 	var wg sync.WaitGroup
-	r := rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
 	l.localizer.Preload(DefaultLanguages)
 	langMsgMap := map[language.Tag]string{
 		language.English: "Test message",
@@ -120,6 +119,7 @@ func (l *LocalizerTest) Test_LocalizationMiddleware_Httptest() {
 	for i := 0; i < 1000; i++ {
 		wg.Add(1)
 		go func(m map[language.Tag]string, wg *sync.WaitGroup) {
+			r := rand.New(rand.NewSource(time.Now().UnixNano() + int64(i))) // nolint:gosec
 			var tag language.Tag
 			switch r.Intn(3-1) + 1 { // nolint:gosec
 			case 1:
