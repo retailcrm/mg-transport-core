@@ -1,15 +1,13 @@
 package testutil
 
 import (
-	"bytes"
 	"fmt"
 	"io"
 	"os"
-	"sync"
-
-	"github.com/op/go-logging"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // ReadBuffer is implemented by the BufferLogger.
@@ -28,120 +26,75 @@ type BufferedLogger interface {
 }
 
 // BufferLogger is an implementation of the BufferedLogger.
+//
+// BufferLogger can be used in tests to match specific log messages. It uses JSON by default (hardcoded for now).
+// It implements fmt.Stringer and provides an adapter to the underlying buffer, which means it can also return
+// Bytes(), can be used like io.Reader and can be cleaned using Reset() method.
+//
+// Usage:
+//
+//	log := NewBufferedLogger()
+//	// Some other code that works with logger.
+//	fmt.Println(log.String())
 type BufferLogger struct {
-	buf bytes.Buffer
-	rw  sync.RWMutex
+	logger.Default
+	buf LockableBuffer
 }
 
 // NewBufferedLogger returns new BufferedLogger instance.
 func NewBufferedLogger() BufferedLogger {
-	return &BufferLogger{}
+	bl := &BufferLogger{}
+	bl.Logger = zap.New(
+		zapcore.NewCore(
+			logger.NewJSONWithContextEncoder(
+				logger.EncoderConfigJSON()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), zapcore.DebugLevel))
+	return bl
+}
+
+func (l *BufferLogger) With(fields ...zapcore.Field) logger.Logger {
+	return &BufferLogger{
+		Default: logger.Default{
+			Logger: l.Logger.With(fields...),
+		},
+	}
+}
+
+func (l *BufferLogger) WithLazy(fields ...zapcore.Field) logger.Logger {
+	return &BufferLogger{
+		Default: logger.Default{
+			Logger: l.Logger.WithLazy(fields...),
+		},
+	}
+}
+
+func (l *BufferLogger) ForHandler(handler any) logger.Logger {
+	return l.WithLazy(zap.Any(logger.HandlerAttr, handler))
+}
+
+func (l *BufferLogger) ForConnection(conn any) logger.Logger {
+	return l.WithLazy(zap.Any(logger.ConnectionAttr, conn))
+}
+
+func (l *BufferLogger) ForAccount(acc any) logger.Logger {
+	return l.WithLazy(zap.Any(logger.AccountAttr, acc))
 }
 
 // Read bytes from the logger buffer. io.Reader implementation.
 func (l *BufferLogger) Read(p []byte) (n int, err error) {
-	defer l.rw.RUnlock()
-	l.rw.RLock()
 	return l.buf.Read(p)
 }
 
 // String contents of the logger buffer. fmt.Stringer implementation.
 func (l *BufferLogger) String() string {
-	defer l.rw.RUnlock()
-	l.rw.RLock()
 	return l.buf.String()
 }
 
 // Bytes is a shorthand for the underlying bytes.Buffer method. Returns byte slice with the buffer contents.
 func (l *BufferLogger) Bytes() []byte {
-	defer l.rw.RUnlock()
-	l.rw.RLock()
 	return l.buf.Bytes()
 }
 
 // Reset is a shorthand for the underlying bytes.Buffer method. It will reset buffer contents.
 func (l *BufferLogger) Reset() {
-	defer l.rw.Unlock()
-	l.rw.Lock()
 	l.buf.Reset()
-}
-
-func (l *BufferLogger) write(level logging.Level, args ...interface{}) {
-	defer l.rw.Unlock()
-	l.rw.Lock()
-	l.buf.WriteString(fmt.Sprintln(append([]interface{}{level.String(), "=>"}, args...)...))
-}
-
-func (l *BufferLogger) writef(level logging.Level, format string, args ...interface{}) {
-	defer l.rw.Unlock()
-	l.rw.Lock()
-	l.buf.WriteString(fmt.Sprintf(level.String()+" => "+format, args...))
-}
-
-func (l *BufferLogger) Fatal(args ...interface{}) {
-	l.write(logging.CRITICAL, args...)
-	os.Exit(1)
-}
-
-func (l *BufferLogger) Fatalf(format string, args ...interface{}) {
-	l.writef(logging.CRITICAL, format, args...)
-	os.Exit(1)
-}
-
-func (l *BufferLogger) Panic(args ...interface{}) {
-	l.write(logging.CRITICAL, args...)
-	panic(fmt.Sprint(args...))
-}
-
-func (l *BufferLogger) Panicf(format string, args ...interface{}) {
-	l.writef(logging.CRITICAL, format, args...)
-	panic(fmt.Sprintf(format, args...))
-}
-
-func (l *BufferLogger) Critical(args ...interface{}) {
-	l.write(logging.CRITICAL, args...)
-}
-
-func (l *BufferLogger) Criticalf(format string, args ...interface{}) {
-	l.writef(logging.CRITICAL, format, args...)
-}
-
-func (l *BufferLogger) Error(args ...interface{}) {
-	l.write(logging.ERROR, args...)
-}
-
-func (l *BufferLogger) Errorf(format string, args ...interface{}) {
-	l.writef(logging.ERROR, format, args...)
-}
-
-func (l *BufferLogger) Warning(args ...interface{}) {
-	l.write(logging.WARNING, args...)
-}
-
-func (l *BufferLogger) Warningf(format string, args ...interface{}) {
-	l.writef(logging.WARNING, format, args...)
-}
-
-func (l *BufferLogger) Notice(args ...interface{}) {
-	l.write(logging.NOTICE, args...)
-}
-
-func (l *BufferLogger) Noticef(format string, args ...interface{}) {
-	l.writef(logging.NOTICE, format, args...)
-}
-
-func (l *BufferLogger) Info(args ...interface{}) {
-	l.write(logging.INFO, args...)
-}
-
-func (l *BufferLogger) Infof(format string, args ...interface{}) {
-	l.writef(logging.INFO, format, args...)
-}
-
-func (l *BufferLogger) Debug(args ...interface{}) {
-	l.write(logging.DEBUG, args...)
-}
-
-func (l *BufferLogger) Debugf(format string, args ...interface{}) {
-	l.writef(logging.DEBUG, format, args...)
 }

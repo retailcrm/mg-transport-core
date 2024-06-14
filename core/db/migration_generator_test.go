@@ -2,7 +2,6 @@ package db
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"os"
@@ -36,7 +35,7 @@ func (s *MigrationGeneratorSuite) Test_FileExists() {
 func (s *MigrationGeneratorSuite) Test_Execute() {
 	found := false
 	assert.NoError(s.T(), s.command.Execute([]string{}))
-	files, err := ioutil.ReadDir(s.command.Directory)
+	files, err := os.ReadDir(s.command.Directory)
 	if err != nil {
 		log.Fatal(err)
 	}

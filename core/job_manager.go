@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
+	"go.uber.org/zap"
 )
 
 // JobFunc is empty func which should be executed in a parallel goroutine.
@@ -46,7 +47,7 @@ type Job struct {
 //			SetLogger(logger).
 //			SetLogging(false)
 //		_ = manager.RegisterJob("updateTokens", &Job{
-//			Command: func(log logger.Logger) error {
+//			Command: func(log logger.LoggerOld) error {
 //				// logic goes here...
 //				logger.Info("All tokens were updated successfully")
 //				return nil
@@ -73,6 +74,7 @@ func (j *Job) getWrappedFunc(name string, log logger.Logger) func(callback JobAf
 			}
 		}()
 
+		log = log.With(logger.Handler(name))
 		err := j.Command(log)
 		if err != nil && j.ErrorHandler != nil {
 			j.ErrorHandler(name, err, log)
@@ -153,7 +155,7 @@ func NewJobManager() *JobManager {
 func DefaultJobErrorHandler() JobErrorHandler {
 	return func(name string, err error, log logger.Logger) {
 		if err != nil && name != "" {
-			log.Errorf("Job `%s` errored with an error: `%s`", name, err.Error())
+			log.Error("job failed with an error", zap.String("job", name), logger.Err(err))
 		}
 	}
 }
@@ -162,7 +164,7 @@ func DefaultJobErrorHandler() JobErrorHandler {
 func DefaultJobPanicHandler() JobPanicHandler {
 	return func(name string, recoverValue interface{}, log logger.Logger) {
 		if recoverValue != nil && name != "" {
-			log.Errorf("Job `%s` panicked with value: `%#v`", name, recoverValue)
+			log.Error("job panicked with the value", zap.String("job", name), zap.Any("value", recoverValue))
 		}
 	}
 }

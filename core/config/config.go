@@ -1,7 +1,7 @@
 package config
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -14,6 +14,7 @@ type Configuration interface {
 	GetVersion() string
 	GetSentryDSN() string
 	GetLogLevel() logging.Level
+	GetLogFormat() string
 	GetHTTPConfig() HTTPServerConfig
 	GetZabbixConfig() ZabbixConfig
 	GetDBConfig() DatabaseConfig
@@ -44,6 +45,7 @@ type Config struct {
 	Database         DatabaseConfig    `yaml:"database"`
 	UpdateInterval   int               `yaml:"update_interval"`
 	LogLevel         logging.Level     `yaml:"log_level"`
+	LogFormat        string            `yaml:"log_format"`
 	Debug            bool              `yaml:"debug"`
 }
 
@@ -130,7 +132,7 @@ func (c *Config) GetConfigData(path string) []byte {
 		panic(err)
 	}
 
-	source, err := ioutil.ReadFile(path)
+	source, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
@@ -151,6 +153,10 @@ func (c Config) GetVersion() string {
 // GetLogLevel log level.
 func (c Config) GetLogLevel() logging.Level {
 	return c.LogLevel
+}
+
+func (c Config) GetLogFormat() string {
+	return c.LogFormat
 }
 
 // GetTransportInfo transport basic data.

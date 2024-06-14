@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
@@ -16,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/op/go-logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -137,14 +135,14 @@ func (t *HTTPClientBuilderTest) Test_buildMocks() {
 }
 
 func (t *HTTPClientBuilderTest) Test_WithLogger() {
-	logger := logger.NewStandard("telegram", logging.ERROR, logger.DefaultLogFormatter())
 	builder := NewHTTPClientBuilder()
 	require.Nil(t.T(), builder.logger)
 
 	builder.WithLogger(nil)
 	assert.Nil(t.T(), builder.logger)
 
-	builder.WithLogger(logger)
+	log := logger.NewDefault("json", true)
+	builder.WithLogger(log)
 	assert.NotNil(t.T(), builder.logger)
 }
 
@@ -153,7 +151,7 @@ func (t *HTTPClientBuilderTest) Test_logf() {
 		assert.Nil(t.T(), recover())
 	}()
 
-	t.builder.logf("test %s", "string")
+	t.builder.log(fmt.Sprintf("test %s", "string"))
 }
 
 func (t *HTTPClientBuilderTest) Test_Build() {
@@ -210,6 +208,7 @@ x5porosgI2RgOTTwmiYOcYQTS2650jYydHhK16Gu2b3UKernO16mAWXNDWfvS2bk
 nAI2GL2ACEdOCyRvgq16AycJJYU7nYQ+t9aveefx0uhbYYIVeYub9NxmCfD3MojI
 saG/63vo0ng851n90DVoMRWx9n1CjEvss/vvz+jXIl9njaCtizN3WUf1NwUB
 -----END CERTIFICATE-----`
+	// nolint:gosec
 	keyFileData := `-----BEGIN RSA PRIVATE KEY-----
 MIIEogIBAAKCAQEArcVIOmlAXGS4xGBIM8xPgfMALMiunU/X22w3zv+Z/T4R48UC
 5402K7PcQAJe0Qmo/J1INEc319/Iw9UxsJBawtbtaYzn++DlTF7MNsWu4JmZZyXn
@@ -238,9 +237,9 @@ weywTxDl/OD5ybNkZIRKsIXciFYG1VCGO2HNGN9qJcV+nJ63kyrIBauwUkuEhiN5
 uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 -----END RSA PRIVATE KEY-----`
 
-	certFile, err := ioutil.TempFile("/tmp", "cert_")
+	certFile, err := os.CreateTemp("/tmp", "cert_")
 	require.NoError(t.T(), err, "cannot create temp cert file")
-	keyFile, err := ioutil.TempFile("/tmp", "key_")
+	keyFile, err := os.CreateTemp("/tmp", "key_")
 	require.NoError(t.T(), err, "cannot create temp key file")
 
 	_, err = certFile.WriteString(certFileData)
@@ -253,7 +252,7 @@ uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 		errorutil.Collect(keyFile.Sync(), keyFile.Close()), "cannot sync and close temp key file")
 
 	mux := &http.ServeMux{}
-	srv := &http.Server{Addr: mockServerAddr, Handler: mux}
+	srv := &http.Server{Addr: mockServerAddr, Handler: mux, ReadHeaderTimeout: defaultDialerTimeout}
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusCreated)
 		_, _ = io.WriteString(w, "ok")
@@ -308,7 +307,7 @@ uf/TQPpjrGW5nxOf94qn6FzV2WSype9BcM5MD7z7rk202Fs7Zqc=
 
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	require.NoError(t.T(), err, "error while reading body")
 
 	assert.Equal(t.T(), http.StatusCreated, resp.StatusCode, "invalid status code")

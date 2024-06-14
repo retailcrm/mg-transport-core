@@ -18,36 +18,41 @@ import (
 // because AsError() returns nil if there are no errors in the list.
 //
 // Example:
-//      err := errorutil.NewCollector().
-//                  Do(errors.New("error 1")).
-//                  Do(errors.New("error 2"), errors.New("error 3"))
-//      // Will print error message.
-//      fmt.Println(err)
+//
+//	err := errorutil.NewCollector().
+//	            Do(errors.New("error 1")).
+//	            Do(errors.New("error 2"), errors.New("error 3"))
+//	// Will print error message.
+//	fmt.Println(err)
 //
 // This code will produce something like this:
-//      #1 err at /home/user/main.go:62: error 1
-//      #2 err at /home/user/main.go:63: error 2
-//      #3 err at /home/user/main.go:64: error 3
+//
+//	#1 err at /home/user/main.go:62: error 1
+//	#2 err at /home/user/main.go:63: error 2
+//	#3 err at /home/user/main.go:64: error 3
 //
 // You can also iterate over the error to use their data instead of using predefined message:
-//      err := errorutil.NewCollector().
-//                  Do(errors.New("error 1")).
-//                  Do(errors.New("error 2"), errors.New("error 3"))
 //
-//      for err := range c.Iterate() {
-//      	fmt.Printf("Error at %s:%d: %v\n", err.File, err.Line, err)
-//      }
+//	err := errorutil.NewCollector().
+//	            Do(errors.New("error 1")).
+//	            Do(errors.New("error 2"), errors.New("error 3"))
+//
+//	for err := range c.Iterate() {
+//		fmt.Printf("Error at %s:%d: %v\n", err.File, err.Line, err)
+//	}
 //
 // This code will produce output that looks like this:
-//      Error at /home/user/main.go:164: error 0
-//      Error at /home/user/main.go:164: error 1
-//      Error at /home/user/main.go:164: error 2
+//
+//	Error at /home/user/main.go:164: error 0
+//	Error at /home/user/main.go:164: error 1
+//	Error at /home/user/main.go:164: error 2
 //
 // Example with GORM migration (Collector is returned as an error here).
-//      return errorutil.NewCollector().Do(
-//          db.CreateTable(models.Account{}, models.Connection{}).Error,
-//          db.Table("account").AddUniqueIndex("account_key", "channel").Error,
-//      ).AsError()
+//
+//	return errorutil.NewCollector().Do(
+//	    db.CreateTable(models.Account{}, models.Connection{}).Error,
+//	    db.Table("account").AddUniqueIndex("account_key", "channel").Error,
+//	).AsError()
 type Collector struct {
 	errors *errList
 }

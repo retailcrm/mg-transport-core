@@ -7,14 +7,15 @@ import (
 	"io/fs"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/blacked/go-zabbix"
 	"github.com/getsentry/sentry-go"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/securecookie"
 	"github.com/gorilla/sessions"
-	"github.com/op/go-logging"
-	"github.com/retailcrm/zabbix-metrics-collector"
+	metrics "github.com/retailcrm/zabbix-metrics-collector"
+	"go.uber.org/zap"
 	"golang.org/x/text/language"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
@@ -26,12 +27,14 @@ import (
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
+const DefaultHTTPClientTimeout time.Duration = 30
+
 var boolTrue = true
 
 // DefaultHTTPClientConfig is a default config for HTTP client. It will be used by Engine for building HTTP client
 // if HTTP client config is not present in the configuration.
 var DefaultHTTPClientConfig = &config.HTTPClientConfig{
-	Timeout:         30,
+	Timeout:         DefaultHTTPClientTimeout,
 	SSLVerification: &boolTrue,
 }
 
@@ -62,16 +65,15 @@ func (a AppInfo) Release() string {
 
 // Engine struct.
 type Engine struct {
-	logger       logger.Logger
-	AppInfo      AppInfo
-	Sessions     sessions.Store
-	LogFormatter logging.Formatter
-	Config       config.Configuration
-	Zabbix       metrics.Transport
-	ginEngine    *gin.Engine
-	csrf         *middleware.CSRF
-	httpClient   *http.Client
-	jobManager   *JobManager
+	logger     logger.Logger
+	AppInfo    AppInfo
+	Sessions   sessions.Store
+	Config     config.Configuration
+	Zabbix     metrics.Transport
+	ginEngine  *gin.Engine
+	csrf       *middleware.CSRF
+	httpClient *http.Client
+	jobManager *JobManager
 	db.ORM
 	Localizer
 	util.Utils
@@ -112,11 +114,6 @@ func (e *Engine) initGin() {
 	e.buildSentryConfig()
 	e.InitSentrySDK()
 	r.Use(e.SentryMiddlewares()...)
-
-	if e.Config.IsDebug() {
-		r.Use(gin.Logger())
-	}
-
 	r.Use(e.LocalizationMiddleware())
 	e.ginEngine = r
 }
@@ -133,9 +130,6 @@ func (e *Engine) Prepare() *Engine {
 	if e.DefaultError == "" {
 		e.DefaultError = "error"
 	}
-	if e.LogFormatter == nil {
-		e.LogFormatter = logger.DefaultLogFormatter()
-	}
 	if e.LocaleMatcher == nil {
 		e.LocaleMatcher = DefaultLocalizerMatcher()
 	}
@@ -150,9 +144,14 @@ func (e *Engine) Prepare() *Engine {
 		e.Localizer.Preload(e.PreloadLanguages)
 	}
 
+	logFormat := "json"
+	if format := e.Config.GetLogFormat(); format != "" {
+		logFormat = format
+	}
+
 	e.CreateDB(e.Config.GetDBConfig())
 	e.ResetUtils(e.Config.GetAWSConfig(), e.Config.IsDebug(), 0)
-	e.SetLogger(logger.NewStandard(e.Config.GetTransportInfo().GetCode(), e.Config.GetLogLevel(), e.LogFormatter))
+	e.SetLogger(logger.NewDefault(logFormat, e.Config.IsDebug()))
 	e.Sentry.Localizer = &e.Localizer
 	e.Utils.Logger = e.Logger()
 	e.Sentry.Logger = e.Logger()
@@ -175,7 +174,25 @@ func (e *Engine) UseZabbix(collectors []metrics.Collector) *Engine {
 	}
 	cfg := e.Config.GetZabbixConfig()
 	sender := zabbix.NewSender(cfg.ServerHost, cfg.ServerPort)
-	e.Zabbix = metrics.NewZabbix(collectors, sender, cfg.Host, cfg.Interval, e.Logger())
+	e.Zabbix = metrics.NewZabbix(collectors, sender, cfg.Host, cfg.Interval, logger.ZabbixCollectorAdapter(e.Logger()))
+	return e
+}
+
+// HijackGinLogs will take control of GIN debug logs and will convert them into structured logs.
+// It will also affect default logging middleware. Use logger.GinMiddleware to circumvent this.
+func (e *Engine) HijackGinLogs() *Engine {
+	if e.Logger() == nil {
+		return e
+	}
+	gin.DefaultWriter = logger.WriterAdapter(e.Logger(), zap.DebugLevel)
+	gin.DefaultErrorWriter = logger.WriterAdapter(e.Logger(), zap.ErrorLevel)
+	gin.DebugPrintRouteFunc = func(httpMethod, absolutePath, handlerName string, nuHandlers int) {
+		e.Logger().Debug("route",
+			zap.String(logger.HTTPMethodAttr, httpMethod),
+			zap.String("path", absolutePath),
+			zap.String(logger.HandlerAttr, handlerName),
+			zap.Int("handlerCount", nuHandlers))
+	}
 	return e
 }
 
@@ -247,6 +264,9 @@ func (e *Engine) SetLogger(l logger.Logger) *Engine {
 
 	e.mutex.Lock()
 	defer e.mutex.Unlock()
+	if !e.prepared && e.logger != nil {
+		return e
+	}
 	e.logger = l
 	return e
 }
@@ -262,10 +282,9 @@ func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *
 
 	if err != nil {
 		panic(err)
-	} else {
-		e.httpClient = client
 	}
 
+	e.httpClient = client
 	return e
 }
 

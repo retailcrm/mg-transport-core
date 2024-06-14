@@ -3,7 +3,7 @@ package core
 import (
 	"html/template"
 	"io/fs"
-	"io/ioutil"
+	"os"
 	"path"
 	"sync"
 
@@ -90,7 +90,8 @@ type CloneableLocalizer interface {
 
 // NewLocalizer returns localizer instance with specified parameters.
 // Usage:
-//      NewLocalizer(language.English, DefaultLocalizerMatcher(), "translations")
+//
+//	NewLocalizer(language.English, DefaultLocalizerMatcher(), "translations")
 func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPath string) LocalizerInterface {
 	localizer := &Localizer{
 		i18nStorage:      &sync.Map{},
@@ -106,7 +107,9 @@ func NewLocalizer(locale language.Tag, matcher language.Matcher, translationsPat
 
 // NewLocalizerFS returns localizer instance with specified parameters.
 // Usage:
-//      NewLocalizerFS(language.English, DefaultLocalizerMatcher(), translationsFS)
+//
+//	NewLocalizerFS(language.English, DefaultLocalizerMatcher(), translationsFS)
+//
 // TODO This code should be covered with tests.
 func NewLocalizerFS(
 	locale language.Tag, matcher language.Matcher, translationsFS fs.FS,
@@ -161,9 +164,10 @@ func (l *Localizer) Clone() CloneableLocalizer {
 // Because of that all Localizer instances from this middleware will share *same* mutex. This mutex is used to wrap
 // i18n.Bundle methods (those aren't goroutine-safe to use).
 // Usage:
-//      engine := gin.New()
-//      localizer := NewLocalizer("en", DefaultLocalizerMatcher(), "translations")
-//      engine.Use(localizer.LocalizationMiddleware())
+//
+//	engine := gin.New()
+//	localizer := NewLocalizer("en", DefaultLocalizerMatcher(), "translations")
+//	engine.Use(localizer.LocalizationMiddleware())
 func (l *Localizer) LocalizationMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clone := l.Clone().(LocaleControls)
@@ -174,15 +178,21 @@ func (l *Localizer) LocalizationMiddleware() gin.HandlerFunc {
 
 // LocalizationFuncMap returns template.FuncMap (html template is used) with one method - trans
 // Usage in code:
-//      engine := gin.New()
-//      engine.FuncMap = localizer.LocalizationFuncMap()
+//
+//	engine := gin.New()
+//	engine.FuncMap = localizer.LocalizationFuncMap()
+//
 // or (with multitemplate)
-//      renderer := multitemplate.NewRenderer()
-//      funcMap := localizer.LocalizationFuncMap()
-//      renderer.AddFromFilesFuncs("index", funcMap, "template/index.html")
+//
+//	renderer := multitemplate.NewRenderer()
+//	funcMap := localizer.LocalizationFuncMap()
+//	renderer.AddFromFilesFuncs("index", funcMap, "template/index.html")
+//
 // funcMap must be passed for every .AddFromFilesFuncs call
 // Usage in templates:
-//      <p class="info">{{"need_login_msg" | trans}}
+//
+//	<p class="info">{{"need_login_msg" | trans}}
+//
 // You can borrow FuncMap from this method and add your functions to it.
 func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 	return template.FuncMap{
@@ -196,7 +206,7 @@ func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 				parts = append(parts, "")
 			}
 
-			partsMap := make(map[string]interface{}, len(parts)/2)
+			partsMap := make(map[string]interface{}, len(parts)/2) // nolint:gomnd
 
 			for i := 0; i < len(parts)-1; i += 2 {
 				partsMap[parts[i]] = parts[i+1]
@@ -239,7 +249,7 @@ func (l *Localizer) loadTranslationsToBundle(i18nBundle *i18n.Bundle) {
 
 // LoadTranslations will load all translation files from translations directory.
 func (l *Localizer) loadFromDirectory(i18nBundle *i18n.Bundle) error {
-	files, err := ioutil.ReadDir(l.TranslationsPath)
+	files, err := os.ReadDir(l.TranslationsPath)
 	if err != nil {
 		return err
 	}

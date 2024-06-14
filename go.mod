@@ -1,6 +1,8 @@
 module github.com/retailcrm/mg-transport-core/v2
 
-go 1.18
+go 1.22
+
+toolchain go1.22.0
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.3.3
@@ -17,6 +19,7 @@ require (
 	github.com/gomarkdown/markdown v0.0.0-20221013030248-663e2500819c
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
+	github.com/guregu/null/v5 v5.0.0
 	github.com/h2non/gock v1.2.0
 	github.com/jessevdk/go-flags v1.4.0
 	github.com/jinzhu/gorm v1.9.11
@@ -24,10 +27,11 @@ require (
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/pkg/errors v0.9.1
 	github.com/retailcrm/api-client-go/v2 v2.1.3
-	github.com/retailcrm/mg-transport-api-client-go v1.1.32
+	github.com/retailcrm/mg-transport-api-client-go v1.3.4
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
 	github.com/stretchr/testify v1.8.3
 	go.uber.org/atomic v1.10.0
+	go.uber.org/zap v1.26.0
 	golang.org/x/text v0.14.0
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/yaml.v2 v2.4.0
@@ -77,6 +81,7 @@ require (
 	github.com/stretchr/objx v0.5.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
+	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.3.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/net v0.23.0 // indirect

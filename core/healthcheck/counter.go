@@ -10,7 +10,7 @@ import (
 const DefaultResetPeriod = time.Minute * 15
 
 // AtomicCounter is a default Counter implementation.
-// It uses atomics under the hood (hence the name) and can be configured with custom reset timeout and
+// It uses atomics under the hood (hence the name) and can be configured with custom reset timeout and.
 type AtomicCounter struct {
 	name              atomic.String
 	msg               atomic.String

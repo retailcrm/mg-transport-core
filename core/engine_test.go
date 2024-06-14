@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -123,7 +123,6 @@ func (e *EngineTest) Test_Prepare() {
 	assert.True(e.T(), e.engine.prepared)
 	assert.NotNil(e.T(), e.engine.Config)
 	assert.NotEmpty(e.T(), e.engine.DefaultError)
-	assert.NotEmpty(e.T(), e.engine.LogFormatter)
 	assert.NotEmpty(e.T(), e.engine.LocaleMatcher)
 	assert.False(e.T(), e.engine.isUnd(e.engine.Localizer.LanguageTag))
 	assert.NotNil(e.T(), e.engine.DB)
@@ -253,7 +252,7 @@ func (e *EngineTest) Test_SetLogger() {
 	defer func() {
 		e.engine.logger = origLogger
 	}()
-	e.engine.logger = &logger.StandardLogger{}
+	e.engine.logger = logger.NewNil()
 	e.engine.SetLogger(nil)
 	assert.NotNil(e.T(), e.engine.logger)
 }
@@ -366,7 +365,7 @@ func (e *EngineTest) Test_GetCSRFToken() {
 		URL: &url.URL{
 			RawQuery: "",
 		},
-		Body:   ioutil.NopCloser(bytes.NewReader([]byte{})),
+		Body:   io.NopCloser(bytes.NewReader([]byte{})),
 		Header: http.Header{"X-CSRF-Token": []string{"token"}},
 	}}
 	c.Set("csrf_token", "token")

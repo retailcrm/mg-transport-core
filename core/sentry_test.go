@@ -2,7 +2,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -32,12 +31,12 @@ type sentryMockTransport struct {
 	sending   sync.RWMutex
 }
 
-func (s *sentryMockTransport) Flush(timeout time.Duration) bool {
+func (s *sentryMockTransport) Flush(_ time.Duration) bool {
 	// noop
 	return true
 }
 
-func (s *sentryMockTransport) Configure(options sentry.ClientOptions) {
+func (s *sentryMockTransport) Configure(_ sentry.ClientOptions) {
 	// noop
 }
 
@@ -278,7 +277,7 @@ func (s *SentryTest) TestSentry_CaptureException() {
 
 func (s *SentryTest) TestSentry_obtainErrorLogger_Existing() {
 	ctx, _ := s.ginCtxMock()
-	log := logger.DecorateForAccount(testutil.NewBufferedLogger(), "component", "conn", "acc")
+	log := testutil.NewBufferedLogger().ForHandler("component").ForConnection("conn").ForAccount("acc")
 	ctx.Set("logger", log)
 
 	s.Assert().Equal(log, s.sentry.obtainErrorLogger(ctx))
@@ -299,12 +298,8 @@ func (s *SentryTest) TestSentry_obtainErrorLogger_Constructed() {
 
 	s.Assert().NotNil(log)
 	s.Assert().NotNil(logNoConfig)
-	s.Assert().Implements((*logger.AccountLogger)(nil), log)
-	s.Assert().Implements((*logger.AccountLogger)(nil), logNoConfig)
-	s.Assert().Equal(
-		fmt.Sprintf(logger.DefaultAccountLoggerFormat, "Sentry", "{no connection ID}", "{no account ID}"),
-		logNoConfig.Prefix())
-	s.Assert().Equal(fmt.Sprintf(logger.DefaultAccountLoggerFormat, "Sentry", "conn_url", "acc_name"), log.Prefix())
+	s.Assert().Implements((*logger.Logger)(nil), log)
+	s.Assert().Implements((*logger.Logger)(nil), logNoConfig)
 }
 
 func (s *SentryTest) TestSentry_MiddlewaresError() {

@@ -3,7 +3,6 @@ package core
 import (
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -37,8 +36,8 @@ func (t *TemplateTest) initTestData() {
 		require.Nil(t.T(), err)
 		data1 := []byte(`data {{template "body" .}}`)
 		data2 := []byte(`{{define "body"}}test {{"test" | trans}}{{end}}`)
-		err1 := ioutil.WriteFile(fmt.Sprintf(testTemplatesFile, 1), data1, os.ModePerm)
-		err2 := ioutil.WriteFile(fmt.Sprintf(testTemplatesFile, 2), data2, os.ModePerm)
+		err1 := os.WriteFile(fmt.Sprintf(testTemplatesFile, 1), data1, os.ModePerm)
+		err2 := os.WriteFile(fmt.Sprintf(testTemplatesFile, 2), data2, os.ModePerm)
 		require.Nil(t.T(), err1)
 		require.Nil(t.T(), err2)
 	}

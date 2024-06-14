@@ -46,7 +46,7 @@ func printRequestData(t UnmatchedRequestsTestingT, r *http.Request) {
 		}
 	}
 
-	if r.Body == nil {
+	if r.Body == nil { // nolint:nestif
 		t.Log("No body is present.")
 	} else {
 		data, err := io.ReadAll(r.Body)

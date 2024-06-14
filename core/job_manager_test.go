@@ -9,10 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/op/go-logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
@@ -25,7 +26,7 @@ type JobTest struct {
 	executeErr   chan error
 	panicValue   chan interface{}
 	lastLog      string
-	lastMsgLevel logging.Level
+	lastMsgLevel zapcore.Level
 	syncBool     bool
 }
 
@@ -36,68 +37,94 @@ type JobManagerTest struct {
 	syncRunnerFlag bool
 }
 
-type callbackLoggerFunc func(level logging.Level, format string, args ...interface{})
+type callbackLoggerFunc func(level zapcore.Level, msg string, args ...zap.Field)
 
 type callbackLogger struct {
-	fn callbackLoggerFunc
+	fields []zap.Field
+	fn     callbackLoggerFunc
 }
 
-func (n *callbackLogger) Fatal(args ...interface{}) {
-	n.fn(logging.CRITICAL, "", args...)
+func (n *callbackLogger) Check(_ zapcore.Level, _ string) *zapcore.CheckedEntry {
+	return &zapcore.CheckedEntry{}
 }
 
-func (n *callbackLogger) Fatalf(format string, args ...interface{}) {
-	n.fn(logging.CRITICAL, format, args...)
+func (n *callbackLogger) DPanic(msg string, fields ...zap.Field) {
+	n.fn(zap.PanicLevel, msg, fields...)
 }
 
-func (n *callbackLogger) Panic(args ...interface{}) {
-	n.fn(logging.CRITICAL, "", args...)
-}
-func (n *callbackLogger) Panicf(format string, args ...interface{}) {
-	n.fn(logging.CRITICAL, format, args...)
+func (n *callbackLogger) Panic(msg string, fields ...zap.Field) {
+	n.fn(zap.PanicLevel, msg, fields...)
 }
 
-func (n *callbackLogger) Critical(args ...interface{}) {
-	n.fn(logging.CRITICAL, "", args...)
+func (n *callbackLogger) Fatal(msg string, fields ...zap.Field) {
+	n.fn(zap.FatalLevel, msg, fields...)
 }
 
-func (n *callbackLogger) Criticalf(format string, args ...interface{}) {
-	n.fn(logging.CRITICAL, format, args...)
+func (n *callbackLogger) Sync() error {
+	return nil
 }
 
-func (n *callbackLogger) Error(args ...interface{}) {
-	n.fn(logging.ERROR, "", args...)
-}
-func (n *callbackLogger) Errorf(format string, args ...interface{}) {
-	n.fn(logging.ERROR, format, args...)
+func (n *callbackLogger) clone() *callbackLogger {
+	return &callbackLogger{fn: n.fn, fields: n.fields}
 }
 
-func (n *callbackLogger) Warning(args ...interface{}) {
-	n.fn(logging.WARNING, "", args...)
-}
-func (n *callbackLogger) Warningf(format string, args ...interface{}) {
-	n.fn(logging.WARNING, format, args...)
-}
-
-func (n *callbackLogger) Notice(args ...interface{}) {
-	n.fn(logging.NOTICE, "", args...)
-}
-func (n *callbackLogger) Noticef(format string, args ...interface{}) {
-	n.fn(logging.NOTICE, format, args...)
+func (n *callbackLogger) cloneWithFields(fields []zap.Field) *callbackLogger {
+	cl := &callbackLogger{fn: n.fn, fields: n.fields}
+	existing := cl.fields
+	if len(existing) == 0 {
+		cl.fields = fields
+		return cl
+	}
+	cl.fields = append(existing, fields...) // nolint:gocritic
+	return cl
 }
 
-func (n *callbackLogger) Info(args ...interface{}) {
-	n.fn(logging.INFO, "", args...)
-}
-func (n *callbackLogger) Infof(format string, args ...interface{}) {
-	n.fn(logging.INFO, format, args...)
+func (n *callbackLogger) Level() zapcore.Level {
+	return zapcore.DebugLevel
 }
 
-func (n *callbackLogger) Debug(args ...interface{}) {
-	n.fn(logging.DEBUG, "", args...)
+func (n *callbackLogger) With(args ...zap.Field) logger.Logger {
+	return n.cloneWithFields(args)
 }
-func (n *callbackLogger) Debugf(format string, args ...interface{}) {
-	n.fn(logging.DEBUG, format, args...)
+
+func (n *callbackLogger) WithLazy(args ...zap.Field) logger.Logger {
+	return n.cloneWithFields(args)
+}
+
+func (n *callbackLogger) WithGroup(_ string) logger.Logger {
+	return n
+}
+
+func (n *callbackLogger) ForHandler(_ any) logger.Logger {
+	return n
+}
+
+func (n *callbackLogger) ForConnection(_ any) logger.Logger {
+	return n
+}
+
+func (n *callbackLogger) ForAccount(_ any) logger.Logger {
+	return n
+}
+
+func (n *callbackLogger) Log(level zapcore.Level, msg string, args ...zap.Field) {
+	n.fn(level, msg, args...)
+}
+
+func (n *callbackLogger) Debug(msg string, args ...zap.Field) {
+	n.Log(zap.DebugLevel, msg, args...)
+}
+
+func (n *callbackLogger) Info(msg string, args ...zap.Field) {
+	n.Log(zap.InfoLevel, msg, args...)
+}
+
+func (n *callbackLogger) Warn(msg string, args ...zap.Field) {
+	n.Log(zap.WarnLevel, msg, args...)
+}
+
+func (n *callbackLogger) Error(msg string, args ...zap.Field) {
+	n.Log(zap.ErrorLevel, msg, args...)
 }
 
 func TestJob(t *testing.T) {
@@ -115,9 +142,9 @@ func TestDefaultJobErrorHandler(t *testing.T) {
 
 	fn := DefaultJobErrorHandler()
 	require.NotNil(t, fn)
-	fn("job", errors.New("test"), &callbackLogger{fn: func(level logging.Level, s string, i ...interface{}) {
+	fn("job", errors.New("test"), &callbackLogger{fn: func(level zapcore.Level, s string, i ...zap.Field) {
 		require.Len(t, i, 2)
-		assert.Equal(t, fmt.Sprintf("%s", i[1]), "test")
+		assert.Equal(t, "error=test", fmt.Sprintf("%s=%v", i[1].Key, i[1].Interface))
 	}})
 }
 
@@ -128,9 +155,9 @@ func TestDefaultJobPanicHandler(t *testing.T) {
 
 	fn := DefaultJobPanicHandler()
 	require.NotNil(t, fn)
-	fn("job", errors.New("test"), &callbackLogger{fn: func(level logging.Level, s string, i ...interface{}) {
+	fn("job", errors.New("test"), &callbackLogger{fn: func(level zapcore.Level, s string, i ...zap.Field) {
 		require.Len(t, i, 2)
-		assert.Equal(t, fmt.Sprintf("%s", i[1]), "test")
+		assert.Equal(t, "value=test", fmt.Sprintf("%s=%s", i[1].Key, i[1].Interface))
 	}})
 }
 
@@ -147,7 +174,7 @@ func (t *JobTest) testPanicHandler() JobPanicHandler {
 }
 
 func (t *JobTest) testLogger() logger.Logger {
-	return &callbackLogger{fn: func(level logging.Level, format string, args ...interface{}) {
+	return &callbackLogger{fn: func(level zapcore.Level, format string, args ...zap.Field) {
 		if format == "" {
 			var sb strings.Builder
 			sb.Grow(3 * len(args)) // nolint:gomnd
@@ -159,7 +186,12 @@ func (t *JobTest) testLogger() logger.Logger {
 			format = strings.TrimRight(sb.String(), " ")
 		}
 
-		t.lastLog = fmt.Sprintf(format, args...)
+		anyFields := []any{}
+		for _, item := range args {
+			anyFields = append(anyFields, item.Key+"="+fmt.Sprint(item.Interface))
+		}
+
+		t.lastLog = fmt.Sprintf(format, anyFields...)
 		t.lastMsgLevel = level
 	}}
 }
@@ -256,11 +288,11 @@ func (t *JobTest) oncePanicJob() {
 }
 
 func (t *JobTest) regularJob() {
-	rand.Seed(time.Now().UnixNano())
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
 	t.job = &Job{
 		Command: func(log logger.Logger) error {
 			t.executedChan <- true
-			t.randomNumber <- rand.Int() // nolint:gosec
+			t.randomNumber <- r.Int() // nolint:gosec
 			return nil
 		},
 		ErrorHandler: t.testErrorHandler(),
@@ -271,7 +303,6 @@ func (t *JobTest) regularJob() {
 }
 
 func (t *JobTest) regularSyncJob() {
-	rand.Seed(time.Now().UnixNano())
 	t.job = &Job{
 		Command: func(log logger.Logger) error {
 			t.syncBool = true
@@ -404,11 +435,11 @@ func (t *JobManagerTest) WaitForJob() bool {
 
 func (t *JobManagerTest) Test_SetLogger() {
 	t.manager.logger = nil
-	t.manager.SetLogger(logger.NewStandard("test", logging.ERROR, logger.DefaultLogFormatter()))
-	assert.IsType(t.T(), &logger.StandardLogger{}, t.manager.logger)
+	t.manager.SetLogger(logger.NewDefault("json", true))
+	assert.IsType(t.T(), &logger.Default{}, t.manager.logger)
 
 	t.manager.SetLogger(nil)
-	assert.IsType(t.T(), &logger.StandardLogger{}, t.manager.logger)
+	assert.IsType(t.T(), &logger.Default{}, t.manager.logger)
 }
 
 func (t *JobManagerTest) Test_SetLogging() {

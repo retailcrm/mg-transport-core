@@ -3,7 +3,7 @@
 [![Coverage](https://codecov.io/gh/retailcrm/mg-transport-core/branch/master/graph/badge.svg?logo=codecov&logoColor=white)](https://codecov.io/gh/retailcrm/mg-transport-core)
 [![GitHub release](https://img.shields.io/github/release/retailcrm/mg-transport-core.svg?logo=github&logoColor=white)](https://github.com/retailcrm/mg-transport-core/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/retailcrm/mg-transport-core)](https://goreportcard.com/report/github.com/retailcrm/mg-transport-core)
-[![GoLang version](https://img.shields.io/badge/go->=1.12-blue.svg?logo=go&logoColor=white)](https://golang.org/dl/)
+[![GoLang version](https://img.shields.io/badge/go->=1.22-blue.svg?logo=go&logoColor=white)](https://golang.org/dl/)
 [![pkg.go.dev](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/retailcrm/mg-transport-core/core)
 
 This library provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.
