@@ -11,11 +11,11 @@ import (
 // remove all the entities created after the hook was set up.
 // You can use it like this:
 //
-//      func TestSomething(t *testing.T){
-//          db, _ := gorm.Open(...)
-//          cleaner := DeleteCreatedEntities(db)
-//          defer cleaner()
-//      }.
+//	func TestSomething(t *testing.T){
+//	    db, _ := gorm.Open(...)
+//	    cleaner := DeleteCreatedEntities(db)
+//	    defer cleaner()
+//	}.
 func DeleteCreatedEntities(db *gorm.DB) func() { // nolint
 	type entity struct {
 		key     interface{}

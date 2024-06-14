@@ -6,7 +6,6 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"time"
 
@@ -57,10 +56,10 @@ var DefaultCSRFTokenGetter = func(c *gin.Context) string {
 	} else if t := r.Header.Get("X-XSRF-Token"); len(t) > 0 {
 		return t
 	} else if c.Request.Body != nil {
-		data, _ := ioutil.ReadAll(c.Request.Body)
-		c.Request.Body = ioutil.NopCloser(bytes.NewReader(data))
+		data, _ := io.ReadAll(c.Request.Body)
+		c.Request.Body = io.NopCloser(bytes.NewReader(data))
 		t := r.FormValue("csrf_token")
-		c.Request.Body = ioutil.NopCloser(bytes.NewReader(data))
+		c.Request.Body = io.NopCloser(bytes.NewReader(data))
 
 		if len(t) > 0 {
 			return t
@@ -91,17 +90,20 @@ type CSRF struct {
 // csrfTokenGetter will be used to obtain token.
 //
 // Usage (with random salt):
-// 		core.NewCSRF("", "super secret", "csrf_session", store, func (c *gin.Context, reason core.CSRFErrorReason) {
-// 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid CSRF token"})
-// 		}, core.DefaultCSRFTokenGetter)
+//
+//	core.NewCSRF("", "super secret", "csrf_session", store, func (c *gin.Context, reason core.CSRFErrorReason) {
+//		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "Invalid CSRF token"})
+//	}, core.DefaultCSRFTokenGetter)
 //
 // Note for csrfTokenGetter: if you want to read token from request body (for example, from form field)
 // - don't forget to restore Body data!
 //
 // Body in http.Request is io.ReadCloser instance. Reading CSRF token from form like that:
-// 		if t := r.FormValue("csrf_token"); len(t) > 0 {
-// 			return t
-// 		}
+//
+//	if t := r.FormValue("csrf_token"); len(t) > 0 {
+//		return t
+//	}
+//
 // will close body - and all next middlewares won't be able to read body at all!
 //
 // Use DefaultCSRFTokenGetter as example to implement your own token getter.
@@ -185,11 +187,11 @@ func (x *CSRF) generateSalt() string {
 
 // pseudoRandomString generates pseudo-random string with specified length.
 func (x *CSRF) pseudoRandomString(length int) string {
-	rand.Seed(time.Now().UnixNano())
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
 	data := make([]byte, length)
 
 	for i := 0; i < length; i++ { // it is supposed to use pseudo-random data.
-		data[i] = byte(65 + rand.Intn(90-65)) // nolint:gosec,gomnd
+		data[i] = byte(65 + r.Intn(90-65)) // nolint:gosec,gomnd
 	}
 
 	return string(data)
@@ -209,15 +211,16 @@ func (x *CSRF) CSRFFromContext(c *gin.Context) string {
 
 // GenerateCSRFMiddleware returns gin.HandlerFunc which will generate CSRF token
 // Usage:
-//      engine := gin.New()
-//      csrf := NewCSRF("salt", "secret", "not_found", "incorrect", localizer)
-//      engine.Use(csrf.GenerateCSRFMiddleware())
+//
+//	engine := gin.New()
+//	csrf := NewCSRF("salt", "secret", "not_found", "incorrect", localizer)
+//	engine.Use(csrf.GenerateCSRFMiddleware())
 func (x *CSRF) GenerateCSRFMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		session, _ := x.store.Get(c.Request, x.sessionName)
 
-		if i, ok := session.Values["csrf_token"]; ok {
-			if i, ok := i.(string); !ok || i == "" {
+		if i, ok := session.Values["csrf_token"]; ok { // nolint:nestif
+			if i, ok := i.(string); !ok || i == "" { // nolint:nestif
 				if x.fillToken(session, c) != nil {
 					x.abortFunc(c, CSRFErrorCannotStoreTokenInSession)
 					c.Abort()
@@ -243,8 +246,9 @@ func (x *CSRF) fillToken(s *sessions.Session, c *gin.Context) error {
 
 // VerifyCSRFMiddleware verifies CSRF token
 // Usage:
-// 		engine := gin.New()
-// 		engine.Use(csrf.VerifyCSRFMiddleware())
+//
+//	engine := gin.New()
+//	engine.Use(csrf.VerifyCSRFMiddleware())
 func (x *CSRF) VerifyCSRFMiddleware(ignoredMethods []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if x.strInSlice(ignoredMethods, c.Request.Method) {
@@ -254,9 +258,9 @@ func (x *CSRF) VerifyCSRFMiddleware(ignoredMethods []string) gin.HandlerFunc {
 		var token string
 		session, _ := x.store.Get(c.Request, x.sessionName)
 
-		if i, ok := session.Values["csrf_token"]; ok {
+		if i, ok := session.Values["csrf_token"]; ok { // nolint:nestif
 			var v string
-			if v, ok = i.(string); !ok || v == "" {
+			if v, ok = i.(string); !ok || v == "" { // nolint:nestif
 				if !ok {
 					x.abortFunc(c, CSRFErrorIncorrectTokenType)
 				} else if v == "" {

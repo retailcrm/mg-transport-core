@@ -2,6 +2,7 @@
 Package core provides different functions like error-reporting, logging, localization, etc.
 to make it easier to create transports.
 Usage:
+
 	package main
 
 	import (
@@ -36,14 +37,19 @@ Usage:
 	    }
 	}
 
-Resource embedding
+# Resource embedding
 
 packr can be used to provide resource embedding, see:
+
 	https://github.com/gobuffalo/packr/tree/master/v2
+
 In order to use packr you must follow instruction, and provide boxes with templates, translations and assets to library.
 You can find instruction here:
+
 	https://github.com/gobuffalo/packr/tree/master/v2#library-installation
+
 Example of usage:
+
 	package main
 
 	import (
@@ -104,10 +110,12 @@ Example of usage:
 	    }
 	}
 
-Migration generator
+# Migration generator
 
 This library contains helper tool for transports. You can install it via go:
+
 	$ go get -u github.com/retailcrm/mg-transport-core/cmd/transport-core-tool
+
 Currently, it only can generate new migrations for your transport.
 
 Copyright (c) 2019 RetailDriver LLC. Usage of this source code is governed by a MIT license.

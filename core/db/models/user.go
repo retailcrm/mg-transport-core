@@ -14,11 +14,14 @@ type User struct {
 
 // TableName will return table name for User
 // It will not work if User is not embedded, but mapped as another type
-//      type MyUser User // will not work
+//
+//	type MyUser User // will not work
+//
 // but
-//      type MyUser struct { // will work
-//          User
-//      }
+//
+//	type MyUser struct { // will work
+//	    User
+//	}
 func (User) TableName() string {
 	return "mg_user"
 }

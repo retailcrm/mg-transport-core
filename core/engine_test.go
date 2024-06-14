@@ -6,7 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"html/template"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -365,7 +365,7 @@ func (e *EngineTest) Test_GetCSRFToken() {
 		URL: &url.URL{
 			RawQuery: "",
 		},
-		Body:   ioutil.NopCloser(bytes.NewReader([]byte{})),
+		Body:   io.NopCloser(bytes.NewReader([]byte{})),
 		Header: http.Header{"X-CSRF-Token": []string{"token"}},
 	}}
 	c.Set("csrf_token", "token")

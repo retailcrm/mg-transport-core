@@ -20,8 +20,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/gin-gonic/gin"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
-	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
+
+	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 

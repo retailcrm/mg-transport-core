@@ -27,7 +27,8 @@ type Logger interface {
 	Warn(msg string, fields ...zap.Field)
 	// Error logs an error-level message with the given fields.
 	Error(msg string, fields ...zap.Field)
-	// DPanic logs a debug-panic-level message with the given fields and panics if the logger's panic level is set to a non-zero value.
+	// DPanic logs a debug-panic-level message with the given fields and panics
+	// if the logger's panic level is set to a non-zero value.
 	DPanic(msg string, fields ...zap.Field)
 	// Panic logs a panic-level message with the given fields and panics immediately.
 	Panic(msg string, fields ...zap.Field)

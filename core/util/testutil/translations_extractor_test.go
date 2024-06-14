@@ -1,7 +1,6 @@
 package testutil
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"sort"
@@ -40,7 +39,7 @@ func (t *TranslationsExtractorTest) SetupSuite() {
 	data, _ := yaml.Marshal(translation)
 	// It's not regular temporary file. Little hack in order to test translations extractor.
 	// nolint:gosec
-	errWrite := ioutil.WriteFile("/tmp/translate.en.yml", data, os.ModePerm)
+	errWrite := os.WriteFile("/tmp/translate.en.yml", data, os.ModePerm)
 	require.NoError(t.T(), errWrite)
 
 	t.extractor = NewTranslationsExtractor("translate.{}.yml")

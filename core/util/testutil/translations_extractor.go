@@ -3,7 +3,6 @@ package testutil
 import (
 	"errors"
 	"io/fs"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -63,8 +62,8 @@ func (t *TranslationsExtractor) loadYAMLFile(fileName string) (map[string]interf
 		err     error
 	)
 
-	if info, err = os.Stat(fileName); err == nil {
-		if !info.IsDir() {
+	if info, err = os.Stat(fileName); err == nil { // nolint:nestif
+		if !info.IsDir() { // nolint:nestif
 			var (
 				path   string
 				source []byte
@@ -75,7 +74,7 @@ func (t *TranslationsExtractor) loadYAMLFile(fileName string) (map[string]interf
 				return dataMap, err
 			}
 
-			if source, err = ioutil.ReadFile(path); err != nil {
+			if source, err = os.ReadFile(path); err != nil {
 				return dataMap, err
 			}
 

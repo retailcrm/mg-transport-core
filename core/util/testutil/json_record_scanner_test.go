@@ -2,11 +2,12 @@ package testutil
 
 import (
 	"bytes"
-	"github.com/stretchr/testify/suite"
 	"io"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/suite"
 )
 
 type JSONRecordScannerTest struct {

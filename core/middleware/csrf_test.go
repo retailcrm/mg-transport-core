@@ -3,7 +3,6 @@ package middleware
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -32,7 +31,7 @@ func TestCSRF_DefaultCSRFTokenGetter_Empty(t *testing.T) {
 		URL: &url.URL{
 			RawQuery: "",
 		},
-		Body: ioutil.NopCloser(bytes.NewReader([]byte(""))),
+		Body: io.NopCloser(bytes.NewReader([]byte(""))),
 	}}
 
 	assert.Empty(t, DefaultCSRFTokenGetter(c))
@@ -85,14 +84,14 @@ func TestCSRF_DefaultCSRFTokenGetter_Form(t *testing.T) {
 			RawQuery: "",
 		},
 		Header: headers,
-		Body:   ioutil.NopCloser(bytes.NewReader([]byte(""))),
+		Body:   io.NopCloser(bytes.NewReader([]byte(""))),
 	}}
 	c.Request.PostForm = url.Values{"csrf_token": {"token"}}
 
 	assert.NotEmpty(t, DefaultCSRFTokenGetter(c))
 	assert.Equal(t, "token", DefaultCSRFTokenGetter(c))
 
-	_, err := ioutil.ReadAll(c.Request.Body)
+	_, err := io.ReadAll(c.Request.Body)
 	assert.NoError(t, err)
 }
 

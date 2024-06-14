@@ -1,7 +1,6 @@
 package core
 
 import (
-	"io/ioutil"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -40,7 +39,7 @@ func createTestLangFiles(t *testing.T) {
 		}
 
 		if _, err := os.Stat(fileName); err != nil && os.IsNotExist(err) {
-			err = ioutil.WriteFile(fileName, data, os.ModePerm)
+			err = os.WriteFile(fileName, data, os.ModePerm)
 			require.Nil(t, err)
 		}
 	}
@@ -103,7 +102,7 @@ func (l *LocalizerTest) Test_LocalizationMiddleware_Context() {
 
 func (l *LocalizerTest) Test_LocalizationMiddleware_Httptest() {
 	var wg sync.WaitGroup
-	rand.Seed(time.Now().UnixNano())
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
 	l.localizer.Preload(DefaultLanguages)
 	langMsgMap := map[language.Tag]string{
 		language.English: "Test message",
@@ -122,7 +121,7 @@ func (l *LocalizerTest) Test_LocalizationMiddleware_Httptest() {
 		wg.Add(1)
 		go func(m map[language.Tag]string, wg *sync.WaitGroup) {
 			var tag language.Tag
-			switch rand.Intn(3-1) + 1 { // nolint:gosec
+			switch r.Intn(3-1) + 1 { // nolint:gosec
 			case 1:
 				tag = language.English
 			case 2:

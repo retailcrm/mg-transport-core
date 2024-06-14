@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+
 	"go.uber.org/zap"
 
 	retailcrm "github.com/retailcrm/api-client-go/v2"

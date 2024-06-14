@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"github.com/guregu/null/v5"
 	"io"
 	"os"
 	"sync"
+
+	"github.com/guregu/null/v5"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

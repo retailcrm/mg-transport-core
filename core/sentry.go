@@ -23,6 +23,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+const recoveryMiddlewareSkipFrames = 3
+
 // ErrorHandlerFunc will handle errors.
 type ErrorHandlerFunc func(recovery interface{}, c *gin.Context)
 
@@ -249,7 +251,7 @@ func (s *Sentry) recoveryMiddleware() gin.HandlerFunc { // nolint
 				}
 				if l != nil {
 					// TODO: Check if we can output stacktraces with prefix data like before if we really need it.
-					stack := stacktrace.FormattedStack(3, "trace: ")
+					stack := stacktrace.FormattedStack(recoveryMiddlewareSkipFrames, "trace: ")
 					formattedErr := logger.Err(err)
 					httpRequest, _ := httputil.DumpRequest(c.Request, false)
 					headers := strings.Split(string(httpRequest), "\r\n")

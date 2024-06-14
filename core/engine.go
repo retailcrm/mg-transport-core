@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/blacked/go-zabbix"
 	"github.com/getsentry/sentry-go"
@@ -26,12 +27,14 @@ import (
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
+const DefaultHTTPClientTimeout time.Duration = 30
+
 var boolTrue = true
 
 // DefaultHTTPClientConfig is a default config for HTTP client. It will be used by Engine for building HTTP client
 // if HTTP client config is not present in the configuration.
 var DefaultHTTPClientConfig = &config.HTTPClientConfig{
-	Timeout:         30,
+	Timeout:         DefaultHTTPClientTimeout,
 	SSLVerification: &boolTrue,
 }
 
@@ -279,10 +282,9 @@ func (e *Engine) BuildHTTPClient(certs *x509.CertPool, replaceDefault ...bool) *
 
 	if err != nil {
 		panic(err)
-	} else {
-		e.httpClient = client
 	}
 
+	e.httpClient = client
 	return e
 }
 

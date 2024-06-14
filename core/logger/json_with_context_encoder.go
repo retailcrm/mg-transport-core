@@ -18,18 +18,20 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+// nolint
 package logger
 
 import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"io"
 	"math"
 	"time"
 	"unicode/utf8"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"go.uber.org/zap/buffer"
 )

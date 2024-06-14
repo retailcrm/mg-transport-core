@@ -1,7 +1,7 @@
 package healthcheck
 
 var (
-	// compile-time checks to ensure that implementations are compatible with the interface
+	// compile-time checks to ensure that implementations are compatible with the interface.
 	_ = Storage(&SyncMapStorage{})
 	_ = Counter(&AtomicCounter{})
 	_ = Processor(CounterProcessor{})

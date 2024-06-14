@@ -31,12 +31,12 @@ type sentryMockTransport struct {
 	sending   sync.RWMutex
 }
 
-func (s *sentryMockTransport) Flush(timeout time.Duration) bool {
+func (s *sentryMockTransport) Flush(_ time.Duration) bool {
 	// noop
 	return true
 }
 
-func (s *sentryMockTransport) Configure(options sentry.ClientOptions) {
+func (s *sentryMockTransport) Configure(_ sentry.ClientOptions) {
 	// noop
 }
 

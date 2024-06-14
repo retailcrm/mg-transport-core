@@ -2,8 +2,10 @@ package logger
 
 import (
 	"fmt"
-	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
+
 	"go.uber.org/zap"
+
+	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 )
 
 const (
@@ -36,10 +38,10 @@ func (m *mgTransportClientAdapter) Debugf(msg string, args ...interface{}) {
 		if len(args) > 1 {
 			uri = fmt.Sprint(args[1])
 		}
-		if len(args) > 2 {
+		if len(args) > 2 { // nolint:gomnd
 			token = fmt.Sprint(args[2])
 		}
-		if len(args) > 3 {
+		if len(args) > 3 { // nolint:gomnd
 			body = args[3]
 		}
 		m.log.Debug("MG TRANSPORT API Request",

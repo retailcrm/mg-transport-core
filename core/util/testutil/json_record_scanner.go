@@ -3,8 +3,9 @@ package testutil
 import (
 	"bufio"
 	"encoding/json"
-	"github.com/guregu/null/v5"
 	"io"
+
+	"github.com/guregu/null/v5"
 )
 
 type LogRecord struct {

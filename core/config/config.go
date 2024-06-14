@@ -1,7 +1,7 @@
 package config
 
 import (
-	"io/ioutil"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -132,7 +132,7 @@ func (c *Config) GetConfigData(path string) []byte {
 		panic(err)
 	}
 
-	source, err := ioutil.ReadFile(path)
+	source, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}

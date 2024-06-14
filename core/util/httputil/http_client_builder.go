@@ -5,11 +5,12 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"go.uber.org/zap"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/pkg/errors"
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
@@ -229,7 +230,7 @@ func (b *HTTPClientBuilder) buildMocks() error {
 		return errors.New("dialer must be built first")
 	}
 
-	if b.mockHost != "" && b.mockPort != "" && len(b.mockedDomains) > 0 {
+	if b.mockHost != "" && b.mockPort != "" && len(b.mockedDomains) > 0 { // nolint:nestif
 		b.log("Mock address has been set", zap.String("address", net.JoinHostPort(b.mockHost, b.mockPort)))
 		b.log("Mocked domains: ")
 

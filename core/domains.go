@@ -2,7 +2,7 @@ package core
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -40,7 +40,7 @@ func getDomainsByStore(store string) []Domain {
 		return nil
 	}
 
-	respBody, readErr := ioutil.ReadAll(resp.Body)
+	respBody, readErr := io.ReadAll(resp.Body)
 
 	if readErr != nil {
 		return nil

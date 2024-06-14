@@ -1,12 +1,14 @@
 package logger
 
 import (
-	"github.com/h2non/gock"
-	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"net/http"
 	"testing"
+
+	"github.com/h2non/gock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 )
 
 func TestMGTransportClientAdapter(t *testing.T) {

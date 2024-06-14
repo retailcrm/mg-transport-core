@@ -1,12 +1,13 @@
 package logger
 
 import (
+	"net/http"
+	"testing"
+
 	"github.com/h2non/gock"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"testing"
 )
 
 func TestAPIClientAdapter(t *testing.T) {

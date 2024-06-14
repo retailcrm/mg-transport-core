@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"io/ioutil"
+	"os"
 	"path"
 	"runtime"
 	"strconv"
@@ -63,34 +63,34 @@ func (f Frame) name() string {
 
 // Format formats the frame according to the fmt.Formatter interface.
 //
-//    %s    source file
-//    %d    source line
-//    %n    function name
-//    %v    equivalent to %s:%d
+//	%s    source file
+//	%d    source line
+//	%n    function name
+//	%v    equivalent to %s:%d
 //
 // Format accepts flags that alter the printing of some verbs, as follows:
 //
-//    %+s   function name and path of source file relative to the compile time
-//          GOPATH separated by \n\t (<funcname>\n\t<path>)
-//    %+v   equivalent to %+s:%d
+//	%+s   function name and path of source file relative to the compile time
+//	      GOPATH separated by \n\t (<funcname>\n\t<path>)
+//	%+v   equivalent to %+s:%d
 func (f Frame) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 's':
 		switch {
 		case s.Flag('+'):
-			io.WriteString(s, f.name())
-			io.WriteString(s, "\n\t")
-			io.WriteString(s, f.file())
+			_, _ = io.WriteString(s, f.name())
+			_, _ = io.WriteString(s, "\n\t")
+			_, _ = io.WriteString(s, f.file())
 		default:
-			io.WriteString(s, path.Base(f.file()))
+			_, _ = io.WriteString(s, path.Base(f.file()))
 		}
 	case 'd':
-		io.WriteString(s, strconv.Itoa(f.line()))
+		_, _ = io.WriteString(s, strconv.Itoa(f.line()))
 	case 'n':
-		io.WriteString(s, funcname(f.name()))
+		_, _ = io.WriteString(s, funcname(f.name()))
 	case 'v':
 		f.Format(s, 's')
-		io.WriteString(s, ":")
+		_, _ = io.WriteString(s, ":")
 		f.Format(s, 'd')
 	}
 }
@@ -110,23 +110,23 @@ type StackTrace []Frame
 
 // Format formats the stack of Frames according to the fmt.Formatter interface.
 //
-//    %s	lists source files for each Frame in the stack
-//    %v	lists the source file and line number for each Frame in the stack
+//	%s	lists source files for each Frame in the stack
+//	%v	lists the source file and line number for each Frame in the stack
 //
 // Format accepts flags that alter the printing of some verbs, as follows:
 //
-//    %+v   Prints filename, function, and line number for each Frame in the stack.
+//	%+v   Prints filename, function, and line number for each Frame in the stack.
 func (st StackTrace) Format(s fmt.State, verb rune) {
 	switch verb {
 	case 'v':
 		switch {
 		case s.Flag('+'):
 			for _, f := range st {
-				io.WriteString(s, "\n")
+				_, _ = io.WriteString(s, "\n")
 				f.Format(s, verb)
 			}
 		case s.Flag('#'):
-			fmt.Fprintf(s, "%#v", []Frame(st))
+			_, _ = fmt.Fprintf(s, "%#v", []Frame(st))
 		default:
 			st.formatSlice(s, verb)
 		}
@@ -138,14 +138,14 @@ func (st StackTrace) Format(s fmt.State, verb rune) {
 // formatSlice will format this StackTrace into the given buffer as a slice of
 // Frame, only valid when called with '%s' or '%v'.
 func (st StackTrace) formatSlice(s fmt.State, verb rune) {
-	io.WriteString(s, "[")
+	_, _ = io.WriteString(s, "[")
 	for i, f := range st {
 		if i > 0 {
-			io.WriteString(s, " ")
+			_, _ = io.WriteString(s, " ")
 		}
 		f.Format(s, verb)
 	}
-	io.WriteString(s, "]")
+	_, _ = io.WriteString(s, "]")
 }
 
 // stack represents a stack of program counters.
@@ -159,7 +159,7 @@ func (s *stack) Format(st fmt.State, verb rune) {
 	if verb == 'v' && st.Flag('+') {
 		for _, pc := range *s {
 			f := Frame(pc)
-			fmt.Fprintf(st, "\n%+v", f)
+			_, _ = fmt.Fprintf(st, "\n%+v", f)
 		}
 	}
 }
@@ -185,16 +185,16 @@ func FormattedStack(skip int, prefix string) []byte {
 			break
 		}
 		// Print this much at least.  If we can't find the source, it won't show.
-		fmt.Fprintf(buf, "%s%s:%d (0x%x)\n", prefix, file, line, pc)
+		_, _ = fmt.Fprintf(buf, "%s%s:%d (0x%x)\n", prefix, file, line, pc)
 		if file != lastFile {
-			data, err := ioutil.ReadFile(file)
+			data, err := os.ReadFile(file)
 			if err != nil {
 				continue
 			}
 			lines = bytes.Split(data, []byte{'\n'})
 			lastFile = file
 		}
-		fmt.Fprintf(buf, "%s\t%s: %s\n", prefix, function(pc), source(lines, line))
+		_, _ = fmt.Fprintf(buf, "%s\t%s: %s\n", prefix, function(pc), source(lines, line))
 	}
 	return buf.Bytes()
 }

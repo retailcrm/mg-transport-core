@@ -11,10 +11,11 @@ import (
 	"github.com/h2non/gock"
 
 	retailcrm "github.com/retailcrm/api-client-go/v2"
-	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	v1 "github.com/retailcrm/mg-transport-api-client-go/v1"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
 

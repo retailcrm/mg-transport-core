@@ -18,7 +18,7 @@ func TestError(t *testing.T) {
 
 func (t *ErrorTest) TestAppendToError() {
 	err := errors.New("test error")
-	_, ok := err.(StackTraced)
+	_, ok := err.(StackTraced) // nolint:errorlint
 
 	t.Assert().False(ok)
 
@@ -28,16 +28,16 @@ func (t *ErrorTest) TestAppendToError() {
 	t.Assert().Nil(AppendToError(nil))
 	t.Assert().Implements((*StackTraced)(nil), withTrace)
 	t.Assert().Implements((*StackTraced)(nil), twiceTrace)
-	t.Assert().Equal(withTrace.(StackTraced).StackTrace(), twiceTrace.(StackTraced).StackTrace())
+	t.Assert().Equal(withTrace.(StackTraced).StackTrace(), twiceTrace.(StackTraced).StackTrace()) // nolint:errorlint
 }
 
 func (t *ErrorTest) TestCauseUnwrap() {
 	err := errors.New("test error")
 	wrapped := AppendToError(err)
 
-	t.Assert().Equal(err, wrapped.(*withStack).Cause())
+	t.Assert().Equal(err, wrapped.(*withStack).Cause()) // nolint:errorlint
 	t.Assert().Equal(err, errors.Unwrap(wrapped))
-	t.Assert().Equal(wrapped.(*withStack).Cause(), errors.Unwrap(wrapped))
+	t.Assert().Equal(wrapped.(*withStack).Cause(), errors.Unwrap(wrapped)) // nolint:errorlint
 }
 
 func (t *ErrorTest) TestFormat() {

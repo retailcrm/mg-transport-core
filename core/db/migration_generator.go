@@ -51,7 +51,7 @@ func (x *NewMigrationCommand) FileExists(filename string) bool {
 }
 
 // Execute migration generator command.
-func (x *NewMigrationCommand) Execute(args []string) error {
+func (x *NewMigrationCommand) Execute(_ []string) error {
 	tpl, err := template.New("migration").Parse(migrationTemplate)
 	if err != nil {
 		return fmt.Errorf("fatal: cannot parse base migration template: %w", err)

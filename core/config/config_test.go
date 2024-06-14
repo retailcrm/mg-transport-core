@@ -1,7 +1,6 @@
 package config
 
 import (
-	"io/ioutil"
 	"os"
 	"path"
 	"testing"
@@ -54,7 +53,7 @@ config_aws:
     bucket: bucket
     folder_name: folder
     content_type: image/jpeg`)
-	err := ioutil.WriteFile(testConfigFile, c.data, os.ModePerm)
+	err := os.WriteFile(testConfigFile, c.data, os.ModePerm)
 	require.Nil(c.T(), err)
 
 	c.config = NewConfig(testConfigFile)

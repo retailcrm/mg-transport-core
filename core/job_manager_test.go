@@ -44,7 +44,7 @@ type callbackLogger struct {
 	fn     callbackLoggerFunc
 }
 
-func (n *callbackLogger) Check(lvl zapcore.Level, msg string) *zapcore.CheckedEntry {
+func (n *callbackLogger) Check(_ zapcore.Level, _ string) *zapcore.CheckedEntry {
 	return &zapcore.CheckedEntry{}
 }
 
@@ -75,7 +75,7 @@ func (n *callbackLogger) cloneWithFields(fields []zap.Field) *callbackLogger {
 		cl.fields = fields
 		return cl
 	}
-	cl.fields = append(existing, fields...)
+	cl.fields = append(existing, fields...) // nolint:gocritic
 	return cl
 }
 
@@ -91,19 +91,19 @@ func (n *callbackLogger) WithLazy(args ...zap.Field) logger.Logger {
 	return n.cloneWithFields(args)
 }
 
-func (n *callbackLogger) WithGroup(name string) logger.Logger {
+func (n *callbackLogger) WithGroup(_ string) logger.Logger {
 	return n
 }
 
-func (n *callbackLogger) ForHandler(handler any) logger.Logger {
+func (n *callbackLogger) ForHandler(_ any) logger.Logger {
 	return n
 }
 
-func (n *callbackLogger) ForConnection(conn any) logger.Logger {
+func (n *callbackLogger) ForConnection(_ any) logger.Logger {
 	return n
 }
 
-func (n *callbackLogger) ForAccount(acc any) logger.Logger {
+func (n *callbackLogger) ForAccount(_ any) logger.Logger {
 	return n
 }
 
@@ -288,11 +288,11 @@ func (t *JobTest) oncePanicJob() {
 }
 
 func (t *JobTest) regularJob() {
-	rand.Seed(time.Now().UnixNano())
+	r := rand.New(rand.NewSource(time.Now().UnixNano())) // nolint:gosec
 	t.job = &Job{
 		Command: func(log logger.Logger) error {
 			t.executedChan <- true
-			t.randomNumber <- rand.Int() // nolint:gosec
+			t.randomNumber <- r.Int() // nolint:gosec
 			return nil
 		},
 		ErrorHandler: t.testErrorHandler(),
@@ -303,7 +303,6 @@ func (t *JobTest) regularJob() {
 }
 
 func (t *JobTest) regularSyncJob() {
-	rand.Seed(time.Now().UnixNano())
 	t.job = &Job{
 		Command: func(log logger.Logger) error {
 			t.syncBool = true
