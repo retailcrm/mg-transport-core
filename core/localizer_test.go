@@ -118,6 +118,7 @@ func (l *LocalizerTest) Test_LocalizationMiddleware_Httptest() {
 
 	for i := 0; i < 1000; i++ {
 		wg.Add(1)
+		i := i
 		go func(m map[language.Tag]string, wg *sync.WaitGroup) {
 			r := rand.New(rand.NewSource(time.Now().UnixNano() + int64(i))) // nolint:gosec
 			var tag language.Tag
