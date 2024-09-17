@@ -16,7 +16,7 @@ require (
 	github.com/gin-contrib/multitemplate v0.0.0-20190914010127-bba2ccfe37ec
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-playground/validator/v10 v10.14.0
-	github.com/gomarkdown/markdown v0.0.0-20221013030248-663e2500819c
+	github.com/gomarkdown/markdown v0.0.0-20240730141124-034f12af3bf6
 	github.com/gorilla/securecookie v1.1.1
 	github.com/gorilla/sessions v1.2.0
 	github.com/guregu/null/v5 v5.0.0
