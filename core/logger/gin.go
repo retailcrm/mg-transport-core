@@ -7,13 +7,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// GinMiddleware will construct Gin middleware which will log requests.
+// GinMiddleware will construct Gin middleware which will log requests and provide logger with unique request ID.
 func GinMiddleware(log Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Start timer
 		start := time.Now()
 		path := c.Request.URL.Path
 		raw := c.Request.URL.RawQuery
+
+		streamID := generateStreamID()
+		log := log.With(StreamID(streamID))
+		c.Set(StreamIDAttr, streamID)
+		c.Set("logger", log)
 
 		// Process request
 		c.Next()
@@ -34,4 +39,8 @@ func GinMiddleware(log Logger) gin.HandlerFunc {
 			zap.Int("bodySize", c.Writer.Size()),
 		)
 	}
+}
+
+func MustGet(c *gin.Context) Logger {
+	return c.MustGet("logger").(Logger)
 }

@@ -17,7 +17,7 @@ import (
 type logRecord struct {
 	LevelName  string                 `json:"level_name"`
 	DateTime   null.Time              `json:"datetime"`
-	Caller     string                 `json:"caller"`
+	StreamID   string                 `json:"streamId"`
 	Message    string                 `json:"message"`
 	Handler    string                 `json:"handler,omitempty"`
 	Connection string                 `json:"connection,omitempty"`
