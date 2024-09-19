@@ -19,6 +19,9 @@ const ConnectionAttr = "connection"
 // AccountAttr represents the attribute name for the account.
 const AccountAttr = "account"
 
+// StreamIDAttr represents the workflow stream identifier (for example, all the processes triggered by one request).
+const StreamIDAttr = "streamId"
+
 // CounterIDAttr represents the attribute name for the counter ID.
 const CounterIDAttr = "counterId"
 
@@ -61,6 +64,16 @@ func HTTPStatusCode(code int) zap.Field {
 // HTTPStatusName returns a zap.Field with the given HTTP status name.
 func HTTPStatusName(code int) zap.Field {
 	return zap.String(HTTPStatusNameAttr, http.StatusText(code))
+}
+
+// StreamID returns a zap.Fields with the give stream ID.
+func StreamID(val any) zap.Field {
+	switch item := val.(type) {
+	case string:
+		return zap.String(StreamIDAttr, item)
+	default:
+		return zap.Any(StreamIDAttr, item)
+	}
 }
 
 // Body returns a zap.Field with the given request body value.

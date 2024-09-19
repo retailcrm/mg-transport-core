@@ -458,7 +458,7 @@ func addFields(enc zapcore.ObjectEncoder, fields []zapcore.Field) {
 	hasEntries := false
 	for _, f := range fields {
 		switch f.Key {
-		case HandlerAttr, ConnectionAttr, AccountAttr:
+		case HandlerAttr, ConnectionAttr, AccountAttr, StreamIDAttr:
 			f.AddTo(enc)
 		default:
 			hasEntries = true
