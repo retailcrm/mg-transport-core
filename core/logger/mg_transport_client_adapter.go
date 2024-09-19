@@ -14,12 +14,18 @@ const (
 	mgDebugLogResp    = "MG TRANSPORT API Response: %s"
 )
 
+// MGTransportClientLogger implements both v1.BasicLogger and v1.DebugLogger.
+type MGTransportClientLogger interface {
+	v1.BasicLogger
+	v1.DebugLogger
+}
+
 type mgTransportClientAdapter struct {
 	log Logger
 }
 
 // MGTransportClientAdapter constructs an adapter that will log MG requests and responses.
-func MGTransportClientAdapter(log Logger) v1.BasicLogger {
+func MGTransportClientAdapter(log Logger) MGTransportClientLogger {
 	return &mgTransportClientAdapter{log: log}
 }
 

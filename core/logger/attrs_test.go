@@ -60,6 +60,27 @@ func TestHTTPStatusName(t *testing.T) {
 	assert.Equal(t, http.StatusText(http.StatusOK), val.String)
 }
 
+func TestStreamID(t *testing.T) {
+	var cases = []struct {
+		input  interface{}
+		result interface{}
+	}{
+		{
+			input:  "",
+			result: "",
+		},
+		{
+			input:  "test body",
+			result: "test body",
+		},
+	}
+	for _, c := range cases {
+		val := StreamID(c.input)
+		assert.Equal(t, StreamIDAttr, val.Key)
+		assert.Equal(t, c.result, val.String)
+	}
+}
+
 func TestBody(t *testing.T) {
 	var cases = []struct {
 		input  interface{}
@@ -74,8 +95,8 @@ func TestBody(t *testing.T) {
 			result: nil,
 		},
 		{
-			input:  "ooga booga",
-			result: "ooga booga",
+			input:  "test body",
+			result: "test body",
 		},
 		{
 			input:  `{"success":true}`,
@@ -90,8 +111,8 @@ func TestBody(t *testing.T) {
 			result: nil,
 		},
 		{
-			input:  []byte("ooga booga"),
-			result: "ooga booga",
+			input:  []byte("test body"),
+			result: "test body",
 		},
 		{
 			input:  []byte(`{"success":true}`),
