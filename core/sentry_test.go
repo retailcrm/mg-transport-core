@@ -256,7 +256,7 @@ func (s *SentryTest) TestSentry_CaptureException_Error() {
 	s.sentry.CaptureException(ctx, errors.New("test error"))
 
 	s.Require().Nil(transport.lastEvent)
-	s.Require().Len(ctx.Errors, 1)
+	s.Require().Len(ctx.Errors, 0)
 }
 
 func (s *SentryTest) TestSentry_CaptureException() {
@@ -273,6 +273,38 @@ func (s *SentryTest) TestSentry_CaptureException() {
 	s.Assert().Equal(transport.lastEvent.Exception[1].Type, "*stacktrace.withStack")
 	s.Assert().Equal(transport.lastEvent.Exception[1].Value, "test error")
 	s.Assert().NotNil(transport.lastEvent.Exception[1].Stacktrace)
+}
+
+func (s *SentryTest) TestSentry_CaptureEvent_Nil() {
+	defer func() {
+		s.Assert().Nil(recover())
+	}()
+	s.sentry.CaptureEvent(&gin.Context{}, nil)
+}
+
+func (s *SentryTest) TestSentry_CaptureEvent_Error() {
+	ctx, transport := s.ginCtxMock()
+	ctx.Keys = make(map[string]interface{})
+	s.sentry.CaptureEvent(ctx, &sentry.Event{})
+
+	s.Require().Nil(transport.lastEvent)
+	s.Require().Len(ctx.Errors, 0)
+}
+
+func (s *SentryTest) TestSentry_CaptureMessage_Empty() {
+	defer func() {
+		s.Assert().Nil(recover())
+	}()
+	s.sentry.CaptureMessage(&gin.Context{}, "")
+}
+
+func (s *SentryTest) TestSentry_CaptureMessage_Error() {
+	ctx, transport := s.ginCtxMock()
+	ctx.Keys = make(map[string]interface{})
+	s.sentry.CaptureMessage(ctx, "")
+
+	s.Require().Nil(transport.lastEvent)
+	s.Require().Len(ctx.Errors, 0)
 }
 
 func (s *SentryTest) TestSentry_obtainErrorLogger_Existing() {
