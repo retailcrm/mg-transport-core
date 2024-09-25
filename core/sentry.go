@@ -126,7 +126,24 @@ func (s *Sentry) CaptureException(c *gin.Context, exception error) {
 		hub.CaptureException(exception)
 		return
 	}
-	_ = c.Error(exception)
+}
+
+// CaptureMessage and send it to Sentry.
+func (s *Sentry) CaptureMessage(c *gin.Context, message string) {
+	if hub := sentrygin.GetHubFromContext(c); hub != nil {
+		s.setScopeTags(c, hub.Scope())
+		hub.CaptureMessage(message)
+		return
+	}
+}
+
+// CaptureEvent and send it to Sentry.
+func (s *Sentry) CaptureEvent(c *gin.Context, event *sentry.Event) {
+	if hub := sentrygin.GetHubFromContext(c); hub != nil {
+		s.setScopeTags(c, hub.Scope())
+		hub.CaptureEvent(event)
+		return
+	}
 }
 
 // SentryMiddlewares contain all the middlewares required to process errors and panics and send them to the Sentry.
@@ -201,12 +218,14 @@ func (s *Sentry) exceptionCaptureMiddleware() gin.HandlerFunc { // nolint:gocogn
 			for _, err := range publicErrors {
 				messages[index] = err.Error()
 				s.CaptureException(c, err)
+				_ = c.Error(err)
 				l.Error(err.Error())
 				index++
 			}
 
 			for _, err := range privateErrors {
 				s.CaptureException(c, err)
+				_ = c.Error(err)
 				l.Error(err.Error())
 			}
 
