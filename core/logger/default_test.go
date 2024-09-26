@@ -61,6 +61,14 @@ func (s *TestDefaultSuite) TestForHandler() {
 	s.Assert().Equal("Handler", items[0].Handler)
 }
 
+func (s *TestDefaultSuite) TestForHandlerNoDuplicate() {
+	log := newBufferLogger()
+	log.ForHandler("handler1").ForHandler("handler2").Info("test")
+
+	s.Assert().Contains(log.String(), "handler2")
+	s.Assert().NotContains(log.String(), "handler1")
+}
+
 func (s *TestDefaultSuite) TestForConnection() {
 	log := newBufferLogger()
 	log.ForConnection("connection").Info("test")
@@ -71,6 +79,14 @@ func (s *TestDefaultSuite) TestForConnection() {
 	s.Assert().Equal("connection", items[0].Connection)
 }
 
+func (s *TestDefaultSuite) TestForConnectionNoDuplicate() {
+	log := newBufferLogger()
+	log.ForConnection("conn1").ForConnection("conn2").Info("test")
+
+	s.Assert().Contains(log.String(), "conn2")
+	s.Assert().NotContains(log.String(), "conn1")
+}
+
 func (s *TestDefaultSuite) TestForAccount() {
 	log := newBufferLogger()
 	log.ForAccount("account").Info("test")
@@ -79,6 +95,14 @@ func (s *TestDefaultSuite) TestForAccount() {
 	s.Require().NoError(err)
 	s.Require().Len(items, 1)
 	s.Assert().Equal("account", items[0].Account)
+}
+
+func (s *TestDefaultSuite) TestForAccountNoDuplicate() {
+	log := newBufferLogger()
+	log.ForAccount("acc1").ForAccount("acc2").Info("test")
+
+	s.Assert().Contains(log.String(), "acc2")
+	s.Assert().NotContains(log.String(), "acc1")
 }
 
 func TestAnyZapFields(t *testing.T) {

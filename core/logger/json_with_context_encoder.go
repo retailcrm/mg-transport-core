@@ -44,6 +44,10 @@ var _jsonWithContextPool = NewPool(func() *jsonWithContextEncoder {
 })
 
 func init() {
+	registerJSONWithContext()
+}
+
+func registerJSONWithContext() {
 	err := zap.RegisterEncoder("json-with-context", func(config zapcore.EncoderConfig) (zapcore.Encoder, error) {
 		return NewJSONWithContextEncoder(config), nil
 	})

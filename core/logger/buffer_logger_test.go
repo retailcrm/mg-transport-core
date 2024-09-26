@@ -85,16 +85,19 @@ func (l *bufferLogger) WithLazy(fields ...zapcore.Field) Logger {
 	}
 }
 
+// ForHandler returns a new logger that is associated with the given handler.
 func (l *bufferLogger) ForHandler(handler any) Logger {
-	return l.WithLazy(zap.Any(HandlerAttr, handler))
+	return l.clone(l.parentOrCurrent().WithLazy(zap.Any(HandlerAttr, handler)))
 }
 
+// ForConnection returns a new logger that is associated with the given connection.
 func (l *bufferLogger) ForConnection(conn any) Logger {
-	return l.WithLazy(zap.Any(ConnectionAttr, conn))
+	return l.clone(l.parentOrCurrent().WithLazy(zap.Any(ConnectionAttr, conn)))
 }
 
+// ForAccount returns a new logger that is associated with the given account.
 func (l *bufferLogger) ForAccount(acc any) Logger {
-	return l.WithLazy(zap.Any(AccountAttr, acc))
+	return l.clone(l.parentOrCurrent().WithLazy(zap.Any(AccountAttr, acc)))
 }
 
 // Read bytes from the logger buffer. io.Reader implementation.
@@ -115,6 +118,28 @@ func (l *bufferLogger) Bytes() []byte {
 // Reset is a shorthand for the underlying bytes.Buffer method. It will reset buffer contents.
 func (l *bufferLogger) Reset() {
 	l.buf.Reset()
+}
+
+// clone creates a copy of the given logger.
+func (l *bufferLogger) clone(log *zap.Logger) Logger {
+	parent := l.parent
+	if parent == nil {
+		parent = l.Logger
+	}
+	return &bufferLogger{
+		Default: Default{
+			Logger: log,
+			parent: parent,
+		},
+	}
+}
+
+// parentOrCurrent returns parent logger if it exists or current logger otherwise.
+func (l *bufferLogger) parentOrCurrent() *zap.Logger {
+	if l.parent != nil {
+		return l.parent
+	}
+	return l.Logger
 }
 
 type lockableBuffer struct {

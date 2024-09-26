@@ -47,6 +47,7 @@ type Logger interface {
 // Default is a default logger implementation.
 type Default struct {
 	*zap.Logger
+	parent *zap.Logger
 }
 
 // NewDefault creates a new default logger with the given format and debug level.
@@ -68,22 +69,34 @@ func (l *Default) WithLazy(fields ...zap.Field) Logger {
 
 // ForHandler returns a new logger that is associated with the given handler.
 func (l *Default) ForHandler(handler any) Logger {
-	return l.WithLazy(zap.Any(HandlerAttr, handler))
+	return l.clone(l.parentOrCurrent().WithLazy(zap.Any(HandlerAttr, handler)))
 }
 
 // ForConnection returns a new logger that is associated with the given connection.
 func (l *Default) ForConnection(conn any) Logger {
-	return l.WithLazy(zap.Any(ConnectionAttr, conn))
+	return l.clone(l.parentOrCurrent().WithLazy(zap.Any(ConnectionAttr, conn)))
 }
 
 // ForAccount returns a new logger that is associated with the given account.
 func (l *Default) ForAccount(acc any) Logger {
-	return l.WithLazy(zap.Any(AccountAttr, acc))
+	return l.clone(l.parentOrCurrent().WithLazy(zap.Any(AccountAttr, acc)))
 }
 
 // clone creates a copy of the given logger.
 func (l *Default) clone(log *zap.Logger) Logger {
-	return &Default{Logger: log}
+	parent := l.parent
+	if parent == nil {
+		parent = l.Logger
+	}
+	return &Default{Logger: log, parent: parent}
+}
+
+// parentOrCurrent returns parent logger if it exists or current logger otherwise.
+func (l *Default) parentOrCurrent() *zap.Logger {
+	if l.parent != nil {
+		return l.parent
+	}
+	return l.Logger
 }
 
 // AnyZapFields converts an array of values to zap fields.

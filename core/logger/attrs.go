@@ -85,12 +85,18 @@ func Body(val any) zap.Field {
 			return zap.Any(BodyAttr, m)
 		}
 		return zap.String(BodyAttr, item)
-	case []byte:
+	case []byte, json.RawMessage:
+		var val []byte
+		if msg, ok := item.(json.RawMessage); ok {
+			val = msg
+		} else {
+			val = item.([]byte)
+		}
 		var m interface{}
-		if err := json.Unmarshal(item, &m); err == nil {
+		if err := json.Unmarshal(val, &m); err == nil {
 			return zap.Any(BodyAttr, m)
 		}
-		return zap.String(BodyAttr, string(item))
+		return zap.String(BodyAttr, string(val))
 	case io.Reader:
 		data, err := io.ReadAll(item)
 		if err != nil {
