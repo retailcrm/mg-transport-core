@@ -96,6 +96,11 @@ func Body(val any) zap.Field {
 		if err != nil {
 			return zap.String(BodyAttr, fmt.Sprintf("%#v", val))
 		}
+		if seeker, ok := item.(io.Seeker); ok {
+			_, _ = seeker.Seek(0, 0)
+		} else if writer, ok := item.(io.Writer); ok {
+			_, _ = writer.Write(data)
+		}
 		var m interface{}
 		if err := json.Unmarshal(data, &m); err == nil {
 			return zap.Any(BodyAttr, m)
