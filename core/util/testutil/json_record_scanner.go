@@ -11,11 +11,11 @@ import (
 type LogRecord struct {
 	LevelName  string                 `json:"level_name"`
 	DateTime   null.Time              `json:"datetime"`
-	Caller     string                 `json:"caller"`
 	Message    string                 `json:"message"`
 	Handler    string                 `json:"handler,omitempty"`
 	Connection string                 `json:"connection,omitempty"`
 	Account    string                 `json:"account,omitempty"`
+	StreamID   string                 `json:"streamId"`
 	Context    map[string]interface{} `json:"context,omitempty"`
 }
 

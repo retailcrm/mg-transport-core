@@ -26,7 +26,7 @@ func (t *JSONRecordScannerTest) newPredefined() *JSONRecordScanner {
 	return t.new([]string{strings.ReplaceAll(`{
   "level_name": "ERROR",
   "datetime": "2024-06-07T13:49:17+03:00",
-  "caller": "handlers/account_middleware.go:147",
+  "streamId": "1",
   "message": "Cannot add account",
   "handler": "handlers.addAccount",
   "connection": "https://fake-uri.retailcrm.pro",
@@ -44,7 +44,7 @@ func (t *JSONRecordScannerTest) assertPredefined(record LogRecord) {
 	t.Assert().True(record.DateTime.Valid)
 	t.Assert().Equal(ts, record.DateTime.Time)
 	t.Assert().Equal("ERROR", record.LevelName)
-	t.Assert().Equal("handlers/account_middleware.go:147", record.Caller)
+	t.Assert().Equal("1", record.StreamID)
 	t.Assert().Equal("Cannot add account", record.Message)
 	t.Assert().Equal("handlers.addAccount", record.Handler)
 	t.Assert().Equal("https://fake-uri.retailcrm.pro", record.Connection)
