@@ -44,9 +44,19 @@ type Logger interface {
 	Sync() error
 }
 
+type previousField uint8
+
+const (
+	previousFieldHandler previousField = iota + 1
+	previousFieldConnection
+	previousFieldAccount
+)
+
 // Default is a default logger implementation.
 type Default struct {
 	*zap.Logger
+	parent   *zap.Logger
+	previous previousField
 }
 
 // NewDefault creates a new default logger with the given format and debug level.
@@ -67,23 +77,69 @@ func (l *Default) WithLazy(fields ...zap.Field) Logger {
 }
 
 // ForHandler returns a new logger that is associated with the given handler.
+// This will replace "handler" field if it was set before.
+// Note: chain calls like ForHandler().With().ForHandler() will DUPLICATE handler field!
 func (l *Default) ForHandler(handler any) Logger {
-	return l.WithLazy(zap.Any(HandlerAttr, handler))
+	if l.previous != previousFieldHandler {
+		result := l.With(zap.Any(HandlerAttr, handler))
+		result.(*Default).setPrevious(previousFieldHandler)
+		result.(*Default).parent = l.Logger
+		return result
+	}
+	result := l.clone(l.parentOrCurrent().With(zap.Any(HandlerAttr, handler)))
+	result.(*Default).setPrevious(previousFieldHandler)
+	return result
 }
 
 // ForConnection returns a new logger that is associated with the given connection.
+// This will replace "connection" field if it was set before.
+// Note: chain calls like ForConnection().With().ForConnection() will DUPLICATE connection field!
 func (l *Default) ForConnection(conn any) Logger {
-	return l.WithLazy(zap.Any(ConnectionAttr, conn))
+	if l.previous != previousFieldConnection {
+		result := l.With(zap.Any(ConnectionAttr, conn))
+		result.(*Default).setPrevious(previousFieldConnection)
+		result.(*Default).parent = l.Logger
+		return result
+	}
+	result := l.clone(l.parentOrCurrent().With(zap.Any(ConnectionAttr, conn)))
+	result.(*Default).setPrevious(previousFieldConnection)
+	return result
 }
 
 // ForAccount returns a new logger that is associated with the given account.
+// This will replace "account" field if it was set before.
+// Note: chain calls like ForAccount().With().ForAccount() will DUPLICATE account field!
 func (l *Default) ForAccount(acc any) Logger {
-	return l.WithLazy(zap.Any(AccountAttr, acc))
+	if l.previous != previousFieldAccount {
+		result := l.With(zap.Any(AccountAttr, acc))
+		result.(*Default).setPrevious(previousFieldAccount)
+		result.(*Default).parent = l.Logger
+		return result
+	}
+	result := l.clone(l.parentOrCurrent().With(zap.Any(AccountAttr, acc)))
+	result.(*Default).setPrevious(previousFieldAccount)
+	return result
 }
 
 // clone creates a copy of the given logger.
 func (l *Default) clone(log *zap.Logger) Logger {
-	return &Default{Logger: log}
+	parent := l.parent
+	if parent == nil {
+		parent = l.Logger
+	}
+	return &Default{Logger: log, parent: parent}
+}
+
+// parentOrCurrent returns parent logger if it exists or current logger otherwise.
+func (l *Default) parentOrCurrent() *zap.Logger {
+	if l.parent != nil {
+		return l.parent
+	}
+	return l.Logger
+}
+
+func (l *Default) setPrevious(prev previousField) {
+	l.previous = prev
 }
 
 // AnyZapFields converts an array of values to zap fields.

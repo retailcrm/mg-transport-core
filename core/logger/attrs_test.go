@@ -2,6 +2,7 @@ package logger
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/stretchr/testify/require"
@@ -123,6 +124,11 @@ func TestBody(t *testing.T) {
 		{
 			name:   "byte slice input",
 			input:  []byte("test body"),
+			result: "test body",
+		},
+		{
+			name:   "json.RawMessage input",
+			input:  json.RawMessage("test body"),
 			result: "test body",
 		},
 		{

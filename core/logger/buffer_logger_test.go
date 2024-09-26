@@ -85,16 +85,49 @@ func (l *bufferLogger) WithLazy(fields ...zapcore.Field) Logger {
 	}
 }
 
+// ForHandler returns a new logger that is associated with the given handler.
+// This will replace "handler" field if it was set before.
+// Note: chain calls like ForHandler().With().ForHandler() will DUPLICATE handler field!
 func (l *bufferLogger) ForHandler(handler any) Logger {
-	return l.WithLazy(zap.Any(HandlerAttr, handler))
+	if l.previous != previousFieldHandler {
+		result := l.With(zap.Any(HandlerAttr, handler))
+		result.(*bufferLogger).setPrevious(previousFieldHandler)
+		result.(*bufferLogger).parent = l.Logger
+		return result
+	}
+	result := l.clone(l.parentOrCurrent().With(zap.Any(HandlerAttr, handler)))
+	result.(*bufferLogger).setPrevious(previousFieldHandler)
+	return result
 }
 
+// ForConnection returns a new logger that is associated with the given connection.
+// This will replace "connection" field if it was set before.
+// Note: chain calls like ForConnection().With().ForConnection() will DUPLICATE connection field!
 func (l *bufferLogger) ForConnection(conn any) Logger {
-	return l.WithLazy(zap.Any(ConnectionAttr, conn))
+	if l.previous != previousFieldConnection {
+		result := l.With(zap.Any(ConnectionAttr, conn))
+		result.(*bufferLogger).setPrevious(previousFieldConnection)
+		result.(*bufferLogger).parent = l.Logger
+		return result
+	}
+	result := l.clone(l.parentOrCurrent().With(zap.Any(ConnectionAttr, conn)))
+	result.(*bufferLogger).setPrevious(previousFieldConnection)
+	return result
 }
 
+// ForAccount returns a new logger that is associated with the given account.
+// This will replace "account" field if it was set before.
+// Note: chain calls like ForAccount().With().ForAccount() will DUPLICATE account field!
 func (l *bufferLogger) ForAccount(acc any) Logger {
-	return l.WithLazy(zap.Any(AccountAttr, acc))
+	if l.previous != previousFieldAccount {
+		result := l.With(zap.Any(AccountAttr, acc))
+		result.(*bufferLogger).setPrevious(previousFieldAccount)
+		result.(*bufferLogger).parent = l.Logger
+		return result
+	}
+	result := l.clone(l.parentOrCurrent().With(zap.Any(AccountAttr, acc)))
+	result.(*bufferLogger).setPrevious(previousFieldAccount)
+	return result
 }
 
 // Read bytes from the logger buffer. io.Reader implementation.
@@ -115,6 +148,28 @@ func (l *bufferLogger) Bytes() []byte {
 // Reset is a shorthand for the underlying bytes.Buffer method. It will reset buffer contents.
 func (l *bufferLogger) Reset() {
 	l.buf.Reset()
+}
+
+// clone creates a copy of the given logger.
+func (l *bufferLogger) clone(log *zap.Logger) Logger {
+	parent := l.parent
+	if parent == nil {
+		parent = l.Logger
+	}
+	return &bufferLogger{
+		Default: Default{
+			Logger: log,
+			parent: parent,
+		},
+	}
+}
+
+// parentOrCurrent returns parent logger if it exists or current logger otherwise.
+func (l *bufferLogger) parentOrCurrent() *zap.Logger {
+	if l.parent != nil {
+		return l.parent
+	}
+	return l.Logger
 }
 
 type lockableBuffer struct {
