@@ -105,6 +105,48 @@ func (s *TestDefaultSuite) TestForAccountNoDuplicate() {
 	s.Assert().NotContains(log.String(), "acc1")
 }
 
+func (s *TestDefaultSuite) TestNoDuplicatesPersistRecords() {
+	log := newBufferLogger()
+	log.
+		ForHandler("handler1").
+		ForHandler("handler2").
+		ForConnection("conn1").
+		ForConnection("conn2").
+		ForAccount("acc1").
+		ForAccount("acc2").
+		Info("test")
+
+	s.Assert().Contains(log.String(), "handler2")
+	s.Assert().NotContains(log.String(), "handler1")
+	s.Assert().Contains(log.String(), "conn2")
+	s.Assert().NotContains(log.String(), "conn1")
+	s.Assert().Contains(log.String(), "acc2")
+	s.Assert().NotContains(log.String(), "acc1")
+}
+
+// TestPersistRecordsIncompatibleWith is not a unit test, but rather a demonstration how you shouldn't use For* methods.
+func (s *TestDefaultSuite) TestPersistRecordsIncompatibleWith() {
+	log := newBufferLogger()
+	log.
+		ForHandler("handler1").
+		With(zap.Int("f1", 1)).
+		ForHandler("handler2").
+		ForConnection("conn1").
+		With(zap.Int("f2", 2)).
+		ForConnection("conn2").
+		ForAccount("acc1").
+		With(zap.Int("f3", 3)).
+		ForAccount("acc2").
+		Info("test")
+
+	s.Assert().Contains(log.String(), "handler2")
+	s.Assert().Contains(log.String(), "handler1")
+	s.Assert().Contains(log.String(), "conn2")
+	s.Assert().Contains(log.String(), "conn1")
+	s.Assert().Contains(log.String(), "acc2")
+	s.Assert().Contains(log.String(), "acc1")
+}
+
 func TestAnyZapFields(t *testing.T) {
 	fields := AnyZapFields([]interface{}{zap.String("k0", "v0"), "ooga", "booga"})
 	require.Len(t, fields, 3)
