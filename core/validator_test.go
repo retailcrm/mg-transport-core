@@ -41,7 +41,7 @@ func (s *ValidatorSuite) getError(err error) string {
 }
 
 func (s *ValidatorSuite) Test_ValidationInvalidType() {
-	s.Assert().IsType(&validator.InvalidValidationError{}, s.engine.Struct(nil))
+	s.IsType(&validator.InvalidValidationError{}, s.engine.Struct(nil))
 }
 
 func (s *ValidatorSuite) Test_ValidationFails() {
@@ -62,7 +62,7 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 		err := s.engine.Struct(conn)
 		s.Require().IsType(validator.ValidationErrors{}, err)
 
-		s.Assert().Equal(
+		s.Equal(
 			"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmURL' tag",
 			s.getError(err))
 	}
@@ -80,7 +80,7 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 		crmDomains = append(crmDomains, "https://"+domain.Domain)
 	}
 
-	s.Assert().True(len(crmDomains) > 4, "No box domains were tested, test is incomplete!")
+	s.Greater(len(crmDomains), 4, "No box domains were tested, test is incomplete!")
 
 	for _, domain := range crmDomains {
 		conn := models.Connection{
@@ -89,6 +89,6 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 		}
 
 		err := s.engine.Struct(conn)
-		s.Assert().NoError(err, domain+": "+s.getError(err))
+		s.NoError(err, domain+": "+s.getError(err))
 	}
 }

@@ -37,7 +37,6 @@ type BufferedLogger interface {
 //	// Some other code that works with logger.
 //	fmt.Println(log.String())
 type BufferLogger struct {
-	_ *zap.Logger
 	logger.Default
 	buf LockableBuffer
 }

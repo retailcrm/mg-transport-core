@@ -2,7 +2,6 @@ package logger
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -108,8 +107,8 @@ func TestSkippedPath(t *testing.T) {
 		require.True(t, ok)
 
 		for item, result := range items {
-			assert.Equal(t, result, matcher.match(item), fmt.Sprintf(`"%s" does not match "%s", internals: %#v`,
-				pattern, item, matcher))
+			assert.Equal(t, result, matcher.match(item), `"%s" does not match "%s", internals: %#v`,
+				pattern, item, matcher)
 		}
 	}
 }

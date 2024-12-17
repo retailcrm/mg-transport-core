@@ -33,35 +33,35 @@ func (t *BufferLoggerTest) Test_Read() {
 
 	data, err := io.ReadAll(t.logger)
 	t.Require().NoError(err)
-	t.Assert().Contains(string(data), "\"level_name\":\"DEBUG\"")
-	t.Assert().Contains(string(data), "\"message\":\"test\"")
+	t.Contains(string(data), "\"level_name\":\"DEBUG\"")
+	t.Contains(string(data), "\"message\":\"test\"")
 
 	t.silentLogger.Debug("test")
 
 	data, err = io.ReadAll(t.silentLogger)
 	t.Require().NoError(err)
-	t.Assert().Contains(string(data), "\"level_name\":\"DEBUG\"")
-	t.Assert().Contains(string(data), "\"message\":\"test\"")
+	t.Contains(string(data), "\"level_name\":\"DEBUG\"")
+	t.Contains(string(data), "\"message\":\"test\"")
 }
 
 func (t *BufferLoggerTest) Test_Bytes() {
 	t.logger.Debug("test")
-	t.Assert().Contains(string(t.logger.Bytes()), "\"level_name\":\"DEBUG\"")
-	t.Assert().Contains(string(t.logger.Bytes()), "\"message\":\"test\"")
+	t.Contains(string(t.logger.Bytes()), "\"level_name\":\"DEBUG\"")
+	t.Contains(string(t.logger.Bytes()), "\"message\":\"test\"")
 
 	t.silentLogger.Debug("test")
-	t.Assert().Contains(string(t.silentLogger.Bytes()), "\"level_name\":\"DEBUG\"")
-	t.Assert().Contains(string(t.silentLogger.Bytes()), "\"message\":\"test\"")
+	t.Contains(string(t.silentLogger.Bytes()), "\"level_name\":\"DEBUG\"")
+	t.Contains(string(t.silentLogger.Bytes()), "\"message\":\"test\"")
 }
 
 func (t *BufferLoggerTest) Test_String() {
 	t.logger.Debug("test")
-	t.Assert().Contains(t.logger.String(), "\"level_name\":\"DEBUG\"")
-	t.Assert().Contains(t.logger.String(), "\"message\":\"test\"")
+	t.Contains(t.logger.String(), "\"level_name\":\"DEBUG\"")
+	t.Contains(t.logger.String(), "\"message\":\"test\"")
 
 	t.silentLogger.Debug("test")
-	t.Assert().Contains(t.silentLogger.String(), "\"level_name\":\"DEBUG\"")
-	t.Assert().Contains(t.silentLogger.String(), "\"message\":\"test\"")
+	t.Contains(t.silentLogger.String(), "\"level_name\":\"DEBUG\"")
+	t.Contains(t.silentLogger.String(), "\"message\":\"test\"")
 }
 
 func (t *BufferLoggerTest) TestRace() {

@@ -2,10 +2,10 @@ run:
   skip-dirs-use-default: true
   allow-parallel-runners: true
   modules-download-mode: readonly
-  tests: false
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   sort-results: true
 
 linters:
@@ -23,7 +23,7 @@ linters:
     - dupl
     - errorlint
     - exhaustive
-    - exportloopref
+    - copyloopvar
     - funlen
     - gocognit
     - goconst
@@ -32,7 +32,7 @@ linters:
     - godot
     - goimports
     - revive
-    - gomnd
+    - mnd
     - gosec
     - lll
     - makezero
@@ -162,7 +162,7 @@ issues:
     - path: _test\.go
       linters:
         - dupl
-        - gomnd
+        - mnd
         - lll
         - bodyclose
         - errcheck
