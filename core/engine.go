@@ -27,7 +27,10 @@ import (
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
 
-const DefaultHTTPClientTimeout time.Duration = 30
+const (
+	DefaultHTTPClientTimeout time.Duration = 30
+	AppContextKey                          = "app"
+)
 
 var boolTrue = true
 
@@ -110,6 +113,9 @@ func (e *Engine) initGin() {
 	}
 
 	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set(AppContextKey, e)
+	})
 
 	e.buildSentryConfig()
 	e.InitSentrySDK()
@@ -413,4 +419,20 @@ func (e *Engine) buildSentryConfig() {
 		AttachStacktrace: true,
 		Debug:            e.Config.IsDebug(),
 	}
+}
+
+func GetApp(c *gin.Context) (app *Engine, exists bool) {
+	item, exists := c.Get(AppContextKey)
+	if !exists {
+		return nil, false
+	}
+	converted, ok := item.(*Engine)
+	if !ok {
+		return nil, false
+	}
+	return converted, true
+}
+
+func MustGetApp(c *gin.Context) *Engine {
+	return c.MustGet(AppContextKey).(*Engine)
 }

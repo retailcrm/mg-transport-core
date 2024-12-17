@@ -32,7 +32,7 @@ func (s *TestDefaultSuite) TestNewDefault_Panic() {
 }
 
 func (s *TestDefaultSuite) TestWith() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.With(zap.String(HandlerAttr, "Handler")).Info("test")
 	items, err := newJSONBufferedLogger(log).ScanAll()
 
@@ -42,7 +42,7 @@ func (s *TestDefaultSuite) TestWith() {
 }
 
 func (s *TestDefaultSuite) TestWithLazy() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.WithLazy(zap.String(HandlerAttr, "Handler")).Info("test")
 	items, err := newJSONBufferedLogger(log).ScanAll()
 
@@ -52,7 +52,7 @@ func (s *TestDefaultSuite) TestWithLazy() {
 }
 
 func (s *TestDefaultSuite) TestForHandler() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.ForHandler("Handler").Info("test")
 	items, err := newJSONBufferedLogger(log).ScanAll()
 
@@ -62,7 +62,7 @@ func (s *TestDefaultSuite) TestForHandler() {
 }
 
 func (s *TestDefaultSuite) TestForHandlerNoDuplicate() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.ForHandler("handler1").ForHandler("handler2").Info("test")
 
 	s.Assert().Contains(log.String(), "handler2")
@@ -70,7 +70,7 @@ func (s *TestDefaultSuite) TestForHandlerNoDuplicate() {
 }
 
 func (s *TestDefaultSuite) TestForConnection() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.ForConnection("connection").Info("test")
 	items, err := newJSONBufferedLogger(log).ScanAll()
 
@@ -80,7 +80,7 @@ func (s *TestDefaultSuite) TestForConnection() {
 }
 
 func (s *TestDefaultSuite) TestForConnectionNoDuplicate() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.ForConnection("conn1").ForConnection("conn2").Info("test")
 
 	s.Assert().Contains(log.String(), "conn2")
@@ -88,7 +88,7 @@ func (s *TestDefaultSuite) TestForConnectionNoDuplicate() {
 }
 
 func (s *TestDefaultSuite) TestForAccount() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.ForAccount("account").Info("test")
 	items, err := newJSONBufferedLogger(log).ScanAll()
 
@@ -98,7 +98,7 @@ func (s *TestDefaultSuite) TestForAccount() {
 }
 
 func (s *TestDefaultSuite) TestForAccountNoDuplicate() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.ForAccount("acc1").ForAccount("acc2").Info("test")
 
 	s.Assert().Contains(log.String(), "acc2")
@@ -106,7 +106,7 @@ func (s *TestDefaultSuite) TestForAccountNoDuplicate() {
 }
 
 func (s *TestDefaultSuite) TestNoDuplicatesPersistRecords() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.
 		ForHandler("handler1").
 		ForHandler("handler2").
@@ -126,7 +126,7 @@ func (s *TestDefaultSuite) TestNoDuplicatesPersistRecords() {
 
 // TestPersistRecordsIncompatibleWith is not a unit test, but rather a demonstration how you shouldn't use For* methods.
 func (s *TestDefaultSuite) TestPersistRecordsIncompatibleWith() {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	log.
 		ForHandler("handler1").
 		With(zap.Int("f1", 1)).

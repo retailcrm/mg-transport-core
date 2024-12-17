@@ -9,7 +9,7 @@ import (
 )
 
 func TestWriterAdapter(t *testing.T) {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	adapter := WriterAdapter(log, zap.InfoLevel)
 
 	msg := []byte("hello world")

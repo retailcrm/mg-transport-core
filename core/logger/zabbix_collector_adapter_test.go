@@ -9,7 +9,7 @@ import (
 )
 
 func TestZabbixCollectorAdapter(t *testing.T) {
-	log := newBufferLogger()
+	log := newBufferLoggerSilent()
 	adapter := ZabbixCollectorAdapter(log)
 	adapter.Errorf("highly unexpected error: %s", "unexpected error")
 	adapter.Errorf("cannot stop collector: %s", "app error")

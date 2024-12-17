@@ -29,6 +29,11 @@ func (s *ValidatorSuite) SetupSuite() {
 	}
 }
 
+func (s *ValidatorSuite) SetupTest() {
+	crmDomainStore.update()
+	boxDomainStore.update()
+}
+
 func (s *ValidatorSuite) getError(err error) string {
 	if err == nil {
 		return ""
@@ -72,13 +77,13 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 		"https://test.retailcrm.pro",
 		"https://raisa.retailcrm.es",
 		"https://blabla.simla.com",
-		"https://blabla.ecomlogic.com",
-		"https://crm.baucenter.ru",
-		"https://crm.holodilnik.ru",
-		"https://crm.eco.lanit.ru",
-		"https://ecom.inventive.ru",
-		"https://retailcrm.tvoydom.ru",
 	}
+
+	for _, domain := range boxDomainStore.domains {
+		crmDomains = append(crmDomains, "https://"+domain.Domain)
+	}
+
+	s.Assert().True(len(crmDomains) > 4, "No box domains were tested, test is incomplete!")
 
 	for _, domain := range crmDomains {
 		conn := models.Connection{
@@ -87,6 +92,6 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 		}
 
 		err := s.engine.Struct(conn)
-		assert.NoError(s.T(), err, s.getError(err))
+		assert.NoError(s.T(), err, domain+": "+s.getError(err))
 	}
 }

@@ -42,12 +42,30 @@ type BufferLogger struct {
 }
 
 // NewBufferedLogger returns new BufferedLogger instance.
-func NewBufferedLogger() BufferedLogger {
+func NewBufferedLogger(level ...zapcore.Level) BufferedLogger {
+	lvl := zapcore.DebugLevel
+	if len(level) > 0 {
+		lvl = level[0]
+	}
 	bl := &BufferLogger{}
 	bl.Logger = zap.New(
 		zapcore.NewCore(
 			logger.NewJSONWithContextEncoder(
-				logger.EncoderConfigJSON()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), zapcore.DebugLevel))
+				logger.EncoderConfigJSON()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), lvl))
+	return bl
+}
+
+// NewBufferedLoggerSilent returns new BufferedLogger instance which won't duplicate entries to stdout/stderr.
+func NewBufferedLoggerSilent(level ...zapcore.Level) BufferedLogger {
+	lvl := zapcore.DebugLevel
+	if len(level) > 0 {
+		lvl = level[0]
+	}
+	bl := &BufferLogger{}
+	bl.Logger = zap.New(
+		zapcore.NewCore(
+			logger.NewJSONWithContextEncoder(
+				logger.EncoderConfigJSON()), &bl.buf, lvl))
 	return bl
 }
 

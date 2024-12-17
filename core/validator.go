@@ -1,12 +1,76 @@
 package core
 
 import (
+	"go.uber.org/atomic"
 	"net/url"
 	"strings"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 )
+
+var (
+	crmDomainStore = &domainStore{
+		source: GetSaasDomains,
+		matcher: func(domain string, domains []Domain) bool {
+			if len(domains) == 0 {
+				return false
+			}
+
+			secondLevel := strings.Join(strings.Split(domain, ".")[1:], ".")
+
+			for _, crmDomain := range domains {
+				if crmDomain.Domain == secondLevel {
+					return true
+				}
+			}
+
+			return false
+		},
+	}
+	boxDomainStore = &domainStore{
+		source: GetBoxDomains,
+		matcher: func(domain string, domains []Domain) bool {
+			if len(domains) == 0 {
+				return false
+			}
+
+			for _, crmDomain := range domains {
+				if crmDomain.Domain == domain {
+					return true
+				}
+			}
+
+			return false
+		},
+	}
+)
+
+type domainStore struct {
+	domains    []Domain
+	mutex      sync.RWMutex
+	source     func() []Domain
+	matcher    func(string, []Domain) bool
+	lastUpdate atomic.Time
+}
+
+func (ds *domainStore) match(domain string) bool {
+	if time.Since(ds.lastUpdate.Load()) > time.Hour {
+		ds.update()
+	}
+	defer ds.mutex.RUnlock()
+	ds.mutex.RLock()
+	return ds.matcher(domain, ds.domains)
+}
+
+func (ds *domainStore) update() {
+	defer ds.mutex.Unlock()
+	ds.mutex.Lock()
+	ds.domains = ds.source()
+	ds.lastUpdate.Store(time.Now())
+}
 
 // init here will register `validateCrmURL` function for gin validator.
 func init() {
@@ -26,40 +90,16 @@ func validateCrmURL(fl validator.FieldLevel) bool {
 
 func isDomainValid(crmURL string) bool {
 	parseURL, err := url.ParseRequestURI(crmURL)
-
 	if err != nil || nil == parseURL || !checkURLString(parseURL) {
 		return false
 	}
 
-	mainDomain := getMainDomain(parseURL.Hostname())
-
-	if checkDomains(GetSaasDomains(), mainDomain) {
+	hostname := parseURL.Hostname()
+	if crmDomainStore.match(hostname) {
 		return true
 	}
 
-	if checkDomains(GetBoxDomains(), parseURL.Hostname()) {
-		return true
-	}
-
-	return false
-}
-
-func checkDomains(crmDomains []Domain, domain string) bool {
-	if nil == crmDomains {
-		return false
-	}
-
-	for _, crmDomain := range crmDomains {
-		if crmDomain.Domain == domain {
-			return true
-		}
-	}
-
-	return false
-}
-
-func getMainDomain(hostname string) (mainDomain string) {
-	return strings.Join(strings.Split(hostname, ".")[1:], ".")
+	return boxDomainStore.match(hostname)
 }
 
 func checkURLString(parseURL *url.URL) bool {
