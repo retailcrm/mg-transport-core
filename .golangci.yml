@@ -1,9 +1,11 @@
 run:
   skip-dirs-use-default: true
   allow-parallel-runners: true
+  modules-download-mode: readonly
 
 output:
-  format: colored-line-number
+  formats:
+    - format: colored-line-number
   sort-results: true
 
 linters:
@@ -21,7 +23,7 @@ linters:
     - dupl
     - errorlint
     - exhaustive
-    - exportloopref
+    - copyloopvar
     - funlen
     - gocognit
     - goconst
@@ -30,7 +32,7 @@ linters:
     - godot
     - goimports
     - revive
-    - gomnd
+    - mnd
     - gosec
     - lll
     - makezero
@@ -42,6 +44,7 @@ linters:
     - unconvert
     - whitespace
     - unused
+    - testifylint
 
 linters-settings:
   govet:
@@ -136,7 +139,7 @@ linters-settings:
     check-generated: false
     default-signifies-exhaustive: false
   funlen:
-    lines: 60
+    lines: 65
     statements: 40
   gocognit:
     min-complexity: 25
@@ -159,7 +162,7 @@ issues:
     - path: _test\.go
       linters:
         - dupl
-        - gomnd
+        - mnd
         - lll
         - bodyclose
         - errcheck
@@ -188,4 +191,4 @@ severity:
   case-sensitive: false
 
 service:
-  golangci-lint-version: 1.55.x
+  golangci-lint-version: 1.62.x

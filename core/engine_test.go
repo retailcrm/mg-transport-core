@@ -62,8 +62,7 @@ func (e *EngineTest) SetupTest() {
 	createTestLangFiles(e.T())
 
 	e.engine.Config = config.Config{
-		Version:  "1",
-		LogLevel: 5,
+		Version: "1",
 		Database: config.DatabaseConfig{
 			Connection:         db,
 			Logging:            true,

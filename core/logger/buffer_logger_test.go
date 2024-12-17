@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
-	"os"
 	"sync"
 
 	"github.com/guregu/null/v5"
@@ -32,7 +31,7 @@ type jSONRecordScanner struct {
 
 func newJSONBufferedLogger(buf *bufferLogger) *jSONRecordScanner {
 	if buf == nil {
-		buf = newBufferLogger()
+		buf = newBufferLoggerSilent()
 	}
 	return &jSONRecordScanner{scan: bufio.NewScanner(buf), buf: buf}
 }
@@ -59,13 +58,13 @@ type bufferLogger struct {
 	buf lockableBuffer
 }
 
-// NewBufferedLogger returns new BufferedLogger instance.
-func newBufferLogger() *bufferLogger {
+// newBufferLoggerSilent returns new BufferedLogger instance which won't duplicate entries to stdout/stderr.
+func newBufferLoggerSilent() *bufferLogger {
 	bl := &bufferLogger{}
 	bl.Logger = zap.New(
 		zapcore.NewCore(
 			NewJSONWithContextEncoder(
-				EncoderConfigJSON()), zap.CombineWriteSyncers(os.Stdout, os.Stderr, &bl.buf), zapcore.DebugLevel))
+				EncoderConfigJSON()), &bl.buf, zapcore.DebugLevel))
 	return bl
 }
 

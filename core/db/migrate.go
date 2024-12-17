@@ -1,11 +1,11 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	"gopkg.in/gormigrate.v1"
 )
 

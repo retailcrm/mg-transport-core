@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -12,7 +13,6 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/pkg/errors"
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
 )
@@ -218,7 +218,7 @@ func (b *HTTPClientBuilder) parseAddress() error {
 		b.mockHost = host
 		b.mockPort = port
 	} else {
-		return errors.Errorf("cannot split host and port: %s", err.Error())
+		return fmt.Errorf("cannot split host and port: %s", err.Error())
 	}
 
 	return nil
