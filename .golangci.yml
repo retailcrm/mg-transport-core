@@ -1,6 +1,7 @@
 run:
   skip-dirs-use-default: true
   allow-parallel-runners: true
+  modules-download-mode: readonly
 
 output:
   format: colored-line-number

@@ -28,7 +28,7 @@ jobs:
       - name: Lint code with golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.55.2
+          version: v1.62.2
           only-new-issues: true
   tests:
     name: Tests
