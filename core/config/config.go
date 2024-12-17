@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/op/go-logging"
 	"gopkg.in/yaml.v2"
 )
 
@@ -13,7 +12,6 @@ import (
 type Configuration interface {
 	GetVersion() string
 	GetSentryDSN() string
-	GetLogLevel() logging.Level
 	GetLogFormat() string
 	GetHTTPConfig() HTTPServerConfig
 	GetZabbixConfig() ZabbixConfig
@@ -44,7 +42,6 @@ type Config struct {
 	SentryDSN        string            `yaml:"sentry_dsn"`
 	Database         DatabaseConfig    `yaml:"database"`
 	UpdateInterval   int               `yaml:"update_interval"`
-	LogLevel         logging.Level     `yaml:"log_level"`
 	LogFormat        string            `yaml:"log_format"`
 	Debug            bool              `yaml:"debug"`
 }
@@ -148,11 +145,6 @@ func (c Config) GetSentryDSN() string {
 // GetVersion transport version.
 func (c Config) GetVersion() string {
 	return c.Version
-}
-
-// GetLogLevel log level.
-func (c Config) GetLogLevel() logging.Level {
-	return c.LogLevel
 }
 
 func (c Config) GetLogFormat() string {

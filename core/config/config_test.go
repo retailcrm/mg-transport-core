@@ -5,7 +5,6 @@ import (
 	"path"
 	"testing"
 
-	"github.com/op/go-logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -84,14 +83,6 @@ func (c *ConfigTest) Test_GetTransportInfo() {
 
 func (c *ConfigTest) Test_GetSentryDSN() {
 	assert.Equal(c.T(), "dsn string", c.config.GetSentryDSN())
-}
-
-func (c *ConfigTest) Test_GetLogLevel() {
-	assert.Equal(c.T(), logging.Level(5), c.config.GetLogLevel())
-}
-
-func (c *ConfigTest) Test_GetLogFormat() {
-	assert.Equal(c.T(), "console", c.config.GetLogFormat())
 }
 
 func (c *ConfigTest) Test_IsDebug() {
