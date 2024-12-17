@@ -5,8 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/db/models"
@@ -43,7 +41,7 @@ func (s *ValidatorSuite) getError(err error) string {
 }
 
 func (s *ValidatorSuite) Test_ValidationInvalidType() {
-	assert.IsType(s.T(), &validator.InvalidValidationError{}, s.engine.Struct(nil))
+	s.Assert().IsType(&validator.InvalidValidationError{}, s.engine.Struct(nil))
 }
 
 func (s *ValidatorSuite) Test_ValidationFails() {
@@ -62,10 +60,9 @@ func (s *ValidatorSuite) Test_ValidationFails() {
 		}
 
 		err := s.engine.Struct(conn)
-		require.IsType(s.T(), validator.ValidationErrors{}, err)
+		s.Require().IsType(validator.ValidationErrors{}, err)
 
-		assert.Equal(
-			s.T(),
+		s.Assert().Equal(
 			"Key: 'Connection.URL' Error:Field validation for 'URL' failed on the 'validateCrmURL' tag",
 			s.getError(err))
 	}
@@ -92,6 +89,6 @@ func (s *ValidatorSuite) Test_ValidationSuccess() {
 		}
 
 		err := s.engine.Struct(conn)
-		assert.NoError(s.T(), err, domain+": "+s.getError(err))
+		s.Assert().NoError(err, domain+": "+s.getError(err))
 	}
 }

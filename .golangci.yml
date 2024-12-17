@@ -42,6 +42,7 @@ linters:
     - unconvert
     - whitespace
     - unused
+    - testifylint
 
 linters-settings:
   govet:
@@ -188,4 +189,4 @@ severity:
   case-sensitive: false
 
 service:
-  golangci-lint-version: 1.55.x
+  golangci-lint-version: 1.62.x
