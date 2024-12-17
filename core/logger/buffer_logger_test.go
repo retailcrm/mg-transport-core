@@ -59,16 +59,12 @@ type bufferLogger struct {
 }
 
 // newBufferLoggerSilent returns new BufferedLogger instance which won't duplicate entries to stdout/stderr.
-func newBufferLoggerSilent(level ...zapcore.Level) *bufferLogger {
-	lvl := zapcore.DebugLevel
-	if len(level) > 0 {
-		lvl = level[0]
-	}
+func newBufferLoggerSilent() *bufferLogger {
 	bl := &bufferLogger{}
 	bl.Logger = zap.New(
 		zapcore.NewCore(
 			NewJSONWithContextEncoder(
-				EncoderConfigJSON()), &bl.buf, lvl))
+				EncoderConfigJSON()), &bl.buf, zapcore.DebugLevel))
 	return bl
 }
 
