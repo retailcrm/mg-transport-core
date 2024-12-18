@@ -3,19 +3,21 @@ package util
 import (
 	"errors"
 	"fmt"
-	phoneiso3166 "github.com/onlinecity/go-phone-iso3166"
-	pn "github.com/ttacon/libphonenumber"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
+
+	phoneiso3166 "github.com/onlinecity/go-phone-iso3166"
+	pn "github.com/ttacon/libphonenumber"
 )
 
 const (
-	CountryPhoneCodeDE = 49
-	CountryPhoneCodeAG = 54
-	CountryPhoneCodeMX = 52
-	// CountryPhoneCodeMXWA For Whatsapp
+	MinPhoneSymbolCount = 5
+	CountryPhoneCodeDE  = 49
+	CountryPhoneCodeAG  = 54
+	CountryPhoneCodeMX  = 52
+	// CountryPhoneCodeMXWA For Whatsapp.
 	CountryPhoneCodeMXWA = 521
 	CountryPhoneCodeUS   = "1443"
 	CountryPhoneCodePS   = 970
@@ -31,7 +33,7 @@ var (
 	undefinedUSCodes          = []string{"1445", "1945", "1840", "1448", "1279", "1839"}
 )
 
-// FormatNumberForWA forms a number in E164 format without `+` symbol to send to whatsapp
+// FormatNumberForWA forms a number in E164 format without `+` symbol to send to whatsapp.
 func FormatNumberForWA(number string) (string, error) {
 	parsedPhone, err := ParsePhone(number)
 
@@ -55,7 +57,7 @@ func FormatNumberForWA(number string) (string, error) {
 }
 
 // FormatNumberForMG forms a number in E164 format without `+` symbol to send to Message Gateway
-// TODO Возможно, нет смысла в этих функция, так как в КР и 360 будет своя логика
+// TODO Возможно, нет смысла в этих функция, так как в КР и 360 будет своя логика.
 func FormatNumberForMG(number string) (string, error) {
 	parsedPhone, err := ParsePhone(number)
 
@@ -79,10 +81,10 @@ func FormatNumberForMG(number string) (string, error) {
 }
 
 // ParsePhone this function parses the number as a string
-// Mexican numbers may not have a 1 after the country code 52
+// Mexican numbers may not have a 1 after the country code 52.
 func ParsePhone(phoneNumber string) (*pn.PhoneNumber, error) {
 	trimmedPhone := regexp.MustCompile(`\D+`).ReplaceAllString(phoneNumber, "")
-	if len(trimmedPhone) < 5 {
+	if len(trimmedPhone) < MinPhoneSymbolCount {
 		return nil, ErrPhoneTooShort
 	}
 
@@ -157,7 +159,7 @@ func Add9AGIFNeed(parsedPhone *pn.PhoneNumber) string {
 	formattedPhone := pn.Format(parsedPhone, pn.E164)
 	numberWOCountry := fmt.Sprintf("%d", parsedPhone.GetNationalNumber())
 
-	if len(numberWOCountry) == 10 {
+	if len(numberWOCountry) == 10 { // nolint:mnd
 		formattedPhone = fmt.Sprintf("+%d%s", CountryPhoneCodeAG, "9"+numberWOCountry)
 	}
 
@@ -166,7 +168,7 @@ func Add9AGIFNeed(parsedPhone *pn.PhoneNumber) string {
 
 // getGermanNationalNumber some German numbers may not be parsed correctly.
 // For example, for 491736276098 libphonenumber.PhoneNumber.NationalNumber
-// will contain the country code(49). This function fix it and return correct libphonenumber.PhoneNumber
+// will contain the country code(49). This function fix it and return correct libphonenumber.PhoneNumber.
 func getGermanNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uint64, error) {
 	result := parsedPhone.GetNationalNumber()
 
@@ -178,13 +180,13 @@ func getGermanNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uint64,
 			return 0, err
 		}
 
-		result = uint64(number)
+		result = uint64(number) //nolint:gosec
 	}
 
 	return result, nil
 }
 
-// For UZ numbers where 8 is deleted after the country code
+// For UZ numbers where 8 is deleted after the country code.
 func getUzbekistanNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uint64, error) {
 	result := parsedPhone.GetNationalNumber()
 	numberWithEight := fmt.Sprintf("8%d", parsedPhone.GetNationalNumber())
@@ -195,7 +197,7 @@ func getUzbekistanNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uin
 			return 0, err
 		}
 
-		result = uint64(number)
+		result = uint64(number) //nolint:gosec
 	}
 
 	return result, nil
