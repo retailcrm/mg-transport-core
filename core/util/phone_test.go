@@ -27,6 +27,13 @@ func TestParsePhone(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, uint64(9521548787), pn.GetNationalNumber())
 		assert.Equal(t, int32(7), pn.GetCountryCode())
+
+		n = "+7-900-123-45-67"
+		pn, err = ParsePhone(n)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(9001234567), pn.GetNationalNumber())
+		assert.Equal(t, int32(7), pn.GetCountryCode())
+
 	})
 
 	t.Run("german numbers", func(t *testing.T) {
@@ -48,7 +55,13 @@ func TestParsePhone(t *testing.T) {
 		pn, err := ParsePhone(n)
 		require.NoError(t, err)
 		assert.Equal(t, uint64(9982418333), pn.GetNationalNumber())
-		assert.Equal(t, int32(CountryPhoneCodeMX), pn.GetCountryCode())
+		assert.Equal(t, int32(CountryPhoneCodeMXWA), pn.GetCountryCode())
+
+		n = "+521 (998) 241 83 33"
+		pn, err = ParsePhone(n)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(9982418333), pn.GetNationalNumber())
+		assert.Equal(t, int32(CountryPhoneCodeMXWA), pn.GetCountryCode())
 	})
 
 	t.Run("palestine number", func(t *testing.T) {
