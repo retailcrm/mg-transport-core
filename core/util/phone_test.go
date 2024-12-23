@@ -1,8 +1,9 @@
 package util
 
 import (
-	"github.com/stretchr/testify/require"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -119,7 +120,7 @@ func TestFormatNumberForWA(t *testing.T) {
 
 	for orig, expected := range numbers {
 		actual, err := FormatNumberForWA(orig)
-		assert.NoError(t, err)
-		assert.Equal(t, expected, actual)
+		require.NoError(t, err)
+		require.Equal(t, expected, actual)
 	}
 }

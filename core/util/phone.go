@@ -179,7 +179,6 @@ func getUzbekistanNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uin
 }
 
 func getMexicanNationalNumber(parsedPhone *pn.PhoneNumber) (uint64, error) {
-	result := parsedPhone.GetNationalNumber()
 	phoneWithDigit := fmt.Sprintf("1%d", parsedPhone.GetNationalNumber())
 
 	num, err := strconv.Atoi(phoneWithDigit)
@@ -188,8 +187,7 @@ func getMexicanNationalNumber(parsedPhone *pn.PhoneNumber) (uint64, error) {
 		return 0, err
 	}
 
-	result = uint64(num)
-	return result, nil
+	return uint64(num), nil //nolint:gosec
 }
 
 func getCountryCode(phone string) string {
