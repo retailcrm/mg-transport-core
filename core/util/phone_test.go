@@ -54,14 +54,20 @@ func TestParsePhone(t *testing.T) {
 		n := "5219982418333"
 		pn, err := ParsePhone(n)
 		require.NoError(t, err)
-		assert.Equal(t, uint64(9982418333), pn.GetNationalNumber())
-		assert.Equal(t, int32(CountryPhoneCodeMXWA), pn.GetCountryCode())
+		assert.Equal(t, uint64(19982418333), pn.GetNationalNumber())
+		assert.Equal(t, int32(CountryPhoneCodeMX), pn.GetCountryCode())
 
 		n = "+521 (998) 241 83 33"
 		pn, err = ParsePhone(n)
 		require.NoError(t, err)
-		assert.Equal(t, uint64(9982418333), pn.GetNationalNumber())
-		assert.Equal(t, int32(CountryPhoneCodeMXWA), pn.GetCountryCode())
+		assert.Equal(t, uint64(19982418333), pn.GetNationalNumber())
+		assert.Equal(t, int32(CountryPhoneCodeMX), pn.GetCountryCode())
+
+		n = "529982418333"
+		pn, err = ParsePhone(n)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(19982418333), pn.GetNationalNumber())
+		assert.Equal(t, int32(CountryPhoneCodeMX), pn.GetCountryCode())
 	})
 
 	t.Run("palestine number", func(t *testing.T) {
@@ -87,4 +93,33 @@ func TestParsePhone(t *testing.T) {
 		assert.Equal(t, uint64(882207724), pn.GetNationalNumber())
 		assert.Equal(t, int32(CountryPhoneCodeUZ), pn.GetCountryCode())
 	})
+}
+
+func TestFormatNumberForWA(t *testing.T) {
+	numbers := map[string]string{
+		"79040000000":   "+79040000000",
+		"491736276098":  "+491736276098",
+		"89185553535":   "+79185553535",
+		"4915229457499": "+4915229457499",
+		"5491131157821": "+5491131157821",
+		"541131157821":  "+5491131157821",
+		"5219982418333": "+5219982418333",
+		"529982418333":  "+5219982418333",
+		"14452385043":   "+14452385043",
+		"19452090748":   "+19452090748",
+		"19453003681":   "+19453003681",
+		"19452141217":   "+19452141217",
+		"18407778097":   "+18407778097",
+		"14482074337":   "+14482074337",
+		"18406665259":   "+18406665259",
+		"19455009160":   "+19455009160",
+		"19452381431":   "+19452381431",
+		"12793006305":   "+12793006305",
+	}
+
+	for orig, expected := range numbers {
+		actual, err := FormatNumberForWA(orig)
+		assert.NoError(t, err)
+		assert.Equal(t, expected, actual)
+	}
 }

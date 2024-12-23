@@ -17,24 +17,24 @@ const (
 	CountryPhoneCodeDE  = 49
 	CountryPhoneCodeAG  = 54
 	CountryPhoneCodeMX  = 52
-	// CountryPhoneCodeMXWA For Whatsapp.
-	CountryPhoneCodeMXWA = 521
-	CountryPhoneCodeUS   = "1443"
-	CountryPhoneCodePS   = 970
-	CountryPhoneCodeUZ   = 998
-	PalestineRegion      = "PS"
-	BangladeshRegion     = "BD"
+	CountryPhoneCodeUS  = "1443"
+	CountryPhoneCodePS  = 970
+	CountryPhoneCodeUZ  = 998
+	PalestineRegion     = "PS"
+	BangladeshRegion    = "BD"
 )
 
 var (
 	ErrPhoneTooShort          = errors.New("phone is too short - must be at least 5 symbols")
 	ErrCannotDetermineCountry = errors.New("cannot determine phone country code")
 	ErrCannotParsePhone       = errors.New("cannot parse phone number")
-	undefinedUSCodes          = []string{"1445", "1945", "1840", "1448", "1279", "1839"}
+
+	TrimmedPhoneRegexp = regexp.MustCompile(`\D+`)
+	UndefinedUSCodes   = []string{"1445", "1945", "1840", "1448", "1279", "1839"}
 )
 
-// FormatNumberForWA forms in the specified format according to the rules https://faq.whatsapp.com/1294841057948784
-func FormatNumberForWA(number string, format pn.PhoneNumberFormat) (string, error) {
+// FormatNumberForWA forms in the format according to the rules https://faq.whatsapp.com/1294841057948784
+func FormatNumberForWA(number string) (string, error) {
 	parsedPhone, err := ParsePhone(number)
 
 	if err != nil {
@@ -46,7 +46,7 @@ func FormatNumberForWA(number string, format pn.PhoneNumberFormat) (string, erro
 	case CountryPhoneCodeAG:
 		formattedPhoneNumber = Add9AGIFNeed(parsedPhone)
 	default:
-		formattedPhoneNumber = pn.Format(parsedPhone, format)
+		formattedPhoneNumber = pn.Format(parsedPhone, pn.E164)
 	}
 
 	return formattedPhoneNumber, nil
@@ -56,7 +56,7 @@ func FormatNumberForWA(number string, format pn.PhoneNumberFormat) (string, erro
 // For mexican numbers automatic add 1 after to the country code (521).
 // But for argentine numbers there is no automatic addition 9 to the country code.
 func ParsePhone(phoneNumber string) (*pn.PhoneNumber, error) {
-	trimmedPhone := regexp.MustCompile(`\D+`).ReplaceAllString(phoneNumber, "")
+	trimmedPhone := TrimmedPhoneRegexp.ReplaceAllString(phoneNumber, "")
 	if len(trimmedPhone) < MinPhoneSymbolCount {
 		return nil, ErrPhoneTooShort
 	}
@@ -89,9 +89,13 @@ func ParsePhone(phoneNumber string) (*pn.PhoneNumber, error) {
 		parsedPhone.NationalNumber = &number
 	}
 
-	if IsMexicoNumber(trimmedPhone, parsedPhone) {
-		c := int32(CountryPhoneCodeMXWA)
-		parsedPhone.CountryCode = &c
+	if IsMexicoNumber(parsedPhone) {
+		number, err := getMexicanNationalNumber(parsedPhone)
+		if err != nil {
+			return nil, err
+		}
+
+		parsedPhone.NationalNumber = &number
 	}
 
 	return parsedPhone, err
@@ -101,15 +105,12 @@ func IsRussianNumberWith8Prefix(phone string) bool {
 	return strings.HasPrefix(phone, "8") && len(phone) == 11 && phoneiso3166.E164.LookupString("7"+phone[1:]) == "RU"
 }
 
-func IsMexicoNumber(phone string, parsed *pn.PhoneNumber) bool {
-	phoneNumber := regexp.MustCompile(`\D+`).ReplaceAllString(phone, "")
-	return len(phoneNumber) == 13 &&
-		parsed.GetCountryCode() == CountryPhoneCodeMX &&
-		strings.HasPrefix(phoneNumber, "521")
+func IsMexicoNumber(parsed *pn.PhoneNumber) bool {
+	return parsed.GetCountryCode() == CountryPhoneCodeMX
 }
 
 func IsUSNumber(phone string) bool {
-	return slices.Contains(undefinedUSCodes, phone[:4]) &&
+	return slices.Contains(UndefinedUSCodes, phone[:4]) &&
 		phoneiso3166.E164.LookupString(CountryPhoneCodeUS+phone[4:]) == "US"
 }
 
@@ -174,6 +175,20 @@ func getUzbekistanNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uin
 		result = uint64(number) //nolint:gosec
 	}
 
+	return result, nil
+}
+
+func getMexicanNationalNumber(parsedPhone *pn.PhoneNumber) (uint64, error) {
+	result := parsedPhone.GetNationalNumber()
+	phoneWithDigit := fmt.Sprintf("1%d", parsedPhone.GetNationalNumber())
+
+	num, err := strconv.Atoi(phoneWithDigit)
+
+	if err != nil {
+		return 0, err
+	}
+
+	result = uint64(num)
 	return result, nil
 }
 
