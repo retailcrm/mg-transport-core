@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var ginContextSentryKey = "sentry"
+var ginContextSentryKey = "middleware-sentry"
 
 type Sentry interface {
 	CaptureException(c *gin.Context, exception error)
