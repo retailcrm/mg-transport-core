@@ -53,8 +53,10 @@ func FormatNumberForWA(number string) (string, error) {
 }
 
 // ParsePhone this function parses the number as a string
-// For mexican numbers automatic add 1 after to the country code (521).
-// But for argentine numbers there is no automatic addition 9 to the country code.
+// For Mexican numbers `1` is always added to the national number because it is always removed during parsing.
+// Attention when formatted in libphonenumber.INTERNATIONAL 1 will not be after the country code, even though
+// it is in the national number.
+// But for Argentine numbers there is no automatic addition 9 to the country code.
 func ParsePhone(phoneNumber string) (*pn.PhoneNumber, error) {
 	trimmedPhone := TrimmedPhoneRegexp.ReplaceAllString(phoneNumber, "")
 	if len(trimmedPhone) < MinPhoneSymbolCount {
