@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -318,6 +319,19 @@ func TestUtils_GetCurrencySymbol(t *testing.T) {
 
 	assert.Equal(t, "XAG", GetCurrencySymbol("xag"))
 	assert.Equal(t, "MXN", GetCurrencySymbol("mxn"))
+}
+
+func TestUtils_GetCurrencySymbolPosition(t *testing.T) {
+	for code := range DefaultCurrencies() {
+		if slices.Contains(LHSCurrencies(), strings.ToLower(code)) {
+			assert.True(t, GetCurrencySymbolPosition(code))
+			continue
+		}
+
+		assert.False(t, GetCurrencySymbolPosition(code))
+	}
+
+	assert.False(t, GetCurrencySymbolPosition("extra_code"))
 }
 
 func TestUtils_ReplaceMarkdownSymbols(t *testing.T) {
