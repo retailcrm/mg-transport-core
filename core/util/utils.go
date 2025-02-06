@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"regexp"
+	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -44,6 +45,8 @@ var (
 		"/api/integration-modules/{code}/edit",
 	}
 )
+
+var lHSCurrencies = []string{"pen"}
 
 var defaultCurrencies = map[string]string{
 	"rub": "₽",
@@ -271,6 +274,11 @@ func DefaultCurrencies() map[string]string {
 	return defaultCurrencies
 }
 
+// LHSCurrencies will return left-hand side currencies.
+func LHSCurrencies() []string {
+	return lHSCurrencies
+}
+
 // GetCurrencySymbol returns currency symbol by it's ISO 4127 code.
 // It returns provided currency code in uppercase if currency symbol cannot be found.
 func GetCurrencySymbol(code string) string {
@@ -279,6 +287,12 @@ func GetCurrencySymbol(code string) string {
 	}
 
 	return strings.ToUpper(code)
+}
+
+// IsLHSCurrency determines whether the currency is left-hand side.
+// It returns false if currency symbol cannot be found.
+func IsLHSCurrency(code string) bool {
+	return slices.Contains(LHSCurrencies(), strings.ToLower(code))
 }
 
 func FormatCurrencyValue(value float32) string {
