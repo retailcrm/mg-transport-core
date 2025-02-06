@@ -321,17 +321,17 @@ func TestUtils_GetCurrencySymbol(t *testing.T) {
 	assert.Equal(t, "MXN", GetCurrencySymbol("mxn"))
 }
 
-func TestUtils_GetCurrencySymbolPosition(t *testing.T) {
+func TestUtils_IsLHSCurrency(t *testing.T) {
 	for code := range DefaultCurrencies() {
 		if slices.Contains(LHSCurrencies(), strings.ToLower(code)) {
-			assert.True(t, GetCurrencySymbolPosition(code))
+			assert.True(t, IsLHSCurrency(code))
 			continue
 		}
 
-		assert.False(t, GetCurrencySymbolPosition(code))
+		assert.False(t, IsLHSCurrency(code))
 	}
 
-	assert.False(t, GetCurrencySymbolPosition("extra_code"))
+	assert.False(t, IsLHSCurrency("extra_code"))
 }
 
 func TestUtils_ReplaceMarkdownSymbols(t *testing.T) {

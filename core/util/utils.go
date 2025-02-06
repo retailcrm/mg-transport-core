@@ -289,10 +289,9 @@ func GetCurrencySymbol(code string) string {
 	return strings.ToUpper(code)
 }
 
-// GetCurrencySymbolPosition returns currency symbol position.
-// true - left-hand side,
-// (default) false - right-hand side.
-func GetCurrencySymbolPosition(code string) bool {
+// IsLHSCurrency determines whether the currency is left-hand side.
+// It returns false if currency symbol cannot be found.
+func IsLHSCurrency(code string) bool {
 	return slices.Contains(LHSCurrencies(), strings.ToLower(code))
 }
 
