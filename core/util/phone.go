@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	pn "github.com/nyaruka/phonenumbers"
 	phoneiso3166 "github.com/onlinecity/go-phone-iso3166"
-	pn "github.com/ttacon/libphonenumber"
 )
 
 const (
@@ -22,6 +22,7 @@ const (
 	CountryPhoneCodeUZ  = 998
 	PalestineRegion     = "PS"
 	BangladeshRegion    = "BD"
+	MexicanNationalSize = 11
 )
 
 var (
@@ -30,7 +31,7 @@ var (
 	ErrCannotParsePhone       = errors.New("cannot parse phone number")
 
 	TrimmedPhoneRegexp = regexp.MustCompile(`\D+`)
-	UndefinedUSCodes   = []string{"1445", "1945", "1840", "1448", "1279", "1839"}
+	UndefinedUSCodes   = []string{"1445", "1945", "1840", "1448", "1279", "1839", "1555"}
 )
 
 // FormatNumberForWA forms in the format according to the rules https://faq.whatsapp.com/1294841057948784
@@ -182,6 +183,9 @@ func getUzbekistanNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uin
 
 func getMexicanNationalNumber(parsedPhone *pn.PhoneNumber) (uint64, error) {
 	phoneWithDigit := fmt.Sprintf("1%d", parsedPhone.GetNationalNumber())
+	if len(phoneWithDigit) > MexicanNationalSize {
+		return parsedPhone.GetNationalNumber(), nil
+	}
 
 	num, err := strconv.Atoi(phoneWithDigit)
 
