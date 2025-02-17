@@ -9,7 +9,7 @@ import (
 )
 
 func TestParsePhone(t *testing.T) {
-	t.Run("russian numers", func(t *testing.T) {
+	t.Run("russian numbers", func(t *testing.T) {
 		n := "+88002541213"
 		pn, err := ParsePhone(n)
 		require.NoError(t, err)
@@ -35,6 +35,14 @@ func TestParsePhone(t *testing.T) {
 		assert.Equal(t, uint64(9001234567), pn.GetNationalNumber())
 		assert.Equal(t, int32(7), pn.GetCountryCode())
 
+	})
+
+	t.Run("us numbers", func(t *testing.T) {
+		n := "15557043340"
+		pn, err := ParsePhone(n)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(5557043340), pn.GetNationalNumber())
+		assert.Equal(t, int32(1), pn.GetCountryCode())
 	})
 
 	t.Run("german numbers", func(t *testing.T) {
@@ -116,6 +124,7 @@ func TestFormatNumberForWA(t *testing.T) {
 		"19455009160":   "+19455009160",
 		"19452381431":   "+19452381431",
 		"12793006305":   "+12793006305",
+		"15557043340":   "+15557043340",
 	}
 
 	for orig, expected := range numbers {

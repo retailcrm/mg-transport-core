@@ -23,12 +23,12 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/jinzhu/gorm v1.9.11
 	github.com/nicksnyder/go-i18n/v2 v2.4.1
+	github.com/nyaruka/phonenumbers v1.5.0
 	github.com/onlinecity/go-phone-iso3166 v0.0.1
 	github.com/retailcrm/api-client-go/v2 v2.1.17
 	github.com/retailcrm/mg-transport-api-client-go v1.3.19
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
 	github.com/stretchr/testify v1.10.0
-	github.com/ttacon/libphonenumber v1.2.1
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/text v0.21.0
@@ -88,6 +88,7 @@ require (
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/exp v0.0.0-20240525044651-4c93da0ed11d // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	google.golang.org/protobuf v1.34.1 // indirect
