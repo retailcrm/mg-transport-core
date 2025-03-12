@@ -26,7 +26,7 @@ require (
 	github.com/nyaruka/phonenumbers v1.5.0
 	github.com/onlinecity/go-phone-iso3166 v0.0.1
 	github.com/retailcrm/api-client-go/v2 v2.1.17
-	github.com/retailcrm/mg-transport-api-client-go v1.3.21
+	github.com/retailcrm/mg-transport-api-client-go v1.3.22
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/atomic v1.11.0
@@ -64,7 +64,6 @@ require (
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
-	github.com/golang/protobuf v1.5.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 // indirect
 	github.com/hashicorp/go-immutable-radix v1.1.0 // indirect
@@ -82,7 +81,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
-	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
