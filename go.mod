@@ -26,7 +26,7 @@ require (
 	github.com/nyaruka/phonenumbers v1.5.0
 	github.com/onlinecity/go-phone-iso3166 v0.0.1
 	github.com/retailcrm/api-client-go/v2 v2.1.17
-	github.com/retailcrm/mg-transport-api-client-go v1.3.19
+	github.com/retailcrm/mg-transport-api-client-go v1.3.21
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/atomic v1.11.0
