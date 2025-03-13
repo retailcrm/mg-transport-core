@@ -56,9 +56,20 @@ func TestMapValue_Nested(t *testing.T) {
 				"key3": "value",
 			},
 		},
+		"key4": []interface{}{
+			"value5",
+			map[string]interface{}{
+				"key6": "value7",
+			},
+		},
 	}
 	assert.Equal(t, "value", MustMapValue(m, "key1.key2.key3").(string))
 	assert.Equal(t, "value", MustMapValue(m, "key1.key2").(map[string]interface{})["key3"].(string))
+	assert.Equal(t, "value5", MustMapValue(m, "key4.0"))
+	assert.Equal(t, "value7", MustMapValue(m, "key4.1.key6"))
+	assert.Equal(t, "value", MustMapValue([]map[string]string{
+		{"key": "value"},
+	}, "0.key"))
 }
 
 func TestMapValue_ErrorNotAMap(t *testing.T) {
@@ -79,6 +90,12 @@ func TestMapValue_ErrorKeyNotFound(t *testing.T) {
 	_, err = MapValue(map[string]map[string]int{"key": {"key2": 1}}, "key.key3")
 	assert.Error(t, err)
 	assert.Equal(t, "key 'key3' not found at path 'key'", err.Error())
+}
+
+func TestMapValue_ErrorOutOfBounds(t *testing.T) {
+	_, err := MapValue(map[string][]int{"key": {1}}, "key.1")
+	assert.Error(t, err)
+	assert.Equal(t, "index 1 out of bounds for slice of length 1 at path 'key'", err.Error())
 }
 
 func TestMustMapValue_Panics(t *testing.T) {

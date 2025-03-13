@@ -8,11 +8,14 @@ import (
 	"testing"
 )
 
-// MapValue extracts nested map values using dot notation.
+// MapValue extracts nested map values using dot notation. Keys are separated by dots, slices and arrays can be
+// accessed by integer indexes.
 // Example:
-// 	    MapValue(m, "key1")
-//	    MapValue(m, "key1.key2")
-//	    MapValue(m, "key1.key2.key3")
+//
+//	MapValue(m, "key1") // Access value with key "key1"
+//	MapValue(m, "key1.key2") // Access nested value with key "key2"
+//	MapValue(m, "key1.key2.key3") // Access nested value with key "key3"
+//	MapValue(m, "key1.key2.key3.0") // Access the first slice / array element in the nested map.
 func MapValue(data interface{}, path string) (interface{}, error) {
 	if path == "" {
 		return data, nil
@@ -43,7 +46,23 @@ func MapValue(data interface{}, path string) (interface{}, error) {
 			continue
 		}
 
-		return nil, fmt.Errorf("value at path '%s' is not a map",
+		if v.Kind() == reflect.Slice || v.Kind() == reflect.Array {
+			index, err := strconv.Atoi(part)
+			if err != nil {
+				return nil, fmt.Errorf("'%s' is not a valid slice / array index", part)
+			}
+
+			if index < 0 || index >= v.Len() {
+				return nil, fmt.Errorf("index %d out of bounds for %s of length %d at path '%s'",
+					index, v.Kind().String(), v.Len(), strings.Join(parts[:i], "."))
+			}
+
+			current = v.Index(index).Interface()
+
+			continue
+		}
+
+		return nil, fmt.Errorf("value at path '%s' is not a map, slice or array",
 			strings.Join(parts[:i], "."))
 	}
 
