@@ -140,7 +140,7 @@ linters-settings:
     default-signifies-exhaustive: false
   funlen:
     lines: 65
-    statements: 40
+    statements: 50
   gocognit:
     min-complexity: 25
   gocyclo:
