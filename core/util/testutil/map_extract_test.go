@@ -78,11 +78,11 @@ func TestMapValue_Nested(t *testing.T) {
 func TestMapValue_ErrorNotAMap(t *testing.T) {
 	_, err := MapValue(1, "key")
 	require.Error(t, err)
-	assert.Equal(t, "value at path '' is not a map", err.Error())
+	assert.Equal(t, "value at path '' is not a map, slice or array", err.Error())
 
 	_, err = MapValue(map[string]int{"key": 1}, "key.key2")
 	require.Error(t, err)
-	assert.Equal(t, "value at path 'key' is not a map", err.Error())
+	assert.Equal(t, "value at path 'key' is not a map, slice or array", err.Error())
 }
 
 func TestMapValue_ErrorKeyNotFound(t *testing.T) {
