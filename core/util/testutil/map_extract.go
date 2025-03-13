@@ -89,7 +89,7 @@ func MustMapValue(data interface{}, path string) interface{} {
 
 // convertKeyToKind converts a string to the given kind.
 func convertKeyToKind(part string, kind reflect.Kind) (interface{}, error) {
-	switch kind {
+	switch kind { //nolint:exhaustive
 	case reflect.String:
 		return part, nil
 	case reflect.Bool:
@@ -97,13 +97,13 @@ func convertKeyToKind(part string, kind reflect.Kind) (interface{}, error) {
 	case reflect.Int:
 		return strconv.Atoi(part)
 	case reflect.Int8:
-		val, err := strconv.Atoi(part)
+		val, err := strconv.ParseInt(part, 10, 8)
 		return int8(val), err
 	case reflect.Int16:
-		val, err := strconv.Atoi(part)
+		val, err := strconv.ParseInt(part, 10, 16)
 		return int16(val), err
 	case reflect.Int32:
-		val, err := strconv.Atoi(part)
+		val, err := strconv.ParseInt(part, 10, 32)
 		return int32(val), err
 	case reflect.Int64:
 		val, err := strconv.ParseInt(part, 10, 64)

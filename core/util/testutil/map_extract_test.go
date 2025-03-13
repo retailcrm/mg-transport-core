@@ -1,8 +1,11 @@
 package testutil
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMapValue_DifferentKeyTypes(t *testing.T) {
@@ -39,7 +42,7 @@ func TestMapValue_DifferentKeyTypes(t *testing.T) {
 
 func TestMapValue_ErrorUnsupportedKeyType(t *testing.T) {
 	_, err := MapValue(map[complex64]interface{}{}, "key")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "unsupported reflect.Kind: complex64", err.Error())
 }
 
@@ -74,27 +77,27 @@ func TestMapValue_Nested(t *testing.T) {
 
 func TestMapValue_ErrorNotAMap(t *testing.T) {
 	_, err := MapValue(1, "key")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "value at path '' is not a map", err.Error())
 
 	_, err = MapValue(map[string]int{"key": 1}, "key.key2")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "value at path 'key' is not a map", err.Error())
 }
 
 func TestMapValue_ErrorKeyNotFound(t *testing.T) {
 	_, err := MapValue(map[string]int{"key": 1}, "key2")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "key 'key2' not found at path ''", err.Error())
 
 	_, err = MapValue(map[string]map[string]int{"key": {"key2": 1}}, "key.key3")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "key 'key3' not found at path 'key'", err.Error())
 }
 
 func TestMapValue_ErrorOutOfBounds(t *testing.T) {
 	_, err := MapValue(map[string][]int{"key": {1}}, "key.1")
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Equal(t, "index 1 out of bounds for slice of length 1 at path 'key'", err.Error())
 }
 
