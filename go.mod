@@ -1,6 +1,9 @@
 module github.com/retailcrm/mg-transport-core/v2
 
-go 1.23
+go 1.23.0
+
+toolchain go1.23.4
+
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/aws/aws-sdk-go v1.36.30
@@ -25,7 +28,7 @@ require (
 	github.com/nyaruka/phonenumbers v1.5.0
 	github.com/onlinecity/go-phone-iso3166 v0.0.1
 	github.com/retailcrm/api-client-go/v2 v2.1.17
-	github.com/retailcrm/mg-transport-api-client-go v1.3.22
+	github.com/retailcrm/mg-transport-api-client-go v1.3.23
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/atomic v1.11.0

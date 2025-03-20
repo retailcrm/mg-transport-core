@@ -317,6 +317,7 @@ github.com/retailcrm/api-client-go/v2 v2.1.17 h1:vc6n6O5VDiIp9x56mfrRqznQ0JyfDXE
 github.com/retailcrm/api-client-go/v2 v2.1.17/go.mod h1:1yTZl9+gd3+/k0kAJe7sYvC+mL4fqMwIwtnSgSWZlkQ=
 github.com/retailcrm/mg-transport-api-client-go v1.3.22 h1:yHLFgmGh0FJuLghOls4BY8RcV6UK6b+1ofx1pU0vPp8=
 github.com/retailcrm/mg-transport-api-client-go v1.3.22/go.mod h1:rfOrMYx4ej1TRmGPxBRbwUh0KrI9ByugfZplnO1wh54=
+github.com/retailcrm/mg-transport-api-client-go v1.3.23/go.mod h1:rfOrMYx4ej1TRmGPxBRbwUh0KrI9ByugfZplnO1wh54=
 github.com/retailcrm/zabbix-metrics-collector v1.0.0 h1:ju3rhpgVoiKII6oXEJEf2eoJy5bNcYAmOPRp1oPWDmA=
 github.com/retailcrm/zabbix-metrics-collector v1.0.0/go.mod h1:3Orc+gfSg1tXj89QNvOn22t0cO1i2whR/4NJUGonWJA=
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
