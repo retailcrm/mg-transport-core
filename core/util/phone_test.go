@@ -1,6 +1,8 @@
 package util
 
 import (
+	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -38,11 +40,15 @@ func TestParsePhone(t *testing.T) {
 	})
 
 	t.Run("us numbers", func(t *testing.T) {
-		n := "15557043340"
-		pn, err := ParsePhone(n)
-		require.NoError(t, err)
-		assert.Equal(t, uint64(5557043340), pn.GetNationalNumber())
-		assert.Equal(t, int32(1), pn.GetCountryCode())
+		for _, usMask := range UndefinedUSCodes {
+			t.Run(fmt.Sprintf("mask %s", usMask), func(t *testing.T) {
+				pNumber := usMask + "7043340"
+				pPhone, err := ParsePhone(pNumber)
+				require.NoError(t, err)
+				assert.Equal(t, pNumber[1:], strconv.FormatUint(pPhone.GetNationalNumber(), 10))
+				assert.Equal(t, int32(1), pPhone.GetCountryCode())
+			})
+		}
 	})
 
 	t.Run("german numbers", func(t *testing.T) {
@@ -126,6 +132,7 @@ func TestFormatNumberForWA(t *testing.T) {
 		"12793006305":   "+12793006305",
 		"15557043340":   "+15557043340",
 		"17712015566":   "+17712015566",
+		"16452015566":   "+16452015566",
 	}
 
 	for orig, expected := range numbers {
