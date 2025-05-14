@@ -31,7 +31,7 @@ var (
 	ErrCannotParsePhone       = errors.New("cannot parse phone number")
 
 	TrimmedPhoneRegexp = regexp.MustCompile(`\D+`)
-	UndefinedUSCodes   = []string{"1445", "1945", "1840", "1448", "1279", "1839", "1555", "1771"}
+	UndefinedUSCodes   = []string{"1445", "1945", "1840", "1448", "1279", "1839", "1555", "1771", "1645"}
 )
 
 // FormatNumberForWA forms in the format according to the rules https://faq.whatsapp.com/1294841057948784
