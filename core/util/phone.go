@@ -13,16 +13,17 @@ import (
 )
 
 const (
-	MinPhoneSymbolCount = 5
-	CountryPhoneCodeDE  = 49
-	CountryPhoneCodeAG  = 54
-	CountryPhoneCodeMX  = 52
-	CountryPhoneCodeUS  = "1443"
-	CountryPhoneCodePS  = 970
-	CountryPhoneCodeUZ  = 998
-	PalestineRegion     = "PS"
-	BangladeshRegion    = "BD"
-	MexicanNationalSize = 11
+	MinPhoneSymbolCount  = 5
+	CountryPhoneCodeDE   = 49
+	CountryPhoneCodeAG   = 54
+	CountryPhoneCodeMX   = 52
+	CountryPhoneCodeUS   = "1443"
+	CountryPhoneCodePS   = 970
+	CountryPhoneCodeUZ   = 998
+	PalestineRegion      = "PS"
+	BangladeshRegion     = "BD"
+	MexicanNationalSize  = 11
+	ColombiaNationalSize = 57
 )
 
 var (
@@ -85,6 +86,15 @@ func ParsePhone(phoneNumber string) (*pn.PhoneNumber, error) {
 
 	if CountryPhoneCodeUZ == parsedPhone.GetCountryCode() {
 		number, err := getUzbekistanNationalNumber(trimmedPhone, parsedPhone)
+		if err != nil {
+			return nil, err
+		}
+
+		parsedPhone.NationalNumber = &number
+	}
+
+	if ColombiaNationalSize == parsedPhone.GetCountryCode() {
+		number, err := getColombiaNationalNumber(trimmedPhone, parsedPhone)
 		if err != nil {
 			return nil, err
 		}
@@ -171,6 +181,24 @@ func getUzbekistanNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uin
 
 	if len(fmt.Sprintf("%d%s", parsedPhone.GetCountryCode(), numberWithEight)) == len(phone) {
 		number, err := strconv.Atoi(numberWithEight)
+		if err != nil {
+			return 0, err
+		}
+
+		result = uint64(number) //nolint:gosec
+	}
+
+	return result, nil
+}
+
+// For Colombia numbers where the phone mask remains in the national number.
+func getColombiaNationalNumber(phone string, parsedPhone *pn.PhoneNumber) (uint64, error) {
+	result := parsedPhone.GetNationalNumber()
+
+	if len(fmt.Sprintf("%d", parsedPhone.GetNationalNumber())) == len(phone) {
+		deduplicateCountryNumber := fmt.Sprintf("%d", parsedPhone.GetNationalNumber())[2:]
+
+		number, err := strconv.Atoi(deduplicateCountryNumber)
 		if err != nil {
 			return 0, err
 		}
