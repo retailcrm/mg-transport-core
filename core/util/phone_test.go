@@ -11,6 +11,14 @@ import (
 )
 
 func TestParsePhone(t *testing.T) {
+	t.Run("colombia numbers", func(t *testing.T) {
+		n := "+57 1 3912837"
+		pn, err := ParsePhone(n)
+		require.NoError(t, err)
+		assert.Equal(t, uint64(13912837), pn.GetNationalNumber())
+		assert.Equal(t, int32(57), pn.GetCountryCode())
+	})
+
 	t.Run("russian numbers", func(t *testing.T) {
 		n := "+88002541213"
 		pn, err := ParsePhone(n)
@@ -133,6 +141,7 @@ func TestFormatNumberForWA(t *testing.T) {
 		"15557043340":   "+15557043340",
 		"17712015566":   "+17712015566",
 		"16452015566":   "+16452015566",
+		"5713912837":    "+5713912837",
 	}
 
 	for orig, expected := range numbers {
