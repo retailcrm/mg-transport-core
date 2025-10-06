@@ -23,9 +23,9 @@ type Memory[T any] struct {
 // Queue is a queue interface.
 type Queue[T any] interface {
 	Info
-	// Enqueue puts an item into queue, returns context.Cancelled when queue is stopped.
+	// Enqueue puts an item into queue, returns context.Canceled when queue is stopped.
 	Enqueue(T) error
-	// Dequeue item from queue. This method should return leftover enqueued items even if queue was cancelled.
+	// Dequeue item from queue. This method should return leftover enqueued items even if queue was canceled.
 	Dequeue() (T, error)
 }
 
@@ -54,7 +54,7 @@ func NewMemory[T any](id int) (Queue[T], context.CancelFunc) {
 	return q, q.stop
 }
 
-// Enqueue adds an item to the end of the queue
+// Enqueue adds an item to the end of the queue.
 func (q *Memory[T]) Enqueue(item T) error {
 	if err := q.ctx.Err(); err != nil {
 		return err
@@ -88,12 +88,12 @@ func (q *Memory[T]) Dequeue() (T, error) {
 	return item, nil
 }
 
-// ID returns the current queue ID
+// ID returns the current queue ID.
 func (q *Memory[T]) ID() int {
 	return q.id
 }
 
-// Context returns the current queue context
+// Context returns the current queue context.
 func (q *Memory[T]) Context() context.Context {
 	return q.ctx
 }
@@ -107,7 +107,7 @@ func (q *Memory[T]) LastEnqueueTime() time.Time {
 	return val.(time.Time)
 }
 
-// Len returns the current size of the queue
+// Len returns the current size of the queue.
 func (q *Memory[T]) Len() int64 {
 	return atomic.LoadInt64(&q.size)
 }

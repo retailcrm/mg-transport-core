@@ -8,11 +8,11 @@ import (
 type (
 	// Worker represents function which dequeues an item from provided queue and does something with it.
 	// Useful when NewWorker implementation isn't agile enough.
-	Worker[T any]            func(Queue[T])
+	Worker[T any] func(Queue[T])
 	// Processor accepts incoming job and does something with it.
-	Processor[T any]         func(T, Queue[T])
+	Processor[T any] func(T, Queue[T])
 	// RecoverFunc handles output value received from recover() call.
-	RecoverFunc[T any]       func(context.Context, T, any)
+	RecoverFunc[T any] func(context.Context, T, any)
 )
 
 // NewWorker constructs new worker that will retry the given processor until it succeeds
@@ -56,7 +56,6 @@ func RecoverFuncDummy[T any](_ context.Context, _ T, _ any) {}
 
 // Compile-time checks for interface compatibility.
 var (
-	_ = WorkerConstructor[int](DummyWorker[int]())
 	_ = Processor[int](DummyProcessor[int])
 	_ = RecoverFunc[int](RecoverFuncDummy[int])
 )

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestQueue(t *testing.T) {
@@ -19,11 +20,11 @@ func TestQueue(t *testing.T) {
 	assert.Equal(t, int64(2), q.Len())
 
 	val, err := q.Dequeue()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, uint8(1), val)
 
 	val, err = q.Dequeue()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, uint8(2), val)
 
 	ec := make(chan error)

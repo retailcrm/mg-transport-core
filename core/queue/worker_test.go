@@ -14,7 +14,7 @@ func TestNewWorker_ProcessesItems(t *testing.T) {
 	processed := make([]int, 0)
 	var mu sync.Mutex
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(item int, _ Queue[int]) {
 		mu.Lock()
 		processed = append(processed, item)
 		mu.Unlock()
@@ -32,7 +32,7 @@ func TestNewWorker_ProcessesItems(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	mu.Lock()
-	assert.Equal(t, 3, len(processed))
+	assert.Len(t, processed, 3)
 	assert.Contains(t, processed, 1)
 	assert.Contains(t, processed, 2)
 	assert.Contains(t, processed, 3)
@@ -45,7 +45,7 @@ func TestNewWorker_ProcessesItemsInOrder(t *testing.T) {
 	processed := make([]int, 0)
 	var mu sync.Mutex
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(item int, _ Queue[int]) {
 		mu.Lock()
 		processed = append(processed, item)
 		mu.Unlock()
@@ -63,7 +63,7 @@ func TestNewWorker_ProcessesItemsInOrder(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	mu.Lock()
-	assert.Equal(t, 10, len(processed))
+	assert.Len(t, processed, 10)
 
 	for i := 0; i < 10; i++ {
 		assert.Equal(t, i, processed[i])
@@ -77,7 +77,7 @@ func TestNewWorker_StopsOnContextCancellation(t *testing.T) {
 	processed := int32(0)
 	stopped := make(chan bool, 1)
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(_ int, _ Queue[int]) {
 		atomic.AddInt32(&processed, 1)
 		time.Sleep(10 * time.Millisecond)
 	}
@@ -108,14 +108,14 @@ func TestNewWorker_HandlesPanic(t *testing.T) {
 	panicked := int32(0)
 	processed := int32(0)
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(item int, _ Queue[int]) {
 		if item == 5 {
 			panic("test panic")
 		}
 		atomic.AddInt32(&processed, 1)
 	}
 
-	recoverFunc := func(ctx context.Context, item int, r any) {
+	recoverFunc := func(_ context.Context, item int, r any) {
 		atomic.AddInt32(&panicked, 1)
 		assert.Equal(t, 5, item)
 		assert.Equal(t, "test panic", r)
@@ -143,7 +143,7 @@ func TestNewWorker_ContinuesAfterPanic(t *testing.T) {
 	processed := make([]int, 0)
 	var mu sync.Mutex
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(item int, _ Queue[int]) {
 		if item%3 == 0 && item != 0 {
 			panic("divisible by 3")
 		}
@@ -152,7 +152,7 @@ func TestNewWorker_ContinuesAfterPanic(t *testing.T) {
 		mu.Unlock()
 	}
 
-	recoverFunc := func(ctx context.Context, item int, r any) {}
+	recoverFunc := func(_ context.Context, _ int, _ any) {}
 
 	worker := NewWorker(processor, recoverFunc)
 	q, cancel := NewMemory[int](1)
@@ -166,7 +166,7 @@ func TestNewWorker_ContinuesAfterPanic(t *testing.T) {
 	time.Sleep(150 * time.Millisecond)
 
 	mu.Lock()
-	assert.Equal(t, 7, len(processed))
+	assert.Len(t, processed, 7)
 	assert.NotContains(t, processed, 3)
 	assert.NotContains(t, processed, 6)
 	assert.NotContains(t, processed, 9)
@@ -180,7 +180,7 @@ func TestNewWorker_MultipleCancelCallbacks(t *testing.T) {
 	callback2Called := int32(0)
 	callback3Called := int32(0)
 
-	processor := func(item int, q Queue[int]) {}
+	processor := func(_ int, _ Queue[int]) {}
 
 	worker := NewWorker(
 		processor,
@@ -206,11 +206,11 @@ func TestNewWorker_RecoverFuncHasContext(t *testing.T) {
 	var capturedCtx context.Context
 	var mu sync.Mutex
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(_ int, _ Queue[int]) {
 		panic("test")
 	}
 
-	recoverFunc := func(ctx context.Context, item int, r any) {
+	recoverFunc := func(ctx context.Context, _ int, _ any) {
 		mu.Lock()
 		capturedCtx = ctx
 		mu.Unlock()
@@ -235,7 +235,7 @@ func TestNewWorker_RecoverFuncHasContext(t *testing.T) {
 func TestNewWorker_ConcurrentProcessing(t *testing.T) {
 	processed := int32(0)
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(_ int, _ Queue[int]) {
 		time.Sleep(10 * time.Millisecond)
 		atomic.AddInt32(&processed, 1)
 	}
@@ -258,7 +258,7 @@ func TestNewWorker_ConcurrentProcessing(t *testing.T) {
 }
 
 func TestNewWorker_HandlesContextCanceledError(t *testing.T) {
-	processor := func(item int, q Queue[int]) {}
+	processor := func(_ int, _ Queue[int]) {}
 
 	worker := NewWorker(processor, RecoverFuncDummy[int])
 	q, cancel := NewMemory[int](1)
@@ -363,7 +363,7 @@ func TestNewWorker_ZeroValueItems(t *testing.T) {
 	processed := make([]int, 0)
 	var mu sync.Mutex
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(item int, _ Queue[int]) {
 		mu.Lock()
 		processed = append(processed, item)
 		mu.Unlock()
@@ -381,7 +381,7 @@ func TestNewWorker_ZeroValueItems(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	mu.Lock()
-	assert.Equal(t, 3, len(processed))
+	assert.Len(t, processed, 3)
 	assert.Equal(t, 0, processed[0])
 	assert.Equal(t, 1, processed[1])
 	assert.Equal(t, 0, processed[2])
@@ -393,7 +393,7 @@ func TestNewWorker_ZeroValueItems(t *testing.T) {
 func TestNewWorker_EmptyQueue(t *testing.T) {
 	processed := int32(0)
 
-	processor := func(item int, q Queue[int]) {
+	processor := func(_ int, _ Queue[int]) {
 		atomic.AddInt32(&processed, 1)
 	}
 
