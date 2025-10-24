@@ -2,6 +2,7 @@ package beanstalk
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	gitBeanstalk "github.com/beanstalkd/go-beanstalk"
@@ -20,20 +21,20 @@ type FakeManager struct {
 	// DeleteJobErr is the error that will be returned when calling the DeleteJob
 	DeleteJobErr error
 
-	TubeIsActive    bool
-	TubeSetIsActive bool
+	TubeIsActive    atomic.Bool
+	TubeSetIsActive atomic.Bool
 
 	// Count of reconnects
-	ReconnectTubeTry    int
-	ReconnectTubeSetTry int
+	ReconnectTubeTry    atomic.Int64
+	ReconnectTubeSetTry atomic.Int64
 
 	// Count of deletions
-	DeletedJobs int
+	DeletedJobs atomic.Int64
 }
 
 func (m *FakeManager) CreateTubes(_ string) {
-	m.TubeIsActive = true
-	m.TubeSetIsActive = true
+	m.TubeIsActive.Store(true)
+	m.TubeSetIsActive.Store(true)
 }
 
 // PutJob returns an PutJobErr or adds a job to an array.
@@ -73,24 +74,24 @@ func (m *FakeManager) DeleteJob(_ uint64) error {
 		return m.DeleteJobErr
 	}
 
-	m.DeletedJobs++
+	m.DeletedJobs.Add(1)
 	return nil
 }
 
 func (m *FakeManager) CloseTube() error {
-	m.TubeIsActive = false
+	m.TubeIsActive.Store(false)
 	return nil
 }
 
 func (m *FakeManager) CloseTubeSet() error {
-	m.TubeSetIsActive = false
+	m.TubeSetIsActive.Store(false)
 	return nil
 }
 
 func (m *FakeManager) ReconnectTube() {
-	m.ReconnectTubeTry++
+	m.ReconnectTubeTry.Add(1)
 }
 
 func (m *FakeManager) ReconnectTubeSet() {
-	m.ReconnectTubeSetTry++
+	m.ReconnectTubeSetTry.Add(1)
 }

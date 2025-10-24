@@ -51,13 +51,13 @@ func TestQueue(t *testing.T) {
 		t.Fatal("timed out waiting for job to complete")
 		return
 	}
-	assert.Equal(t, 1, manager.DeletedJobs)
+	assert.Equal(t, int64(1), manager.DeletedJobs.Load())
 
-	assert.True(t, manager.TubeIsActive)
-	assert.True(t, manager.TubeSetIsActive)
+	assert.True(t, manager.TubeIsActive.Load())
+	assert.True(t, manager.TubeSetIsActive.Load())
 	queue.Shutdown()
-	assert.False(t, manager.TubeIsActive)
-	assert.False(t, manager.TubeSetIsActive)
+	assert.False(t, manager.TubeIsActive.Load())
+	assert.False(t, manager.TubeSetIsActive.Load())
 }
 
 func TestQueuePutError(t *testing.T) {
@@ -106,7 +106,7 @@ func TestQueuePutNetError(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	queue.Shutdown()
-	assert.NotEmpty(t, manager.ReconnectTubeTry)
+	assert.NotEmpty(t, manager.ReconnectTubeTry.Load())
 }
 
 func TestQueueProcessError(t *testing.T) {
@@ -136,7 +136,7 @@ func TestQueueProcessError(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	queue.Shutdown()
-	assert.NotEmpty(t, manager.ReconnectTubeSetTry)
+	assert.NotEmpty(t, manager.ReconnectTubeSetTry.Load())
 }
 
 func TestQueueFinishJobNetError(t *testing.T) {
@@ -165,5 +165,5 @@ func TestQueueFinishJobNetError(t *testing.T) {
 	time.Sleep(time.Millisecond)
 
 	queue.Shutdown()
-	assert.NotEmpty(t, manager.ReconnectTubeSetTry)
+	assert.NotEmpty(t, manager.ReconnectTubeSetTry.Load())
 }
