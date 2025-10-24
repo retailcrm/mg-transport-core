@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.22
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.11.64
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.33.0
+	github.com/beanstalkd/go-beanstalk v0.2.0
 	github.com/blacked/go-zabbix v0.0.0-20170118040903-3c6a95ec4fdc
 	github.com/getsentry/sentry-go v0.30.0
 	github.com/gin-contrib/multitemplate v1.0.1
@@ -31,6 +32,7 @@ require (
 	github.com/retailcrm/mg-transport-api-client-go v1.3.23
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
 	github.com/stretchr/testify v1.10.0
+	github.com/tevino/abool/v2 v2.1.0
 	go.uber.org/atomic v1.11.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/text v0.23.0
