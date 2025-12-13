@@ -92,7 +92,7 @@ type HTTPClientProxyConfig struct {
 // HTTPClientProxyItem contains a list of hosts that use specified proxy.
 type HTTPClientProxyItem struct {
 	Proxy string   `yaml:"proxy"`
-	Hosts []string `yaml:"host"`
+	Hosts []string `yaml:"hosts"`
 }
 
 // HTTPServerConfig struct.
