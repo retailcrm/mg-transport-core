@@ -1,17 +1,14 @@
 package httputil
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
-
-	"go.uber.org/zap"
 
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
 	"github.com/retailcrm/mg-transport-core/v2/core/logger"
@@ -61,14 +58,19 @@ type HTTPClientBuilder struct {
 	httpClient    *http.Client
 	httpTransport *http.Transport
 	dialer        *net.Dialer
-	mockAddress   string
-	mockHost      string
-	mockPort      string
-	mockedDomains []string
+	proxyFunc     func(req *http.Request) (*url.URL, error)
+	proxyHosts    []ProxiedHost
+	config        *config.HTTPClientConfig
 	timeout       time.Duration
 	tlsVersion    uint16
 	logging       bool
 	built         bool
+}
+
+// ProxiedHost is a pair of proxy config & host.
+type ProxiedHost struct {
+	Hosts    []string
+	ProxyURL *url.URL
 }
 
 // NewHTTPClientBuilder returns HTTPClientBuilder with default values.
@@ -77,7 +79,6 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 		built:      false,
 		httpClient: &http.Client{},
 		httpTransport: &http.Transport{
-			Proxy: http.ProxyFromEnvironment,
 			DialContext: (&net.Dialer{
 				Timeout:   defaultDialerTimeout,
 				KeepAlive: defaultDialerTimeout,
@@ -88,11 +89,10 @@ func NewHTTPClientBuilder() *HTTPClientBuilder {
 			TLSHandshakeTimeout:   defaultTLSHandshakeTimeout,
 			ExpectContinueTimeout: defaultExpectContinueTimeout,
 		},
-		tlsVersion:    tls.VersionTLS12,
-		timeout:       defaultDialerTimeout,
-		mockAddress:   "",
-		mockedDomains: []string{},
-		logging:       false,
+		proxyFunc:  http.ProxyFromEnvironment,
+		tlsVersion: tls.VersionTLS12,
+		timeout:    defaultDialerTimeout,
+		logging:    false,
 	}
 }
 
@@ -110,24 +110,6 @@ func (b *HTTPClientBuilder) SetTimeout(seconds time.Duration) *HTTPClientBuilder
 	seconds *= time.Second
 	b.timeout = seconds
 	b.httpClient.Timeout = seconds
-	return b
-}
-
-// SetMockAddress sets mock address.
-func (b *HTTPClientBuilder) SetMockAddress(address string) *HTTPClientBuilder {
-	b.mockAddress = address
-	return b
-}
-
-// AddMockedDomain adds new mocked domain.
-func (b *HTTPClientBuilder) AddMockedDomain(domain string) *HTTPClientBuilder {
-	b.mockedDomains = append(b.mockedDomains, domain)
-	return b
-}
-
-// SetMockedDomains sets mocked domains from slice.
-func (b *HTTPClientBuilder) SetMockedDomains(domains []string) *HTTPClientBuilder {
-	b.mockedDomains = domains
 	return b
 }
 
@@ -151,6 +133,18 @@ func (b *HTTPClientBuilder) UseTLS10() *HTTPClientBuilder {
 	return b
 }
 
+// SetProxy sets proxy function to the builder.
+func (b *HTTPClientBuilder) SetProxy(proxyFunc func(req *http.Request) (*url.URL, error)) *HTTPClientBuilder {
+	b.proxyFunc = proxyFunc
+	return b
+}
+
+// SetProxyHosts sets a list of hosts which will be proxied.
+func (b *HTTPClientBuilder) SetProxyHosts(list []ProxiedHost) *HTTPClientBuilder {
+	b.proxyHosts = list
+	return b
+}
+
 // SetCertPool sets provided TLS certificates pool into the client.
 func (b *HTTPClientBuilder) SetCertPool(pool *x509.CertPool) *HTTPClientBuilder {
 	if b.httpTransport.TLSClientConfig == nil {
@@ -168,27 +162,13 @@ func (b *HTTPClientBuilder) SetLogging(flag bool) *HTTPClientBuilder {
 	return b
 }
 
-func (b *HTTPClientBuilder) SetProxy(proxy func(*http.Request) (*url.URL, error)) *HTTPClientBuilder {
-	b.httpTransport.Proxy = proxy
-	return b
-}
-
 // FromConfig fulfills mock configuration from HTTPClientConfig.
 func (b *HTTPClientBuilder) FromConfig(config *config.HTTPClientConfig) *HTTPClientBuilder {
 	if config == nil {
 		return b
 	}
 
-	if config.MockAddress != "" {
-		b.SetMockAddress(config.MockAddress)
-		b.SetMockedDomains(config.MockedDomains)
-	}
-
-	if config.Timeout > 0 {
-		b.SetTimeout(config.Timeout)
-	}
-
-	b.SetSSLVerification(config.IsSSLVerificationEnabled())
+	b.config = config
 
 	return b
 }
@@ -206,68 +186,6 @@ func (b *HTTPClientBuilder) buildDialer() *HTTPClientBuilder {
 	}
 
 	return b
-}
-
-// parseAddress parses address and returns error in case of error (port is necessary).
-func (b *HTTPClientBuilder) parseAddress() error {
-	if b.mockAddress == "" {
-		return nil
-	}
-
-	if host, port, err := net.SplitHostPort(b.mockAddress); err == nil {
-		b.mockHost = host
-		b.mockPort = port
-	} else {
-		return fmt.Errorf("cannot split host and port: %s", err.Error())
-	}
-
-	return nil
-}
-
-// buildMocks builds mocks for http client.
-func (b *HTTPClientBuilder) buildMocks() error {
-	if b.dialer == nil {
-		return errors.New("dialer must be built first")
-	}
-
-	if b.mockHost != "" && b.mockPort != "" && len(b.mockedDomains) > 0 { // nolint:nestif
-		b.log("Mock address has been set", zap.String("address", net.JoinHostPort(b.mockHost, b.mockPort)))
-		b.log("Mocked domains: ")
-
-		for _, domain := range b.mockedDomains {
-			b.log(fmt.Sprintf(" - %s\n", domain))
-		}
-
-		b.httpTransport.Proxy = nil
-		b.httpTransport.DialContext = func(ctx context.Context, network, addr string) (conn net.Conn, e error) {
-			var (
-				host string
-				port string
-				err  error
-			)
-			if host, port, err = net.SplitHostPort(addr); err != nil {
-				return b.dialer.DialContext(ctx, network, addr)
-			}
-
-			for _, mock := range b.mockedDomains {
-				if mock == host {
-					oldAddr := addr
-
-					if b.mockPort == "0" {
-						addr = net.JoinHostPort(b.mockHost, port)
-					} else {
-						addr = net.JoinHostPort(b.mockHost, b.mockPort)
-					}
-
-					b.log(fmt.Sprintf("Mocking \"%s\" with \"%s\"\n", oldAddr, addr))
-				}
-			}
-
-			return b.dialer.DialContext(ctx, network, addr)
-		}
-	}
-
-	return nil
 }
 
 // log prints logs via Engine or via fmt.Println.
@@ -299,15 +217,80 @@ func (b *HTTPClientBuilder) RestoreDefault() *HTTPClientBuilder {
 	return b
 }
 
-// Build builds client, pass true to replace http.DefaultClient with generated one.
-func (b *HTTPClientBuilder) Build(replaceDefault ...bool) (*http.Client, error) {
-	if err := b.buildDialer().parseAddress(); err != nil {
-		return nil, err
+func (b *HTTPClientBuilder) buildTransportProxy() {
+	if len(b.proxyHosts) == 0 {
+		b.httpTransport.Proxy = b.proxyFunc
+		return
 	}
 
-	if err := b.buildMocks(); err != nil {
-		return nil, err
+	proxyFunc := func(_ *http.Request) (*url.URL, error) {
+		return nil, nil
 	}
+
+	if b.proxyFunc != nil {
+		proxyFunc = b.proxyFunc
+	}
+
+	b.httpTransport.Proxy = func(r *http.Request) (*url.URL, error) {
+		host := r.URL.Hostname()
+
+		for _, d := range b.proxyHosts {
+			for _, h := range d.Hosts {
+				if strings.EqualFold(host, h) || strings.HasSuffix(host, "."+h) {
+					return d.ProxyURL, nil
+				}
+			}
+		}
+
+		return proxyFunc(r)
+	}
+}
+
+// Build builds client, pass true to replace http.DefaultClient with generated one.
+func (b *HTTPClientBuilder) Build(replaceDefault ...bool) (*http.Client, error) {
+	if b.config != nil { //nolint:nestif
+		if b.config.Proxy != nil {
+			if b.config.Proxy.FromEnv != nil && !*b.config.Proxy.FromEnv {
+				b.proxyFunc = nil
+			}
+
+			if b.config.Proxy.URL != "" {
+				proxyURL, err := url.Parse(b.config.Proxy.URL)
+				if err != nil {
+					return nil, err
+				}
+
+				b.proxyFunc = http.ProxyURL(proxyURL)
+			}
+
+			if len(b.config.Proxy.SplitTunnel) > 0 {
+				proxiedHosts := make([]ProxiedHost, 0, len(b.config.Proxy.SplitTunnel))
+
+				for _, tunnel := range b.config.Proxy.SplitTunnel {
+					proxyURL, err := url.Parse(tunnel.Proxy)
+					if err != nil {
+						return nil, err
+					}
+
+					proxiedHosts = append(proxiedHosts, ProxiedHost{
+						Hosts:    tunnel.Hosts,
+						ProxyURL: proxyURL,
+					})
+				}
+
+				b.SetProxyHosts(proxiedHosts)
+			}
+		}
+
+		if b.config.Timeout > 0 {
+			b.SetTimeout(b.config.Timeout)
+		}
+
+		b.SetSSLVerification(b.config.IsSSLVerificationEnabled())
+	}
+
+	b.buildDialer()
+	b.buildTransportProxy()
 
 	b.built = true
 	b.httpClient.Transport = b.httpTransport

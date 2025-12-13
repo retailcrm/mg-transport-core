@@ -77,10 +77,22 @@ type DatabaseConfig struct {
 
 // HTTPClientConfig struct.
 type HTTPClientConfig struct {
-	SSLVerification *bool         `yaml:"ssl_verification"`
-	MockAddress     string        `yaml:"mock_address"`
-	MockedDomains   []string      `yaml:"mocked_domains"`
-	Timeout         time.Duration `yaml:"timeout"`
+	SSLVerification *bool                  `yaml:"ssl_verification"`
+	Proxy           *HTTPClientProxyConfig `yaml:"proxy"`
+	Timeout         time.Duration          `yaml:"timeout"`
+}
+
+// HTTPClientProxyConfig can be used to configure proxy for HTTP client.
+type HTTPClientProxyConfig struct {
+	URL         string                `yaml:"url"`
+	FromEnv     *bool                 `yaml:"from_env"`
+	SplitTunnel []HTTPClientProxyItem `yaml:"split_tunnel"`
+}
+
+// HTTPClientProxyItem contains a list of hosts that use specified proxy.
+type HTTPClientProxyItem struct {
+	Proxy string   `yaml:"proxy"`
+	Hosts []string `yaml:"host"`
 }
 
 // HTTPServerConfig struct.
