@@ -124,7 +124,7 @@ func (t *HTTPClientBuilderTest) Test_FromConfig() {
 		return proxyURL
 	}
 
-	t.Nil(getProxy("https://example.test"))
+	t.Nil(getProxy("https://ifconfig.me"))
 	t.NotNil(getProxy("https://example.com"))
 	t.NotNil(getProxy("https://google.com"))
 	t.Nil(getProxy("https://google.co.uk"))
