@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"strings"
 	"time"
@@ -70,6 +71,7 @@ type HTTPClientBuilder struct {
 // ProxiedHost is a pair of proxy config & host.
 type ProxiedHost struct {
 	Hosts    []string
+	IPSet    []*net.IPNet
 	ProxyURL *url.URL
 }
 
@@ -234,10 +236,31 @@ func (b *HTTPClientBuilder) buildTransportProxy() {
 	b.httpTransport.Proxy = func(r *http.Request) (*url.URL, error) {
 		host := r.URL.Hostname()
 
+		var ips []net.IPAddr
+
 		for _, d := range b.proxyHosts {
 			for _, h := range d.Hosts {
 				if strings.EqualFold(host, h) || strings.HasSuffix(host, "."+h) {
 					return d.ProxyURL, nil
+				}
+			}
+
+			if len(d.IPSet) > 0 {
+				if len(ips) == 0 {
+					ipList, err := net.DefaultResolver.LookupIPAddr(r.Context(), host)
+					if err != nil {
+						return nil, err
+					}
+
+					ips = ipList
+				}
+
+				for _, ip := range ips {
+					for _, cidr := range d.IPSet {
+						if cidr.Contains(ip.IP) {
+							return d.ProxyURL, nil
+						}
+					}
 				}
 			}
 		}
@@ -272,8 +295,20 @@ func (b *HTTPClientBuilder) Build(replaceDefault ...bool) (*http.Client, error) 
 						return nil, err
 					}
 
+					var ipset []*net.IPNet
+
+					for _, val := range tunnel.IPSet {
+						subnet, err := ParseSubnet(val)
+						if err != nil {
+							return nil, err
+						}
+
+						ipset = append(ipset, subnet)
+					}
+
 					proxiedHosts = append(proxiedHosts, ProxiedHost{
 						Hosts:    tunnel.Hosts,
+						IPSet:    ipset,
 						ProxyURL: proxyURL,
 					})
 				}
@@ -300,4 +335,37 @@ func (b *HTTPClientBuilder) Build(replaceDefault ...bool) (*http.Client, error) 
 	}
 
 	return b.httpClient, nil
+}
+
+// ParseSubnet will parse provided string as *net.IPNet. Plain IP's will be converted into /32 or /128 subnets.
+func ParseSubnet(val string) (*net.IPNet, error) {
+	if !strings.Contains(val, "/") {
+		a, err := netip.ParseAddr(val)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ip %q: %w", val, err)
+		}
+		bits := 32
+		if a.Is6() {
+			bits = 128
+		}
+		p := netip.PrefixFrom(a, bits).Masked()
+		return prefixToIPNet(p), nil
+	}
+
+	p, err := netip.ParsePrefix(val)
+	if err != nil {
+		return nil, fmt.Errorf("invalid cidr %q: %w", val, err)
+	}
+	p = p.Masked()
+	return prefixToIPNet(p), nil
+}
+
+func prefixToIPNet(p netip.Prefix) *net.IPNet {
+	ip := net.IP(p.Addr().AsSlice())
+	ones := p.Bits()
+	bits := 128
+	if p.Addr().Is4() {
+		bits = 32
+	}
+	return &net.IPNet{IP: ip, Mask: net.CIDRMask(ones, bits)}
 }

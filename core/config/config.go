@@ -93,6 +93,7 @@ type HTTPClientProxyConfig struct {
 type HTTPClientProxyItem struct {
 	Proxy string   `yaml:"proxy"`
 	Hosts []string `yaml:"hosts"`
+	IPSet []string `yaml:"ipset"`
 }
 
 // HTTPServerConfig struct.

@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -8,9 +9,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -75,6 +78,9 @@ func (t *HTTPClientBuilderTest) Test_FromConfigNil() {
 }
 
 func (t *HTTPClientBuilderTest) Test_FromConfig() {
+	ip, err := net.DefaultResolver.LookupIPAddr(context.Background(), "simla.com")
+	t.Require().NoError(err)
+
 	vFalse := false
 	config := &config.HTTPClientConfig{
 		SSLVerification: boolPtr(true),
@@ -87,6 +93,13 @@ func (t *HTTPClientBuilderTest) Test_FromConfig() {
 						"example.com",
 						"google.com",
 					},
+					IPSet: (func() []string {
+						var ips []string
+						for _, i := range ip {
+							ips = append(ips, i.IP.String())
+						}
+						return ips
+					})(),
 				},
 			},
 		},
@@ -115,6 +128,7 @@ func (t *HTTPClientBuilderTest) Test_FromConfig() {
 	t.NotNil(getProxy("https://example.com"))
 	t.NotNil(getProxy("https://google.com"))
 	t.Nil(getProxy("https://google.co.uk"))
+	t.NotNil(getProxy("https://simla.com"))
 }
 
 func (t *HTTPClientBuilderTest) Test_buildDialer() {
@@ -194,6 +208,56 @@ func getOutboundIP() net.IP {
 
 func Test_HTTPClientBuilder(t *testing.T) {
 	suite.Run(t, new(HTTPClientBuilderTest))
+}
+
+func TestParseSubnet(t *testing.T) {
+	perform := func(t *testing.T, val string) string {
+		sn, err := ParseSubnet(val)
+		require.NoError(t, err)
+		return sn.String()
+	}
+
+	t.Run("4", func(t *testing.T) {
+		items := []string{
+			"192.168.1.0/24",
+			"10.0.0.0/8",
+			"172.16.0.0/12",
+			"192.168.0.1/32",
+			"249.170.156.152",
+			"0.0.0.0/0",
+		}
+
+		for _, item := range items {
+			expected := item
+			if !strings.Contains(expected, "/") {
+				expected += "/32"
+			}
+			assert.Equal(t, expected, perform(t, item))
+		}
+	})
+
+	t.Run("6", func(t *testing.T) {
+		items := []string{
+			"2001:db8:85a3::/64",
+			"2001:0db8:0000:0042:0000:2558:0000:0001/128",
+			"fe80::/64",
+			"::1/128",
+			"::/0",
+			"2607:f8b0:4005:805::/64",
+			"61b:d75b:6f6b:79ce:2b81:5a4a:9af4:9f42",
+		}
+
+		for n, item := range items {
+			expected := item
+			if n == 1 {
+				expected = "2001:db8:0:42:0:2558:0:1/128"
+			}
+			if !strings.Contains(expected, "/") {
+				expected += "/128"
+			}
+			assert.Equal(t, expected, perform(t, item))
+		}
+	})
 }
 
 func boolPtr(val bool) *bool {
