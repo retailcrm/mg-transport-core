@@ -48,7 +48,7 @@ func TestParsePhone(t *testing.T) {
 	})
 
 	t.Run("us numbers", func(t *testing.T) {
-		for _, usMask := range UndefinedUSCodes {
+		for _, usMask := range []string{"1943", "1445", "1945", "1840", "1448", "1279", "1839", "1555", "1771", "1645", "1640"} {
 			t.Run(fmt.Sprintf("mask %s", usMask), func(t *testing.T) {
 				pNumber := usMask + "7043340"
 				pPhone, err := ParsePhone(pNumber)
