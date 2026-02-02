@@ -6,6 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.2
+	github.com/Neur0toxine/go-phone-iso3166 v0.0.3
 	github.com/aws/aws-sdk-go v1.36.30
 	github.com/aws/aws-sdk-go-v2 v1.18.0
 	github.com/aws/aws-sdk-go-v2/config v1.18.22
@@ -27,7 +28,6 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/nicksnyder/go-i18n/v2 v2.4.1
 	github.com/nyaruka/phonenumbers v1.5.0
-	github.com/onlinecity/go-phone-iso3166 v0.0.1
 	github.com/retailcrm/api-client-go/v2 v2.1.17
 	github.com/retailcrm/mg-transport-api-client-go v1.3.23
 	github.com/retailcrm/zabbix-metrics-collector v1.0.0
