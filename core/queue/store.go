@@ -142,6 +142,9 @@ func (s *Store[T]) addWorker(id int) {
 	if s.numWorkers == s.maxNumWorkers {
 		return
 	}
+	if s.workerConstructor == nil {
+		return
+	}
 	q, exists := s.m.Load(id)
 	if !exists {
 		return
@@ -179,17 +182,21 @@ func (s *Store[T]) stopWorker(id int) {
 		return
 	}
 
-	defer s.stopsLock.Unlock()
 	s.stopsLock.Lock()
 	stops, ok := s.stops[id]
 	if !ok || stops == nil {
+		s.stopsLock.Unlock()
 		return
 	}
 	if len(stops.workers) <= 1 {
+		s.stopsLock.Unlock()
 		return
 	}
-	stops.workers[len(stops.workers)-1]()
+	stop := stops.workers[len(stops.workers)-1]
 	s.stops[id].workers = stops.workers[:len(stops.workers)-1]
+	s.stopsLock.Unlock()
+
+	stop()
 }
 
 // scalingInfo returns how many additional workers can be spawned and how many of them are active.
@@ -210,18 +217,22 @@ func (s *Store[T]) scalingInfo(id int) (slotsLeft, slotsActive int) {
 
 // invokeStoppers stops the queue and all workers for the queue with specified id.
 func (s *Store[T]) invokeStoppers(id int) {
-	defer s.stopsLock.Unlock()
 	s.stopsLock.Lock()
-	if stops, ok := s.stops[id]; ok {
-		if stops == nil {
-			return
-		}
-		if stops.queue != nil {
-			stops.queue()
-		}
-		for _, fn := range stops.workers {
-			fn()
-		}
+	stops, ok := s.stops[id]
+	if !ok || stops == nil {
+		s.stopsLock.Unlock()
+		return
+	}
+	queueStop := stops.queue
+	workerStops := append([]context.CancelFunc(nil), stops.workers...)
+	delete(s.stops, id)
+	s.stopsLock.Unlock()
+
+	if queueStop != nil {
+		queueStop()
+	}
+	for _, fn := range workerStops {
+		fn()
 	}
 }
 

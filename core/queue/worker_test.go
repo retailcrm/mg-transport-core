@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewWorker_ProcessesItems(t *testing.T) {
@@ -20,8 +21,9 @@ func TestNewWorker_ProcessesItems(t *testing.T) {
 		mu.Unlock()
 	}
 
-	worker := NewWorker(processor, RecoverFuncDummy[int])
+	worker := NewWorker(context.Background(), processor, RecoverFuncDummy[int])
 	q, cancel := NewMemory[int](1)
+	defer cancel()
 
 	go worker(q)
 
@@ -51,8 +53,9 @@ func TestNewWorker_ProcessesItemsInOrder(t *testing.T) {
 		mu.Unlock()
 	}
 
-	worker := NewWorker(processor, RecoverFuncDummy[int])
+	worker := NewWorker(context.Background(), processor, RecoverFuncDummy[int])
 	q, cancel := NewMemory[int](1)
+	defer cancel()
 
 	go worker(q)
 
@@ -82,11 +85,13 @@ func TestNewWorker_StopsOnContextCancellation(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	worker := NewWorker(processor, RecoverFuncDummy[int], func() {
+	ctx, workerCancel := context.WithCancel(context.Background())
+	worker := NewWorker(ctx, processor, RecoverFuncDummy[int], func() {
 		stopped <- true
 	})
 
 	q, cancel := NewMemory[int](1)
+	defer cancel()
 
 	go worker(q)
 
@@ -95,13 +100,43 @@ func TestNewWorker_StopsOnContextCancellation(t *testing.T) {
 	}
 
 	time.Sleep(50 * time.Millisecond)
-	cancel()
+	workerCancel()
 
 	select {
 	case <-stopped:
 	case <-time.After(500 * time.Millisecond):
 		t.Fatal("Worker did not stop after context cancellation")
 	}
+}
+
+func TestNewWorker_StopsIdleWorkerOnParentContextCancellation(t *testing.T) {
+	ctx, workerCancel := context.WithCancel(context.Background())
+	stopped := make(chan struct{}, 1)
+
+	worker := NewWorker(
+		ctx,
+		func(_ int, _ Queue[int]) {
+			t.Fatal("processor should not run")
+		},
+		RecoverFuncDummy[int],
+		func() { stopped <- struct{}{} },
+	)
+
+	q, cancel := NewMemory[int](1)
+	defer cancel()
+
+	go worker(q)
+
+	workerCancel()
+
+	select {
+	case <-stopped:
+	case <-time.After(500 * time.Millisecond):
+		t.Fatal("Worker did not stop after parent context cancellation")
+	}
+
+	require.NoError(t, q.Enqueue(1))
+	assert.Equal(t, int64(1), q.Len())
 }
 
 func TestNewWorker_HandlesPanic(t *testing.T) {
@@ -121,7 +156,7 @@ func TestNewWorker_HandlesPanic(t *testing.T) {
 		assert.Equal(t, "test panic", r)
 	}
 
-	worker := NewWorker(processor, recoverFunc)
+	worker := NewWorker(context.Background(), processor, recoverFunc)
 	q, cancel := NewMemory[int](1)
 
 	go worker(q)
@@ -154,7 +189,7 @@ func TestNewWorker_ContinuesAfterPanic(t *testing.T) {
 
 	recoverFunc := func(_ context.Context, _ int, _ any) {}
 
-	worker := NewWorker(processor, recoverFunc)
+	worker := NewWorker(context.Background(), processor, recoverFunc)
 	q, cancel := NewMemory[int](1)
 
 	go worker(q)
@@ -183,6 +218,7 @@ func TestNewWorker_MultipleCancelCallbacks(t *testing.T) {
 	processor := func(_ int, _ Queue[int]) {}
 
 	worker := NewWorker(
+		context.Background(),
 		processor,
 		RecoverFuncDummy[int],
 		func() { atomic.AddInt32(&callback1Called, 1) },
@@ -216,7 +252,7 @@ func TestNewWorker_RecoverFuncHasContext(t *testing.T) {
 		mu.Unlock()
 	}
 
-	worker := NewWorker(processor, recoverFunc)
+	worker := NewWorker(context.Background(), processor, recoverFunc)
 	q, cancel := NewMemory[int](1)
 
 	go worker(q)
@@ -243,7 +279,7 @@ func TestNewWorker_ConcurrentProcessing(t *testing.T) {
 	q, cancel := NewMemory[int](1)
 
 	for i := 0; i < 5; i++ {
-		worker := NewWorker(processor, RecoverFuncDummy[int])
+		worker := NewWorker(context.Background(), processor, RecoverFuncDummy[int])
 		go worker(q)
 	}
 
@@ -260,7 +296,7 @@ func TestNewWorker_ConcurrentProcessing(t *testing.T) {
 func TestNewWorker_HandlesContextCanceledError(t *testing.T) {
 	processor := func(_ int, _ Queue[int]) {}
 
-	worker := NewWorker(processor, RecoverFuncDummy[int])
+	worker := NewWorker(context.Background(), processor, RecoverFuncDummy[int])
 	q, cancel := NewMemory[int](1)
 
 	done := make(chan bool, 1)
@@ -344,7 +380,7 @@ func TestNewWorker_ProcessorAccessesQueue(t *testing.T) {
 		}
 	}
 
-	worker := NewWorker(processor, RecoverFuncDummy[int])
+	worker := NewWorker(context.Background(), processor, RecoverFuncDummy[int])
 	q, cancel := NewMemory[int](42)
 
 	go worker(q)
@@ -369,7 +405,7 @@ func TestNewWorker_ZeroValueItems(t *testing.T) {
 		mu.Unlock()
 	}
 
-	worker := NewWorker(processor, RecoverFuncDummy[int])
+	worker := NewWorker(context.Background(), processor, RecoverFuncDummy[int])
 	q, cancel := NewMemory[int](1)
 
 	go worker(q)
@@ -397,7 +433,7 @@ func TestNewWorker_EmptyQueue(t *testing.T) {
 		atomic.AddInt32(&processed, 1)
 	}
 
-	worker := NewWorker(processor, RecoverFuncDummy[int])
+	worker := NewWorker(context.Background(), processor, RecoverFuncDummy[int])
 	q, cancel := NewMemory[int](1)
 
 	go worker(q)

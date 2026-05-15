@@ -56,12 +56,12 @@ func NewMemory[T any](id int) (Queue[T], context.CancelFunc) {
 
 // Enqueue adds an item to the end of the queue.
 func (q *Memory[T]) Enqueue(item T) error {
+	q.mutex.Lock()
+	defer q.mutex.Unlock()
+
 	if err := q.ctx.Err(); err != nil {
 		return err
 	}
-
-	q.mutex.Lock()
-	defer q.mutex.Unlock()
 
 	q.items.PushBack(item)
 	atomic.AddInt64(&q.size, 1)
@@ -72,6 +72,26 @@ func (q *Memory[T]) Enqueue(item T) error {
 
 // Dequeue an item from the queue start.
 func (q *Memory[T]) Dequeue() (T, error) {
+	return q.DequeueContext(context.Background())
+}
+
+// DequeueContext removes an item from the queue start or returns when ctx or queue context is canceled.
+func (q *Memory[T]) DequeueContext(ctx context.Context) (T, error) {
+	if ctx.Done() != nil {
+		done := make(chan struct{})
+		defer close(done)
+
+		go func() {
+			select {
+			case <-ctx.Done():
+				q.mutex.Lock()
+				q.cond.Broadcast()
+				q.mutex.Unlock()
+			case <-done:
+			}
+		}()
+	}
+
 	q.mutex.Lock()
 	defer q.mutex.Unlock()
 
@@ -80,7 +100,15 @@ func (q *Memory[T]) Dequeue() (T, error) {
 			var zero T
 			return zero, err
 		}
+		if err := ctx.Err(); err != nil {
+			var zero T
+			return zero, err
+		}
 		q.cond.Wait()
+	}
+	if err := ctx.Err(); err != nil {
+		var zero T
+		return zero, err
 	}
 
 	item := q.items.Remove(q.items.Front()).(T)

@@ -64,9 +64,10 @@ func TestStore_WithNumWorkers(t *testing.T) {
 	workerCount := int32(0)
 
 	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		atomic.AddInt32(&workerCount, 1)
 		worker := NewWorker(
+			ctx,
 			func(_ int, _ Queue[int]) {
 				atomic.AddInt32(&processed, 1)
 			},
@@ -103,8 +104,9 @@ func TestStore_WithWorkerConstructor(t *testing.T) {
 	var mu sync.Mutex
 
 	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		worker := NewWorker(
+			ctx,
 			func(item int, _ Queue[int]) {
 				mu.Lock()
 				processed = append(processed, item)
@@ -138,8 +140,9 @@ func TestStore_WithWorkerConstructor(t *testing.T) {
 
 func TestStore_WithMaxNumWorkers(t *testing.T) {
 	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		worker := NewWorker(
+			ctx,
 			func(_ int, _ Queue[int]) {
 				time.Sleep(10 * time.Millisecond)
 			},
@@ -167,8 +170,9 @@ func TestStore_WithMaxNumWorkers(t *testing.T) {
 
 func TestStore_WithScaleFunc(t *testing.T) {
 	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		worker := NewWorker(
+			ctx,
 			func(_ int, _ Queue[int]) {
 				time.Sleep(50 * time.Millisecond)
 			},
@@ -216,8 +220,9 @@ func TestStore_WithScaleFunc(t *testing.T) {
 
 func TestStore_AddWorkerRespectMaxLimit(t *testing.T) {
 	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		worker := NewWorker(
+			ctx,
 			func(_ int, _ Queue[int]) {},
 			RecoverFuncDummy[int],
 		)
@@ -252,8 +257,9 @@ func TestStore_AddWorkerRespectMaxLimit(t *testing.T) {
 
 func TestStore_StopWorkerRespectMinLimit(t *testing.T) {
 	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		worker := NewWorker(
+			ctx,
 			func(_ int, _ Queue[int]) {},
 			RecoverFuncDummy[int],
 		)
@@ -284,10 +290,64 @@ func TestStore_StopWorkerRespectMinLimit(t *testing.T) {
 	store.Remove(1)
 }
 
+func TestStore_StopWorkerCancelsIdleWorker(t *testing.T) {
+	started := int32(0)
+	stopped := make(chan int32, 2)
+	processed := make(chan int, 1)
+
+	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
+		ctx, cancel := context.WithCancel(context.Background())
+		workerID := atomic.AddInt32(&started, 1)
+		worker := NewWorker(
+			ctx,
+			func(item int, _ Queue[int]) {
+				processed <- item
+			},
+			RecoverFuncDummy[int],
+			func() { stopped <- workerID },
+		)
+		return worker, cancel
+	}
+
+	store := NewStore(NewMemory[int]).
+		WithWorkerConstructor(workerConstructor).
+		WithNumWorkers(1).
+		WithMaxNumWorkers(3)
+
+	q := store.Get(1)
+	time.Sleep(50 * time.Millisecond)
+
+	store.addWorker(1)
+	require.Eventually(t, func() bool {
+		_, active := store.scalingInfo(1)
+		return active == 2
+	}, time.Second, 10*time.Millisecond)
+
+	store.stopWorker(1)
+
+	select {
+	case workerID := <-stopped:
+		assert.Equal(t, int32(2), workerID)
+	case <-time.After(time.Second):
+		t.Fatal("downscaled worker was not canceled")
+	}
+
+	require.NoError(t, q.Enqueue(10))
+	select {
+	case item := <-processed:
+		assert.Equal(t, 10, item)
+	case <-time.After(time.Second):
+		t.Fatal("remaining worker did not process after downscale")
+	}
+
+	store.Remove(1)
+}
+
 func TestStore_ConcurrentAccess(t *testing.T) {
 	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		worker := NewWorker(
+			ctx,
 			func(_ int, _ Queue[int]) {},
 			RecoverFuncDummy[int],
 		)
@@ -323,8 +383,9 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 
 func TestStore_ScaleFuncPanicRecovery(t *testing.T) {
 	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		worker := NewWorker(
+			ctx,
 			func(_ int, _ Queue[int]) {},
 			RecoverFuncDummy[int],
 		)
@@ -362,12 +423,98 @@ func TestStore_ScaleFuncPanicRecovery(t *testing.T) {
 	store.Remove(1)
 }
 
+func TestStore_WithScaleFuncCancelsUpscaledWorker(t *testing.T) {
+	started := int32(0)
+	stopped := make(chan int32, 2)
+	scaledDown := make(chan struct{}, 1)
+
+	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
+		ctx, cancel := context.WithCancel(context.Background())
+		workerID := atomic.AddInt32(&started, 1)
+		worker := NewWorker(
+			ctx,
+			func(_ int, _ Queue[int]) {},
+			RecoverFuncDummy[int],
+			func() { stopped <- workerID },
+		)
+		return worker, cancel
+	}
+
+	scalePhase := int32(0)
+	scaleFunc := func(_ Info, addWorker, deleteWorker func(), availableScaling func() (int, int)) {
+		switch atomic.LoadInt32(&scalePhase) {
+		case 0:
+			slotsLeft, slotsActive := availableScaling()
+			if slotsActive == 1 && slotsLeft > 0 && atomic.CompareAndSwapInt32(&scalePhase, 0, 1) {
+				addWorker()
+			}
+		case 1:
+			_, slotsActive := availableScaling()
+			if slotsActive == 2 && atomic.CompareAndSwapInt32(&scalePhase, 1, 2) {
+				deleteWorker()
+				scaledDown <- struct{}{}
+			}
+		}
+	}
+
+	store := NewStore(NewMemory[int]).
+		WithWorkerConstructor(workerConstructor).
+		WithNumWorkers(1).
+		WithMaxNumWorkers(2).
+		WithScaleFunc(scaleFunc, 10*time.Millisecond)
+
+	store.Get(1)
+
+	select {
+	case <-scaledDown:
+	case <-time.After(time.Second):
+		t.Fatal("scale function did not downscale")
+	}
+
+	select {
+	case workerID := <-stopped:
+		assert.Equal(t, int32(2), workerID)
+	case <-time.After(time.Second):
+		t.Fatal("upscaled worker was not canceled")
+	}
+
+	_, active := store.scalingInfo(1)
+	assert.Equal(t, 1, active)
+
+	store.Remove(1)
+}
+
+func TestStore_RemoveClearsStaleWorkerStops(t *testing.T) {
+	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
+		ctx, cancel := context.WithCancel(context.Background())
+		return NewWorker(ctx, func(_ int, _ Queue[int]) {}, RecoverFuncDummy[int]), cancel
+	}
+
+	store := NewStore(NewMemory[int]).
+		WithWorkerConstructor(workerConstructor).
+		WithNumWorkers(2).
+		WithMaxNumWorkers(3)
+
+	first := store.Get(1)
+	store.Remove(1)
+	second := store.Get(1)
+
+	if first == second {
+		t.Fatal("expected queue to be recreated after removal")
+	}
+	_, active := store.scalingInfo(1)
+	assert.Equal(t, 2, active)
+
+	store.Remove(1)
+}
+
 func TestStore_MultipleQueuesIndependentWorkers(t *testing.T) {
 	processed := sync.Map{}
 
 	workerConstructor := func(_ int) (Worker[func() (int, func())], context.CancelFunc) {
-		_, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(context.Background())
 		worker := NewWorker(
+			ctx,
 			func(item func() (int, func()), q Queue[func() (int, func())]) {
 				num, finish := item()
 				key := q.ID()
