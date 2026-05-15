@@ -118,7 +118,8 @@ func (s *Store[T]) Remove(id int) {
 }
 
 // performAutoScale will call ScaleFunc for the queue every checkInterval until the queue context is canceled.
-func (s *Store[T]) performAutoScale(ctx context.Context, id int, queue Info, scaleFunc ScaleFunc, checkInterval time.Duration) {
+func (s *Store[T]) performAutoScale(
+	ctx context.Context, id int, queue Info, scaleFunc ScaleFunc, checkInterval time.Duration) {
 	defer func() {
 		if r := recover(); r != nil && ctx.Err() == nil {
 			go s.performAutoScale(ctx, id, queue, scaleFunc, checkInterval)
