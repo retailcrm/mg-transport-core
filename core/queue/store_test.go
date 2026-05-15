@@ -25,6 +25,60 @@ func TestStore_GetReturnsSameQueue(t *testing.T) {
 	assert.Equal(t, q1, q2)
 }
 
+func TestStore_GetSameQueueConcurrentlyCreatesOnce(t *testing.T) {
+	constructed := int32(0)
+	startedWorkers := int32(0)
+
+	constructor := func(id int) (Queue[int], context.CancelFunc) {
+		atomic.AddInt32(&constructed, 1)
+		time.Sleep(10 * time.Millisecond)
+		return NewMemory[int](id)
+	}
+	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
+		ctx, cancel := context.WithCancel(context.Background())
+		atomic.AddInt32(&startedWorkers, 1)
+		return NewWorker(ctx, func(_ int, _ Queue[int]) {}, RecoverFuncDummy[int]), cancel
+	}
+
+	store := NewStore(constructor).
+		WithWorkerConstructor(workerConstructor).
+		WithNumWorkers(1)
+
+	const goroutines = 25
+	start := make(chan struct{})
+	queues := make(chan Queue[int], goroutines)
+
+	var wg sync.WaitGroup
+	wg.Add(goroutines)
+	for i := 0; i < goroutines; i++ {
+		go func() {
+			defer wg.Done()
+			<-start
+			queues <- store.Get(1)
+		}()
+	}
+
+	close(start)
+	wg.Wait()
+	close(queues)
+
+	var first Queue[int]
+	for q := range queues {
+		if first == nil {
+			first = q
+			continue
+		}
+		if first != q {
+			t.Fatal("expected concurrent Get calls to return the same queue")
+		}
+	}
+
+	assert.Equal(t, int32(1), atomic.LoadInt32(&constructed))
+	assert.Equal(t, int32(1), atomic.LoadInt32(&startedWorkers))
+
+	store.Remove(1)
+}
+
 func TestStore_GetDifferentQueues(t *testing.T) {
 	store := NewStore(NewMemory[int])
 	q1 := store.Get(1)
@@ -216,6 +270,36 @@ func TestStore_WithScaleFunc(t *testing.T) {
 	assert.Positive(t, atomic.LoadInt32(&addWorkerCalled))
 
 	store.Remove(1)
+}
+
+func TestStore_AutoScaleStopsWhenQueueStops(t *testing.T) {
+	scaleCalled := make(chan struct{}, 2)
+	unblockScale := make(chan struct{})
+
+	scaleFunc := func(_ Info, _, _ func(), _ func() (int, int)) {
+		scaleCalled <- struct{}{}
+		<-unblockScale
+	}
+
+	store := NewStore(NewMemory[int]).
+		WithScaleFunc(scaleFunc, 10*time.Millisecond)
+
+	store.Get(1)
+
+	select {
+	case <-scaleCalled:
+	case <-time.After(time.Second):
+		t.Fatal("scale function was not called")
+	}
+
+	store.Remove(1)
+	close(unblockScale)
+
+	select {
+	case <-scaleCalled:
+		t.Fatal("scale function was called after queue stop")
+	case <-time.After(50 * time.Millisecond):
+	}
 }
 
 func TestStore_AddWorkerRespectMaxLimit(t *testing.T) {
