@@ -23,8 +23,12 @@ type ScaleFunc func(q Info, addWorker, deleteWorker func(), availableScaling fun
 // Store stores queues and manages their workers.
 type Store[T any] struct {
 	m                 sync.Map
+	getLock           sync.Mutex
 	stopsLock         sync.Mutex
 	stops             map[int]*stopFuncList
+	scaleLock         sync.RWMutex
+	scaleFunc         ScaleFunc
+	scaleInterval     time.Duration
 	constructor       Constructor[T]
 	numWorkers        int
 	maxNumWorkers     int
@@ -66,46 +70,73 @@ func (s *Store[T]) WithMaxNumWorkers(n int) *Store[T] {
 
 // WithScaleFunc will start scaling func each checkInterval.
 func (s *Store[T]) WithScaleFunc(fn ScaleFunc, checkInterval time.Duration) *Store[T] {
-	go s.performAutoScale(fn, checkInterval)
+	s.scaleLock.Lock()
+	s.scaleFunc = fn
+	s.scaleInterval = checkInterval
+	s.scaleLock.Unlock()
+
+	s.m.Range(func(key, value any) bool {
+		id, idOk := key.(int)
+		queue, queueOk := value.(Info)
+		if idOk && queueOk {
+			go s.performAutoScale(queue.Context(), id, queue, fn, checkInterval)
+		}
+		return true
+	})
+
 	return s
 }
 
 // Get queue from the store.
 func (s *Store[T]) Get(id int) Queue[T] {
-	val, exists := s.m.Load(id)
-	if !exists {
-		q, stop := s.constructor(id)
-		s.m.Store(id, q)
-		s.spawnWorkers(id, stop, q)
-		return q
+	if val, exists := s.m.Load(id); exists {
+		return val.(Queue[T])
 	}
-	return val.(Queue[T])
+
+	s.getLock.Lock()
+	defer s.getLock.Unlock()
+
+	if val, exists := s.m.Load(id); exists {
+		return val.(Queue[T])
+	}
+
+	q, stop := s.constructor(id)
+	s.m.Store(id, q)
+	s.spawnWorkers(id, stop, q)
+	s.spawnAutoScale(id, q)
+
+	return q
 }
 
 // Remove queue from the store.
 func (s *Store[T]) Remove(id int) {
+	s.getLock.Lock()
+	defer s.getLock.Unlock()
+
 	s.invokeStoppers(id)
 	s.m.Delete(id)
 }
 
-// performAutoScale will call ScaleFunc on each queue every checkInterval.
-func (s *Store[T]) performAutoScale(scaleFunc ScaleFunc, checkInterval time.Duration) {
+// performAutoScale will call ScaleFunc for the queue every checkInterval until the queue context is canceled.
+func (s *Store[T]) performAutoScale(
+	ctx context.Context, id int, queue Info, scaleFunc ScaleFunc, checkInterval time.Duration) {
 	defer func() {
-		if r := recover(); r != nil {
-			go s.performAutoScale(scaleFunc, checkInterval)
+		if r := recover(); r != nil && ctx.Err() == nil {
+			go s.performAutoScale(ctx, id, queue, scaleFunc, checkInterval)
 			return
 		}
 	}()
+
+	ticker := time.NewTicker(checkInterval)
+	defer ticker.Stop()
+
 	for {
-		time.Sleep(checkInterval)
-		s.m.Range(func(key, value any) bool {
-			id, ok := key.(int)
-			if !ok {
-				return true
-			}
-			queue, ok := value.(Info)
-			if !ok {
-				return true
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			if ctx.Err() != nil {
+				return
 			}
 			scaleFunc(queue, func() {
 				s.addWorker(id)
@@ -114,9 +145,21 @@ func (s *Store[T]) performAutoScale(scaleFunc ScaleFunc, checkInterval time.Dura
 			}, func() (int, int) {
 				return s.scalingInfo(id)
 			})
-			return true
-		})
+		}
 	}
+}
+
+func (s *Store[T]) spawnAutoScale(id int, q Queue[T]) {
+	s.scaleLock.RLock()
+	scaleFunc := s.scaleFunc
+	checkInterval := s.scaleInterval
+	s.scaleLock.RUnlock()
+
+	if scaleFunc == nil || checkInterval <= 0 {
+		return
+	}
+
+	go s.performAutoScale(q.Context(), id, q, scaleFunc, checkInterval)
 }
 
 // addStoppers adds stop functions to the storage.
@@ -140,6 +183,9 @@ func (s *Store[T]) addStoppers(id int, queueStop context.CancelFunc, stopFuncs [
 // It can't spawn more than maxNumWorkers workers.
 func (s *Store[T]) addWorker(id int) {
 	if s.numWorkers == s.maxNumWorkers {
+		return
+	}
+	if s.workerConstructor == nil {
 		return
 	}
 	q, exists := s.m.Load(id)
@@ -179,17 +225,21 @@ func (s *Store[T]) stopWorker(id int) {
 		return
 	}
 
-	defer s.stopsLock.Unlock()
 	s.stopsLock.Lock()
 	stops, ok := s.stops[id]
 	if !ok || stops == nil {
+		s.stopsLock.Unlock()
 		return
 	}
 	if len(stops.workers) <= 1 {
+		s.stopsLock.Unlock()
 		return
 	}
-	stops.workers[len(stops.workers)-1]()
+	stop := stops.workers[len(stops.workers)-1]
 	s.stops[id].workers = stops.workers[:len(stops.workers)-1]
+	s.stopsLock.Unlock()
+
+	stop()
 }
 
 // scalingInfo returns how many additional workers can be spawned and how many of them are active.
@@ -210,18 +260,22 @@ func (s *Store[T]) scalingInfo(id int) (slotsLeft, slotsActive int) {
 
 // invokeStoppers stops the queue and all workers for the queue with specified id.
 func (s *Store[T]) invokeStoppers(id int) {
-	defer s.stopsLock.Unlock()
 	s.stopsLock.Lock()
-	if stops, ok := s.stops[id]; ok {
-		if stops == nil {
-			return
-		}
-		if stops.queue != nil {
-			stops.queue()
-		}
-		for _, fn := range stops.workers {
-			fn()
-		}
+	stops, ok := s.stops[id]
+	if !ok || stops == nil {
+		s.stopsLock.Unlock()
+		return
+	}
+	queueStop := stops.queue
+	workerStops := append([]context.CancelFunc(nil), stops.workers...)
+	delete(s.stops, id)
+	s.stopsLock.Unlock()
+
+	if queueStop != nil {
+		queueStop()
+	}
+	for _, fn := range workerStops {
+		fn()
 	}
 }
 
