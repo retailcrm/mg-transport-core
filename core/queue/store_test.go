@@ -34,10 +34,9 @@ func TestStore_GetSameQueueConcurrentlyCreatesOnce(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 		return NewMemory[int](id)
 	}
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		atomic.AddInt32(&startedWorkers, 1)
-		return NewWorker(ctx, func(_ int, _ Queue[int]) {}, RecoverFuncDummy[int]), cancel
+		return NewWorker(ctx, func(_ int, _ Queue[int]) {}, RecoverFuncDummy[int])
 	}
 
 	store := NewStore(constructor).
@@ -117,8 +116,7 @@ func TestStore_WithNumWorkers(t *testing.T) {
 	processed := int32(0)
 	workerCount := int32(0)
 
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		atomic.AddInt32(&workerCount, 1)
 		worker := NewWorker(
 			ctx,
@@ -127,7 +125,7 @@ func TestStore_WithNumWorkers(t *testing.T) {
 			},
 			RecoverFuncDummy[int],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	store := NewStore(NewMemory[int]).
@@ -157,8 +155,7 @@ func TestStore_WithWorkerConstructor(t *testing.T) {
 	processed := make([]int, 0)
 	var mu sync.Mutex
 
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		worker := NewWorker(
 			ctx,
 			func(item int, _ Queue[int]) {
@@ -168,7 +165,7 @@ func TestStore_WithWorkerConstructor(t *testing.T) {
 			},
 			RecoverFuncDummy[int],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	store := NewStore(NewMemory[int]).
@@ -193,8 +190,7 @@ func TestStore_WithWorkerConstructor(t *testing.T) {
 }
 
 func TestStore_WithMaxNumWorkers(t *testing.T) {
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		worker := NewWorker(
 			ctx,
 			func(_ int, _ Queue[int]) {
@@ -202,7 +198,7 @@ func TestStore_WithMaxNumWorkers(t *testing.T) {
 			},
 			RecoverFuncDummy[int],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	store := NewStore(NewMemory[int]).
@@ -223,8 +219,7 @@ func TestStore_WithMaxNumWorkers(t *testing.T) {
 }
 
 func TestStore_WithScaleFunc(t *testing.T) {
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		worker := NewWorker(
 			ctx,
 			func(_ int, _ Queue[int]) {
@@ -232,7 +227,7 @@ func TestStore_WithScaleFunc(t *testing.T) {
 			},
 			RecoverFuncDummy[int],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	addWorkerCalled := int32(0)
@@ -303,14 +298,13 @@ func TestStore_AutoScaleStopsWhenQueueStops(t *testing.T) {
 }
 
 func TestStore_AddWorkerRespectMaxLimit(t *testing.T) {
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		worker := NewWorker(
 			ctx,
 			func(_ int, _ Queue[int]) {},
 			RecoverFuncDummy[int],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	store := NewStore(NewMemory[int]).
@@ -340,14 +334,13 @@ func TestStore_AddWorkerRespectMaxLimit(t *testing.T) {
 }
 
 func TestStore_StopWorkerRespectMinLimit(t *testing.T) {
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		worker := NewWorker(
 			ctx,
 			func(_ int, _ Queue[int]) {},
 			RecoverFuncDummy[int],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	store := NewStore(NewMemory[int]).
@@ -379,8 +372,7 @@ func TestStore_StopWorkerCancelsIdleWorker(t *testing.T) {
 	stopped := make(chan int32, 2)
 	processed := make(chan int, 1)
 
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		workerID := atomic.AddInt32(&started, 1)
 		worker := NewWorker(
 			ctx,
@@ -390,7 +382,7 @@ func TestStore_StopWorkerCancelsIdleWorker(t *testing.T) {
 			RecoverFuncDummy[int],
 			func() { stopped <- workerID },
 		)
-		return worker, cancel
+		return worker
 	}
 
 	store := NewStore(NewMemory[int]).
@@ -428,14 +420,13 @@ func TestStore_StopWorkerCancelsIdleWorker(t *testing.T) {
 }
 
 func TestStore_ConcurrentAccess(t *testing.T) {
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		worker := NewWorker(
 			ctx,
 			func(_ int, _ Queue[int]) {},
 			RecoverFuncDummy[int],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	store := NewStore(NewMemory[int]).
@@ -466,14 +457,13 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 }
 
 func TestStore_ScaleFuncPanicRecovery(t *testing.T) {
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		worker := NewWorker(
 			ctx,
 			func(_ int, _ Queue[int]) {},
 			RecoverFuncDummy[int],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	panicCount := int32(0)
@@ -512,8 +502,7 @@ func TestStore_WithScaleFuncCancelsUpscaledWorker(t *testing.T) {
 	stopped := make(chan int32, 2)
 	scaledDown := make(chan struct{}, 1)
 
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
 		workerID := atomic.AddInt32(&started, 1)
 		worker := NewWorker(
 			ctx,
@@ -521,7 +510,7 @@ func TestStore_WithScaleFuncCancelsUpscaledWorker(t *testing.T) {
 			RecoverFuncDummy[int],
 			func() { stopped <- workerID },
 		)
-		return worker, cancel
+		return worker
 	}
 
 	scalePhase := int32(0)
@@ -569,9 +558,8 @@ func TestStore_WithScaleFuncCancelsUpscaledWorker(t *testing.T) {
 }
 
 func TestStore_RemoveClearsStaleWorkerStops(t *testing.T) {
-	workerConstructor := func(_ int) (Worker[int], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
-		return NewWorker(ctx, func(_ int, _ Queue[int]) {}, RecoverFuncDummy[int]), cancel
+	workerConstructor := func(ctx context.Context, _ int) Worker[int] {
+		return NewWorker(ctx, func(_ int, _ Queue[int]) {}, RecoverFuncDummy[int])
 	}
 
 	store := NewStore(NewMemory[int]).
@@ -595,8 +583,7 @@ func TestStore_RemoveClearsStaleWorkerStops(t *testing.T) {
 func TestStore_MultipleQueuesIndependentWorkers(t *testing.T) {
 	processed := sync.Map{}
 
-	workerConstructor := func(_ int) (Worker[func() (int, func())], context.CancelFunc) {
-		ctx, cancel := context.WithCancel(context.Background())
+	workerConstructor := func(ctx context.Context, _ int) Worker[func() (int, func())] {
 		worker := NewWorker(
 			ctx,
 			func(item func() (int, func()), q Queue[func() (int, func())]) {
@@ -609,7 +596,7 @@ func TestStore_MultipleQueuesIndependentWorkers(t *testing.T) {
 			},
 			RecoverFuncDummy[func() (int, func())],
 		)
-		return worker, cancel
+		return worker
 	}
 
 	store := NewStore(NewMemory[func() (int, func())]).

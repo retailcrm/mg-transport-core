@@ -11,7 +11,7 @@ type Constructor[T any] func(id int) (Queue[T], context.CancelFunc)
 
 // WorkerConstructor constructs new worker and returns it for it to be executed.
 // Supplemental task can also be started in the constructor.
-type WorkerConstructor[T any] func(id int) (Worker[T], context.CancelFunc)
+type WorkerConstructor[T any] func(ctx context.Context, id int) Worker[T]
 
 // ScaleFunc will run on each Queue in the Store every time it is called (controlled by interval in the WithScaleFunc).
 // It can check queue information and call addWorker or deleteWorker to add or remove workers if necessary.
@@ -25,11 +25,11 @@ type Store[T any] struct {
 	m                 sync.Map
 	getLock           sync.Mutex
 	stopsLock         sync.Mutex
-	stops             map[int]*stopFuncList
+	queueStopMap      map[int]*stopFuncList
 	scaleLock         sync.RWMutex
 	scaleFunc         ScaleFunc
 	scaleInterval     time.Duration
-	constructor       Constructor[T]
+	queueConstructor  Constructor[T]
 	numWorkers        int
 	maxNumWorkers     int
 	workerConstructor WorkerConstructor[T]
@@ -44,7 +44,7 @@ type stopFuncList struct {
 
 // NewStore is a store constructor.
 func NewStore[T any](constructor Constructor[T]) *Store[T] {
-	return &Store[T]{constructor: constructor, numWorkers: 1, stops: map[int]*stopFuncList{}}
+	return &Store[T]{queueConstructor: constructor, numWorkers: 1, queueStopMap: map[int]*stopFuncList{}}
 }
 
 // WithWorkerConstructor will set worker constructor for workers.
@@ -100,7 +100,7 @@ func (s *Store[T]) Get(id int) Queue[T] {
 		return val.(Queue[T])
 	}
 
-	q, stop := s.constructor(id)
+	q, stop := s.queueConstructor(id)
 	s.m.Store(id, q)
 	s.spawnWorkers(id, stop, q)
 	s.spawnAutoScale(id, q)
@@ -166,17 +166,17 @@ func (s *Store[T]) spawnAutoScale(id int, q Queue[T]) {
 func (s *Store[T]) addStoppers(id int, queueStop context.CancelFunc, stopFuncs []context.CancelFunc) {
 	defer s.stopsLock.Unlock()
 	s.stopsLock.Lock()
-	if stops, ok := s.stops[id]; ok {
+	if stops, ok := s.queueStopMap[id]; ok {
 		if len(stopFuncs) > 0 {
 			stopFuncs = append(stops.workers, stopFuncs...)
-			s.stops[id].workers = stopFuncs
+			s.queueStopMap[id].workers = stopFuncs
 		}
 		if queueStop != nil {
-			s.stops[id].queue = queueStop
+			s.queueStopMap[id].queue = queueStop
 		}
 		return
 	}
-	s.stops[id] = &stopFuncList{queue: queueStop, workers: stopFuncs}
+	s.queueStopMap[id] = &stopFuncList{queue: queueStop, workers: stopFuncs}
 }
 
 // addWorker spawns additional worker for the queue with specified id.
@@ -197,20 +197,26 @@ func (s *Store[T]) addWorker(id int) {
 		return
 	}
 
-	defer s.stopsLock.Unlock()
 	s.stopsLock.Lock()
-	stops, ok := s.stops[id]
+	defer s.stopsLock.Unlock()
+
+	stops, ok := s.queueStopMap[id]
 	if !ok || stops == nil {
-		worker, stop := s.workerConstructor(id)
-		s.stops[id] = &stopFuncList{workers: []context.CancelFunc{stop}}
+		wCtx, cancel := context.WithCancel(queue.Context())
+		worker := s.workerConstructor(wCtx, id)
+		s.queueStopMap[id] = &stopFuncList{workers: []context.CancelFunc{cancel}}
 		go worker(queue)
 		return
 	}
+
 	if len(stops.workers) >= s.maxNumWorkers {
 		return
 	}
-	worker, stop := s.workerConstructor(id)
-	stops.workers = append(stops.workers, stop)
+
+	wCtx, cancel := context.WithCancel(queue.Context())
+	worker := s.workerConstructor(wCtx, id)
+
+	stops.workers = append(stops.workers, cancel)
 	go worker(queue)
 }
 
@@ -226,7 +232,8 @@ func (s *Store[T]) stopWorker(id int) {
 	}
 
 	s.stopsLock.Lock()
-	stops, ok := s.stops[id]
+	stops, ok := s.queueStopMap[id]
+
 	if !ok || stops == nil {
 		s.stopsLock.Unlock()
 		return
@@ -235,11 +242,12 @@ func (s *Store[T]) stopWorker(id int) {
 		s.stopsLock.Unlock()
 		return
 	}
-	stop := stops.workers[len(stops.workers)-1]
-	s.stops[id].workers = stops.workers[:len(stops.workers)-1]
+
+	cancel := stops.workers[len(stops.workers)-1]
+	s.queueStopMap[id].workers = stops.workers[:len(stops.workers)-1]
 	s.stopsLock.Unlock()
 
-	stop()
+	cancel()
 }
 
 // scalingInfo returns how many additional workers can be spawned and how many of them are active.
@@ -250,7 +258,7 @@ func (s *Store[T]) scalingInfo(id int) (slotsLeft, slotsActive int) {
 
 	defer s.stopsLock.Unlock()
 	s.stopsLock.Lock()
-	stops, ok := s.stops[id]
+	stops, ok := s.queueStopMap[id]
 	if !ok || stops == nil {
 		return s.maxNumWorkers, 0
 	}
@@ -261,19 +269,21 @@ func (s *Store[T]) scalingInfo(id int) (slotsLeft, slotsActive int) {
 // invokeStoppers stops the queue and all workers for the queue with specified id.
 func (s *Store[T]) invokeStoppers(id int) {
 	s.stopsLock.Lock()
-	stops, ok := s.stops[id]
+	stops, ok := s.queueStopMap[id]
 	if !ok || stops == nil {
 		s.stopsLock.Unlock()
 		return
 	}
 	queueStop := stops.queue
 	workerStops := append([]context.CancelFunc(nil), stops.workers...)
-	delete(s.stops, id)
+	delete(s.queueStopMap, id)
 	s.stopsLock.Unlock()
 
 	if queueStop != nil {
 		queueStop()
 	}
+
+	// Если вдруг у очереди контекст без отмены был, то вручную отменяем контекст у воркеров
 	for _, fn := range workerStops {
 		fn()
 	}
@@ -288,8 +298,10 @@ func (s *Store[T]) spawnWorkers(id int, stopQueue context.CancelFunc, q Queue[T]
 
 	stoppers := make([]context.CancelFunc, s.numWorkers)
 	for i := 0; i < s.numWorkers; i++ {
-		worker, stop := s.workerConstructor(id)
-		stoppers[i] = stop
+		wCtx, cancel := context.WithCancel(q.Context())
+
+		worker := s.workerConstructor(wCtx, id)
+		stoppers[i] = cancel
 		go worker(q)
 	}
 	s.addStoppers(id, stopQueue, stoppers)

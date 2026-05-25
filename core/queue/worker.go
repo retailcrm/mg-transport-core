@@ -21,13 +21,18 @@ type (
 // NewWorker constructs new worker that will retry the given processor until it succeeds
 // or is interrupted by the context cancellation. `recover()` value in cause of panics is handled by provided recoverFn.
 func NewWorker[T any](
-	ctx context.Context, processor Processor[T], recoverFn RecoverFunc[T], cancelCallbacks ...func()) Worker[T] {
+	ctx context.Context,
+	processor Processor[T],
+	recoverFn RecoverFunc[T],
+	cancelCallbacks ...func(),
+) Worker[T] {
 	return func(q Queue[T]) {
 		callCancelCallbacks := func() {
 			for _, cb := range cancelCallbacks {
 				cb()
 			}
 		}
+
 		dequeue := q.Dequeue
 		if contextQueue, ok := q.(contextQueue[T]); ok {
 			dequeue = func() (T, error) {
@@ -63,8 +68,8 @@ func NewWorker[T any](
 
 // DummyWorker worker constructor. Returns worker that does nothing.
 func DummyWorker[T any]() WorkerConstructor[T] {
-	return func(_ int) (Worker[T], context.CancelFunc) {
-		return func(_ Queue[T]) {}, func() {}
+	return func(_ context.Context, _ int) Worker[T] {
+		return func(_ Queue[T]) {}
 	}
 }
 

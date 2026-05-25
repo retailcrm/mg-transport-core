@@ -316,10 +316,9 @@ func TestNewWorker_HandlesContextCanceledError(t *testing.T) {
 
 func TestDummy_ReturnsNonNilWorker(t *testing.T) {
 	constructor := DummyWorker[int]()
-	worker, cancel := constructor(1)
+	worker := constructor(context.Background(), 1)
 
 	assert.NotNil(t, worker)
-	assert.NotNil(t, cancel)
 
 	// Should be safe to call
 	q, qCancel := NewMemory[int](1)
@@ -327,14 +326,12 @@ func TestDummy_ReturnsNonNilWorker(t *testing.T) {
 
 	assert.NotPanics(t, func() {
 		worker(q)
-		cancel()
 	})
 }
 
 func TestDummy_WorkerDoesNothing(t *testing.T) {
 	constructor := DummyWorker[int]()
-	worker, cancel := constructor(1)
-	defer cancel()
+	worker := constructor(context.Background(), 1)
 
 	q, qCancel := NewMemory[int](1)
 	defer qCancel()
