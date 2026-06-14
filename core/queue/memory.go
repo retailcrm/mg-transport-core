@@ -27,6 +27,8 @@ type Queue[T any] interface {
 	Enqueue(T) error
 	// Dequeue item from queue. This method should return leftover enqueued items even if queue was canceled.
 	Dequeue() (T, error)
+	// DequeueContext removes an item or returns when ctx or queue context is canceled.
+	DequeueContext(context.Context) (T, error)
 }
 
 // Info is a queue information interface.

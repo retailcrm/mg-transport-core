@@ -8,8 +8,10 @@ import (
 type (
 	// Worker represents function which dequeues an item from provided queue and does something with it.
 	// Useful when NewWorker implementation isn't agile enough.
-	Worker[T any]       func(Queue[T])
-	contextQueue[T any] interface {
+	Worker[T any] func(Queue[T])
+	// WorkerConstructor constructs a standalone worker.
+	WorkerConstructor[T any] func(ctx context.Context, id int) Worker[T]
+	contextQueue[T any]      interface {
 		DequeueContext(context.Context) (T, error)
 	}
 	// Processor accepts incoming job and does something with it.
