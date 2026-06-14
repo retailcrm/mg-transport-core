@@ -27,7 +27,7 @@ type workerGroup[T any] struct {
 
 	mu            sync.Mutex
 	activeWorkers int
-	stopped       bool // todo надо ли это?
+	stopped       bool
 }
 
 func newWorkerGroup[T any](
@@ -59,7 +59,7 @@ func (g *workerGroup[T]) Start() {
 	}
 
 	for g.activeWorkers < g.policy.MinWorkers {
-		g.startWorkerLocked()
+		g.startWorkerWithoutLock()
 	}
 }
 
@@ -74,7 +74,7 @@ func (g *workerGroup[T]) NotifyEnqueue() {
 
 	workerCount := g.calculateWorkerCount()
 	for g.activeWorkers < workerCount {
-		g.startWorkerLocked()
+		g.startWorkerWithoutLock()
 	}
 }
 
@@ -116,7 +116,7 @@ func (g *workerGroup[T]) calculateWorkerCount() int {
 	return int(workerCount)
 }
 
-func (g *workerGroup[T]) startWorkerLocked() {
+func (g *workerGroup[T]) startWorkerWithoutLock() {
 	worker := g.workerFactory(WorkerConfig[T]{
 		Queue:        g.queue,
 		Processor:    g.processor,
@@ -131,23 +131,20 @@ func (g *workerGroup[T]) startWorkerLocked() {
 func (g *workerGroup[T]) runWorker(worker Worker) {
 	defer func() {
 		if recover() != nil {
-			g.workerDone()
+			g.workerDecrement()
 		}
 	}()
 
 	for {
 		result := worker.Run(g.ctx)
 
-		if result != WorkerIdle {
-			g.workerDone()
+		// остановка воркера или остановка группы
+		if result == WorkerStopped || g.ctx.Err() != nil {
+			g.workerDecrement()
 			return
 		}
 
-		if g.ctx.Err() != nil {
-			g.workerDone()
-			return
-		}
-
+		// таймаут ожидания воркера
 		if g.tryRetireWorker() {
 			return
 		}
@@ -168,7 +165,7 @@ func (g *workerGroup[T]) tryRetireWorker() bool {
 	return true
 }
 
-func (g *workerGroup[T]) workerDone() {
+func (g *workerGroup[T]) workerDecrement() {
 	g.mu.Lock()
 	g.activeWorkers--
 	g.mu.Unlock()

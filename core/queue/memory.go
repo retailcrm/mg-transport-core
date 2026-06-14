@@ -5,19 +5,17 @@ import (
 	"context"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 // Memory represents a thread-safe FIFO in-memory queue.
 type Memory[T any] struct {
-	id           int
-	items        *list.List
-	mutex        sync.Mutex
-	cond         *sync.Cond
-	size         int64 // atomic counter for size
-	ctx          context.Context
-	cancel       context.CancelFunc
-	lastEnqueued atomic.Value // when the last item was added
+	id     int
+	items  *list.List
+	mutex  sync.Mutex
+	cond   *sync.Cond
+	size   int64 // atomic counter for size
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // Queue is a queue interface.
@@ -25,8 +23,6 @@ type Queue[T any] interface {
 	Info
 	// Enqueue puts an item into queue, returns context.Canceled when queue is stopped.
 	Enqueue(T) error
-	// Dequeue item from queue. This method should return leftover enqueued items even if queue was canceled.
-	Dequeue() (T, error)
 	// DequeueContext removes an item or returns when ctx or queue context is canceled.
 	DequeueContext(context.Context) (T, error)
 }
@@ -37,8 +33,6 @@ type Info interface {
 	ID() int
 	// Context returns queue context.Context.
 	Context() context.Context
-	// LastEnqueueTime returns last Enqueue call time.
-	LastEnqueueTime() time.Time
 	// Len returns the amount of items in the queue.
 	Len() int64
 }
@@ -67,14 +61,8 @@ func (q *Memory[T]) Enqueue(item T) error {
 
 	q.items.PushBack(item)
 	atomic.AddInt64(&q.size, 1)
-	q.lastEnqueued.Store(time.Now())
 	q.cond.Signal() // Signal one waiting goroutine
 	return nil
-}
-
-// Dequeue an item from the queue start.
-func (q *Memory[T]) Dequeue() (T, error) {
-	return q.DequeueContext(context.Background())
 }
 
 // DequeueContext removes an item from the queue start or returns when ctx or queue context is canceled.
@@ -102,12 +90,15 @@ func (q *Memory[T]) DequeueContext(ctx context.Context) (T, error) {
 			var zero T
 			return zero, err
 		}
+
 		if err := ctx.Err(); err != nil {
 			var zero T
 			return zero, err
 		}
+
 		q.cond.Wait()
 	}
+
 	if err := ctx.Err(); err != nil {
 		var zero T
 		return zero, err
@@ -126,15 +117,6 @@ func (q *Memory[T]) ID() int {
 // Context returns the current queue context.
 func (q *Memory[T]) Context() context.Context {
 	return q.ctx
-}
-
-// LastEnqueueTime returns unix time in nanoseconds for the last Enqueue call.
-func (q *Memory[T]) LastEnqueueTime() time.Time {
-	val := q.lastEnqueued.Load()
-	if val == nil {
-		return time.Time{}
-	}
-	return val.(time.Time)
 }
 
 // Len returns the current size of the queue.

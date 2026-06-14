@@ -53,6 +53,7 @@ func (w *defaultWorker[T]) Run(ctx context.Context) WorkerResult {
 		if errors.Is(err, context.DeadlineExceeded) {
 			return WorkerIdle
 		}
+
 		if err != nil {
 			return WorkerStopped
 		}

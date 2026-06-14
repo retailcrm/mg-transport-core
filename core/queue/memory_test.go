@@ -19,17 +19,17 @@ func TestQueue(t *testing.T) {
 	q.Enqueue(2)
 	assert.Equal(t, int64(2), q.Len())
 
-	val, err := q.Dequeue()
+	val, err := q.DequeueContext(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, uint8(1), val)
 
-	val, err = q.Dequeue()
+	val, err = q.DequeueContext(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, uint8(2), val)
 
 	ec := make(chan error)
 	go func() {
-		_, err = q.Dequeue()
+		_, err = q.DequeueContext(context.Background())
 		ec <- err
 	}()
 	cancel()
@@ -68,7 +68,7 @@ func TestQueue_Concurrency(t *testing.T) {
 			go func() {
 				wg.Wait()
 				for {
-					_, err := nq.Dequeue()
+					_, err := nq.DequeueContext(context.Background())
 					if errors.Is(err, context.Canceled) {
 						break
 					}
@@ -89,7 +89,7 @@ func TestQueue_FinishesWorkers(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			for {
-				_, err := nq.Dequeue()
+				_, err := nq.DequeueContext(context.Background())
 				if err != nil && errors.Is(err, context.Canceled) {
 					wg.Done()
 					return

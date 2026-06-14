@@ -122,7 +122,7 @@ func TestStore_ConcurrentEnqueueCreatesQueueExecutorOnce(t *testing.T) {
 	assert.Equal(t, 1, info.ActiveWorkers)
 }
 
-func TestStore_StartsMinimumWorkers(t *testing.T) {
+func TestStore_StartsWorkers(t *testing.T) {
 	store := newTestStore(t, NewMemory[int], func(context.Context, int) {}, WorkerPolicy{
 		MinWorkers:    2,
 		MaxWorkers:    4,
@@ -133,16 +133,28 @@ func TestStore_StartsMinimumWorkers(t *testing.T) {
 
 	executor, err := store.Get(1)
 	require.NoError(t, err)
+
+	// check min
 	require.NoError(t, executor.Enqueue(1))
 	require.Eventually(t, func() bool {
 		info, ok := store.Info(1)
 		return ok && info.ActiveWorkers == 2
-	}, time.Second, 5*time.Millisecond)
+	}, time.Millisecond * 200, 5*time.Millisecond)
 
 	time.Sleep(80 * time.Millisecond)
 	info, ok := store.Info(1)
 	require.True(t, ok)
 	assert.Equal(t, 2, info.ActiveWorkers)
+
+	// check max
+	for i := 0; i < 45; i++ {
+		require.NoError(t, executor.Enqueue(i))
+	}
+
+	require.Eventually(t, func() bool {
+		i := executor.Info()
+		return 4 == i.ActiveWorkers
+	}, time.Millisecond * 200, 5*time.Millisecond)
 }
 
 func TestStore_ScalesUpAndRetiresIdleWorkers(t *testing.T) {
@@ -170,7 +182,7 @@ func TestStore_ScalesUpAndRetiresIdleWorkers(t *testing.T) {
 	require.Eventually(t, func() bool {
 		info, ok := store.Info(1)
 		return ok && info.ActiveWorkers == 4
-	}, time.Second, 5*time.Millisecond)
+	}, time.Millisecond * 500, 5*time.Millisecond)
 
 	for i := 0; i < 4; i++ {
 		select {
@@ -183,11 +195,12 @@ func TestStore_ScalesUpAndRetiresIdleWorkers(t *testing.T) {
 	close(release)
 	require.Eventually(t, func() bool {
 		return processed.Load() == 8
-	}, time.Second, 5*time.Millisecond)
+	}, time.Millisecond * 250, 5*time.Millisecond)
+
 	require.Eventually(t, func() bool {
 		info, ok := store.Info(1)
 		return ok && info.ActiveWorkers == 1
-	}, time.Second, 5*time.Millisecond)
+	}, time.Millisecond * 250, 5*time.Millisecond)
 
 	store.Stop()
 }
