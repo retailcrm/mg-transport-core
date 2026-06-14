@@ -11,13 +11,14 @@ type Constructor[T any] func(id int) (Queue[T], context.CancelFunc)
 
 // Store keeps queue executors by queue ID.
 type Store[T any] struct {
-	mu           sync.RWMutex
-	executors    map[int]*QueueExecutor[T]
-	constructor  Constructor[T]
-	processor    ProcessFunc[T]
-	panicHandler PanicHandler[T]
-	policy       WorkerPolicy
-	stopped      bool
+	mu            sync.RWMutex
+	executors     map[int]*QueueExecutor[T]
+	constructor   Constructor[T]
+	processor     ProcessFunc[T]
+	panicHandler  PanicHandler[T]
+	workerFactory WorkerFactory[T]
+	policy        WorkerPolicy
+	stopped       bool
 }
 
 // NewStore constructs a store. It returns an error for an invalid worker policy.
@@ -39,13 +40,17 @@ func NewStore[T any](
 	}
 
 	s := &Store[T]{
-		executors:   make(map[int]*QueueExecutor[T]),
-		constructor: constructor,
-		processor:   processor,
-		policy:      policy,
+		executors:     make(map[int]*QueueExecutor[T]),
+		constructor:   constructor,
+		processor:     processor,
+		workerFactory: defaultWorkerFactory[T],
+		policy:        policy,
 	}
 	for _, option := range options {
 		option(s)
+	}
+	if s.workerFactory == nil {
+		return nil, fmt.Errorf("worker factory is required")
 	}
 
 	return s, nil
@@ -58,6 +63,13 @@ type StoreOption[T any] func(*Store[T])
 func WithPanicHandler[T any](handler PanicHandler[T]) StoreOption[T] {
 	return func(s *Store[T]) {
 		s.panicHandler = handler
+	}
+}
+
+// WithWorkerFactory configures worker construction.
+func WithWorkerFactory[T any](factory WorkerFactory[T]) StoreOption[T] {
+	return func(s *Store[T]) {
+		s.workerFactory = factory
 	}
 }
 
@@ -130,6 +142,7 @@ func (s *Store[T]) getOrCreate(id int) (*QueueExecutor[T], error) {
 		s.processor,
 		s.policy,
 		s.panicHandler,
+		s.workerFactory,
 	)
 	s.executors[id] = executor
 

@@ -3,86 +3,77 @@ package queue
 import (
 	"context"
 	"errors"
+	"time"
 )
 
-type (
-	// Worker represents function which dequeues an item from provided queue and does something with it.
-	// Useful when NewWorker implementation isn't agile enough.
-	Worker[T any] func(Queue[T])
-	// WorkerConstructor constructs a standalone worker.
-	WorkerConstructor[T any] func(ctx context.Context, id int) Worker[T]
-	contextQueue[T any]      interface {
-		DequeueContext(context.Context) (T, error)
-	}
-	// Processor accepts incoming job and does something with it.
-	Processor[T any] func(T, Queue[T])
-	// RecoverFunc handles output value received from recover() call.
-	RecoverFunc[T any] func(context.Context, T, any)
+// ProcessFunc processes one item dequeued by a worker.
+type ProcessFunc[T any] func(context.Context, T)
+
+// PanicHandler handles a panic raised by ProcessFunc.
+type PanicHandler[T any] func(context.Context, T, any)
+
+// WorkerResult describes why a worker returned control to its group.
+type WorkerResult uint8
+
+const (
+	// WorkerIdle means the worker reached its idle timeout.
+	WorkerIdle WorkerResult = iota
+	// WorkerStopped means the worker cannot continue.
+	WorkerStopped
 )
 
-// NewWorker constructs new worker that will retry the given processor until it succeeds
-// or is interrupted by the context cancellation. `recover()` value in cause of panics is handled by provided recoverFn.
-func NewWorker[T any](
-	ctx context.Context,
-	processor Processor[T],
-	recoverFn RecoverFunc[T],
-	cancelCallbacks ...func(),
-) Worker[T] {
-	return func(q Queue[T]) {
-		callCancelCallbacks := func() {
-			for _, cb := range cancelCallbacks {
-				cb()
-			}
+// Worker consumes and processes queue items until it becomes idle or is stopped.
+type Worker interface {
+	Run(context.Context) WorkerResult
+}
+
+// WorkerConfig contains dependencies available to a worker.
+type WorkerConfig[T any] struct {
+	Queue        Queue[T]
+	Processor    ProcessFunc[T]
+	PanicHandler PanicHandler[T]
+	IdleTimeout  time.Duration
+}
+
+// WorkerFactory constructs a worker for a queue.
+type WorkerFactory[T any] func(WorkerConfig[T]) Worker
+
+type defaultWorker[T any] struct {
+	config WorkerConfig[T]
+}
+
+func defaultWorkerFactory[T any](config WorkerConfig[T]) Worker {
+	return &defaultWorker[T]{config: config}
+}
+
+func (w *defaultWorker[T]) Run(ctx context.Context) WorkerResult {
+	for {
+		item, err := w.dequeue(ctx)
+
+		if errors.Is(err, context.DeadlineExceeded) {
+			return WorkerIdle
+		}
+		if err != nil {
+			return WorkerStopped
 		}
 
-		dequeue := q.Dequeue
-		if contextQueue, ok := q.(contextQueue[T]); ok {
-			dequeue = func() (T, error) {
-				return contextQueue.DequeueContext(ctx)
-			}
-		}
-
-		for {
-			if ctx.Err() != nil {
-				callCancelCallbacks()
-				return
-			}
-
-			job, err := dequeue()
-			if err != nil {
-				if errors.Is(err, context.Canceled) || ctx.Err() != nil {
-					callCancelCallbacks()
-				}
-				return
-			}
-
-			(func() {
-				defer func() {
-					if r := recover(); r != nil {
-						recoverFn(q.Context(), job, r)
-					}
-				}()
-				processor(job, q)
-			})()
-		}
+		w.process(ctx, item)
 	}
 }
 
-// DummyWorker worker constructor. Returns worker that does nothing.
-func DummyWorker[T any]() WorkerConstructor[T] {
-	return func(_ context.Context, _ int) Worker[T] {
-		return func(_ Queue[T]) {}
-	}
+func (w *defaultWorker[T]) dequeue(ctx context.Context) (T, error) {
+	dequeueCtx, cancel := context.WithTimeout(ctx, w.config.IdleTimeout)
+	defer cancel()
+
+	return w.config.Queue.DequeueContext(dequeueCtx)
 }
 
-// DummyProcessor does nothing with provided data.
-func DummyProcessor[T any](_ T, _ Queue[T]) {}
+func (w *defaultWorker[T]) process(ctx context.Context, item T) {
+	defer func() {
+		if recovered := recover(); recovered != nil && w.config.PanicHandler != nil {
+			w.config.PanicHandler(ctx, item, recovered)
+		}
+	}()
 
-// RecoverFuncDummy doesn't do anything with the result of `recover()` call.
-func RecoverFuncDummy[T any](_ context.Context, _ T, _ any) {}
-
-// Compile-time checks for interface compatibility.
-var (
-	_ = Processor[int](DummyProcessor[int])
-	_ = RecoverFunc[int](RecoverFuncDummy[int])
-)
+	w.config.Processor(ctx, item)
+}

@@ -2,17 +2,10 @@ package queue
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
 )
-
-// ProcessFunc processes one item dequeued by a worker.
-type ProcessFunc[T any] func(context.Context, T)
-
-// PanicHandler handles a panic raised by ProcessFunc.
-type PanicHandler[T any] func(context.Context, T, any)
 
 // WorkerPolicy defines worker limits and scaling behavior.
 type WorkerPolicy struct {
@@ -24,16 +17,17 @@ type WorkerPolicy struct {
 
 // workerGroup owns the worker goroutines consuming one queue.
 type workerGroup[T any] struct {
-	ctx          context.Context
-	cancel       context.CancelFunc
-	queue        Queue[T]
-	processor    ProcessFunc[T]
-	panicHandler PanicHandler[T]
-	policy       WorkerPolicy
+	ctx           context.Context
+	cancel        context.CancelFunc
+	queue         Queue[T]
+	processor     ProcessFunc[T]
+	panicHandler  PanicHandler[T]
+	workerFactory WorkerFactory[T]
+	policy        WorkerPolicy
 
 	mu            sync.Mutex
 	activeWorkers int
-	stopped       bool
+	stopped       bool // todo надо ли это?
 }
 
 func newWorkerGroup[T any](
@@ -41,15 +35,17 @@ func newWorkerGroup[T any](
 	processor ProcessFunc[T],
 	policy WorkerPolicy,
 	panicHandler PanicHandler[T],
+	workerFactory WorkerFactory[T],
 ) *workerGroup[T] {
 	ctx, cancel := context.WithCancel(queue.Context())
 	return &workerGroup[T]{
-		ctx:          ctx,
-		cancel:       cancel,
-		queue:        queue,
-		processor:    processor,
-		panicHandler: panicHandler,
-		policy:       policy,
+		ctx:           ctx,
+		cancel:        cancel,
+		queue:         queue,
+		processor:     processor,
+		panicHandler:  panicHandler,
+		workerFactory: workerFactory,
+		policy:        policy,
 	}
 }
 
@@ -105,7 +101,7 @@ func (g *workerGroup[T]) Stop() {
 func (g *workerGroup[T]) calculateWorkerCount() int {
 	queueLen := g.queue.Len()
 	workerCount := queueLen / g.policy.JobsPerWorker
-	if queueLen % g.policy.JobsPerWorker != 0 {
+	if queueLen%g.policy.JobsPerWorker != 0 {
 		workerCount++
 	}
 
@@ -121,53 +117,43 @@ func (g *workerGroup[T]) calculateWorkerCount() int {
 }
 
 func (g *workerGroup[T]) startWorkerLocked() {
+	worker := g.workerFactory(WorkerConfig[T]{
+		Queue:        g.queue,
+		Processor:    g.processor,
+		PanicHandler: g.panicHandler,
+		IdleTimeout:  g.policy.IdleTimeout,
+	})
+
 	g.activeWorkers++
-	go g.workerLoop()
+	go g.runWorker(worker)
 }
 
-func (g *workerGroup[T]) workerLoop() {
-	for {
-		item, err := g.dequeueWithIdleTimeout()
-
-		// тайм-аут ожидания воркера
-		if errors.Is(err, context.DeadlineExceeded) {
-			if g.tryRetireWorker() {
-				return
-			}
-			continue
-		}
-
-		if err != nil {
-			g.workerDone()
-			return
-		}
-
-		select {
-		case <-g.ctx.Done():
-			g.workerDone()
-			return
-		default:
-		}
-
-		g.process(item)
-	}
-}
-
-func (g *workerGroup[T]) dequeueWithIdleTimeout() (T, error) {
-	ctx, cancel := context.WithTimeout(g.ctx, g.policy.IdleTimeout)
-	defer cancel()
-
-	return g.queue.DequeueContext(ctx)
-}
-
-func (g *workerGroup[T]) process(item T) {
+func (g *workerGroup[T]) runWorker(worker Worker) {
 	defer func() {
-		if recovered := recover(); recovered != nil && g.panicHandler != nil {
-			g.panicHandler(g.ctx, item, recovered)
+		if recover() != nil {
+			g.workerDone()
 		}
 	}()
 
-	g.processor(g.ctx, item)
+	for {
+		result := worker.Run(g.ctx)
+
+		if result != WorkerIdle {
+			g.workerDone()
+			return
+		}
+
+		if g.ctx.Err() != nil {
+			g.workerDone()
+			return
+		}
+
+		if g.tryRetireWorker() {
+			return
+		}
+
+		// Ниже MinWorkers уходить нельзя, запускаем Run снова.
+	}
 }
 
 func (g *workerGroup[T]) tryRetireWorker() bool {

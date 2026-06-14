@@ -21,9 +21,10 @@ func newQueueExecutor[T any](
 	processor ProcessFunc[T],
 	policy WorkerPolicy,
 	panicHandler PanicHandler[T],
+	workerFactory WorkerFactory[T],
 ) *QueueExecutor[T] {
 	q, stopQueue := constructor(id)
-	workers := newWorkerGroup(q, processor, policy, panicHandler)
+	workers := newWorkerGroup(q, processor, policy, panicHandler, workerFactory)
 	executor := &QueueExecutor[T]{
 		queue:     q,
 		workers:   workers,

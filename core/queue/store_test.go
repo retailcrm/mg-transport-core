@@ -2,6 +2,7 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -24,6 +25,14 @@ func TestNewStore_ValidatesDependenciesAndPolicy(t *testing.T) {
 
 	_, err = NewStore[int](NewMemory[int], nil, validPolicy)
 	require.EqualError(t, err, "processor is required")
+
+	_, err = NewStore(
+		NewMemory[int],
+		func(context.Context, int) {},
+		validPolicy,
+		WithWorkerFactory[int](nil),
+	)
+	require.EqualError(t, err, "worker factory is required")
 
 	tests := []struct {
 		name   string
@@ -228,6 +237,75 @@ func TestStore_RecoversProcessorPanic(t *testing.T) {
 	}
 }
 
+func TestStore_UsesWorkerFactory(t *testing.T) {
+	var factoryCalls atomic.Int32
+	var defaultProcessorCalls atomic.Int32
+	processed := make(chan int, 1)
+
+	store, err := NewStore(
+		NewMemory[int],
+		func(context.Context, int) {
+			defaultProcessorCalls.Add(1)
+		},
+		WorkerPolicy{
+			MinWorkers:    1,
+			MaxWorkers:    1,
+			JobsPerWorker: 1,
+			IdleTimeout:   time.Second,
+		},
+		WithWorkerFactory(func(config WorkerConfig[int]) Worker {
+			factoryCalls.Add(1)
+			return &testWorker{
+				queue:       config.Queue,
+				idleTimeout: config.IdleTimeout,
+				processed:   processed,
+			}
+		}),
+	)
+	require.NoError(t, err)
+	t.Cleanup(store.Stop)
+
+	executor, err := store.Get(42)
+	require.NoError(t, err)
+	require.NoError(t, executor.Enqueue(100))
+
+	select {
+	case item := <-processed:
+		assert.Equal(t, 100, item)
+	case <-time.After(time.Second):
+		t.Fatal("custom worker did not process item")
+	}
+
+	assert.Equal(t, int32(1), factoryCalls.Load())
+	assert.Zero(t, defaultProcessorCalls.Load())
+}
+
+func TestStore_RecoversWorkerPanic(t *testing.T) {
+	store, err := NewStore(
+		NewMemory[int],
+		func(context.Context, int) {},
+		WorkerPolicy{
+			MinWorkers:    1,
+			MaxWorkers:    1,
+			JobsPerWorker: 1,
+			IdleTimeout:   time.Second,
+		},
+		WithWorkerFactory(func(WorkerConfig[int]) Worker {
+			return panicWorker{}
+		}),
+	)
+	require.NoError(t, err)
+	t.Cleanup(store.Stop)
+
+	_, err = store.Get(1)
+	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		info, ok := store.Info(1)
+		return ok && info.ActiveWorkers == 0
+	}, time.Second, 5*time.Millisecond)
+}
+
 func TestStore_RemoveStopsAndRecreatesQueueExecutor(t *testing.T) {
 	store := newTestStore(t, NewMemory[int], func(context.Context, int) {}, WorkerPolicy{
 		MinWorkers:    1,
@@ -337,4 +415,33 @@ func newTestStore[T any](
 	store, err := NewStore(constructor, processor, policy)
 	require.NoError(t, err)
 	return store
+}
+
+type testWorker struct {
+	queue       Queue[int]
+	idleTimeout time.Duration
+	processed   chan<- int
+}
+
+type panicWorker struct{}
+
+func (panicWorker) Run(context.Context) WorkerResult {
+	panic("worker panic")
+}
+
+func (w *testWorker) Run(ctx context.Context) WorkerResult {
+	for {
+		dequeueCtx, cancel := context.WithTimeout(ctx, w.idleTimeout)
+		item, err := w.queue.DequeueContext(dequeueCtx)
+		cancel()
+
+		if errors.Is(err, context.DeadlineExceeded) {
+			return WorkerIdle
+		}
+		if err != nil {
+			return WorkerStopped
+		}
+
+		w.processed <- item
+	}
 }
