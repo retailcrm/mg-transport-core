@@ -56,6 +56,13 @@ func (m *Migrate) Add(migration *gormigrate.Migration) {
 
 // SetDB to migrate.
 func (m *Migrate) SetDB(db *gorm.DB) *Migrate {
+	if m.db != nil {
+		m.first = nil
+		m.GORMigrate = nil
+		m.versions = nil
+		m.prepared = false
+	}
+
 	m.db = db
 	return m
 }
