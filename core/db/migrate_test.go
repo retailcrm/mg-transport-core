@@ -362,6 +362,21 @@ func (m *MigrateTest) Test_Close() {
 	assert.NoError(m.T(), m.mock.ExpectationsWereMet())
 }
 
+func (m *MigrateTest) TestSetDB() {
+	m.RefreshMigrate()
+	m.Migrate.prepared = true
+
+	db, _, err := sqlmock.New()
+	m.Require().NoError(err)
+
+	gDB, err := gorm.Open("postgres", db)
+	m.Require().NoError(err)
+
+	m.Migrate.SetDB(gDB)
+	m.Require().Equal(gDB, m.Migrate.db)
+	m.Require().False(m.Migrate.prepared)
+}
+
 func TestMigrate_Migrate(t *testing.T) {
 	assert.NotNil(t, Migrations())
 }
