@@ -129,7 +129,7 @@ func (e *Collector) Len() int {
 func (e *Collector) buildErrorMessage() string {
 	i := 0
 	var sb strings.Builder
-	sb.Grow(128 * e.errors.Len()) // nolint:gomnd
+	sb.Grow(128 * e.errors.Len()) // nolint:mnd
 
 	for node := range e.errors.Iterate() {
 		i++

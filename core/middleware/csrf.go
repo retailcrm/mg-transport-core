@@ -191,7 +191,7 @@ func (x *CSRF) pseudoRandomString(length int) string {
 	data := make([]byte, length)
 
 	for i := 0; i < length; i++ { // it is supposed to use pseudo-random data.
-		data[i] = byte(65 + r.Intn(90-65)) // nolint:gosec,gomnd
+		data[i] = byte(65 + r.Intn(90-65)) // nolint:gosec,mnd
 	}
 
 	return string(data)

@@ -18,31 +18,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
       - name: Set up stable Go version
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: '1.22'
+          go-version-file: go.mod
       - name: Get dependencies
         run: go mod tidy
       - name: Lint code with golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v9
         with:
-          version: v1.62.2
+          version: v2.12.2
           only-new-issues: true
   tests:
     name: Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: ['1.22', 'stable']
+        go-version: ['1.25.x', 'stable']
     steps:
       - name: Set up Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go-version }}
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v2
+        uses: actions/checkout@v7
       - name: Get dependencies
         run: go mod tidy
       - name: Tests

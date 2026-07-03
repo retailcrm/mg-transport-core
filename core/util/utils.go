@@ -2,6 +2,8 @@ package util
 
 import (
 	"bytes"
+	"context"
+
 	// nolint:gosec
 	"crypto/sha1"
 	"crypto/sha256"
@@ -9,16 +11,18 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"slices"
 	"strings"
 	"sync/atomic"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gin-gonic/gin"
 	retailcrm "github.com/retailcrm/api-client-go/v2"
 	"github.com/retailcrm/mg-transport-core/v2/core/config"
@@ -182,20 +186,25 @@ func (u *Utils) checkScopes(scopes []string, scopesRequired []string) []string {
 
 // UploadUserAvatar will upload avatar for user.
 func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
-	s3Config := &aws.Config{
-		Credentials: credentials.NewStaticCredentials(
+	cfg, err := awsConfig.LoadDefaultConfig(context.TODO(),
+		awsConfig.WithRegion(u.AWS.Region),
+		awsConfig.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(
 			u.AWS.AccessKeyID,
 			u.AWS.SecretAccessKey,
-			""),
-		Region: aws.String(u.AWS.Region),
+			"",
+		)),
+	)
+	if err != nil {
+		return
 	}
 
+	s3Options := []func(*s3.Options){}
 	if u.AWS.Endpoint != "" {
-		s3Config.Endpoint = aws.String(u.AWS.Endpoint)
+		s3Options = append(s3Options, func(o *s3.Options) {
+			o.BaseEndpoint = aws.String(u.AWS.Endpoint)
+		})
 	}
-
-	s := session.Must(session.NewSession(s3Config))
-	uploader := s3manager.NewUploader(s)
+	client := s3.NewFromConfig(cfg, s3Options...)
 
 	// nolint:gosec
 	resp, err := http.Get(url)
@@ -208,20 +217,33 @@ func (u *Utils) UploadUserAvatar(url string) (picURLs3 string, err error) {
 		return "", fmt.Errorf("get: %v code: %v", url, resp.StatusCode)
 	}
 
-	result, err := uploader.Upload(&s3manager.UploadInput{
+	key := fmt.Sprintf("%v/%v.jpg", u.AWS.FolderName, u.GenerateToken())
+
+	_, err = client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket:      aws.String(u.AWS.Bucket),
-		Key:         aws.String(fmt.Sprintf("%v/%v.jpg", u.AWS.FolderName, u.GenerateToken())),
+		Key:         aws.String(key),
 		Body:        resp.Body,
 		ContentType: aws.String(u.AWS.ContentType),
-		ACL:         aws.String("public-read"),
+		ACL:         types.ObjectCannedACLPublicRead,
 	})
 	if err != nil {
 		return
 	}
 
-	picURLs3 = result.Location
+	picURLs3, err = u.uploadedAvatarURL(key)
+	if err != nil {
+		return
+	}
 
 	return
+}
+
+func (u *Utils) uploadedAvatarURL(key string) (string, error) {
+	if u.AWS.Endpoint != "" {
+		return url.JoinPath(u.AWS.Endpoint, u.AWS.Bucket, key)
+	}
+
+	return url.JoinPath(fmt.Sprintf("https://%s.s3.%s.amazonaws.com", u.AWS.Bucket, u.AWS.Region), key)
 }
 
 // RemoveTrailingSlash will remove slash at the end of any string.

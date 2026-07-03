@@ -177,7 +177,7 @@ func (t *JobTest) testLogger() logger.Logger {
 	return &callbackLogger{fn: func(level zapcore.Level, format string, args ...zap.Field) {
 		if format == "" {
 			var sb strings.Builder
-			sb.Grow(3 * len(args)) // nolint:gomnd
+			sb.Grow(3 * len(args)) // nolint:mnd
 
 			for i := 0; i < len(args); i++ {
 				sb.WriteString("%v ")
