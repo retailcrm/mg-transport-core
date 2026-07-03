@@ -44,10 +44,10 @@ func (m *mgTransportClientAdapter) Debugf(msg string, args ...interface{}) {
 		if len(args) > 1 {
 			uri = fmt.Sprint(args[1])
 		}
-		if len(args) > 2 { // nolint:gomnd
+		if len(args) > 2 { // nolint:mnd
 			token = fmt.Sprint(args[2])
 		}
-		if len(args) > 3 { // nolint:gomnd
+		if len(args) > 3 { // nolint:mnd
 			body = args[3]
 		}
 		m.log.Debug("MG TRANSPORT API Request",

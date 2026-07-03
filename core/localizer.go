@@ -206,7 +206,7 @@ func (l *Localizer) LocalizationFuncMap() template.FuncMap {
 				parts = append(parts, "")
 			}
 
-			partsMap := make(map[string]interface{}, len(parts)/2) // nolint:gomnd
+			partsMap := make(map[string]interface{}, len(parts)/2) // nolint:mnd
 
 			for i := 0; i < len(parts)-1; i += 2 {
 				partsMap[parts[i]] = parts[i+1]

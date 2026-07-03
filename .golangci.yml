@@ -1,194 +1,201 @@
+version: "2"
+
 run:
-  skip-dirs-use-default: true
-  allow-parallel-runners: true
   modules-download-mode: readonly
+  allow-parallel-runners: true
 
 output:
   formats:
-    - format: colored-line-number
-  sort-results: true
+    text:
+      path: stdout
 
 linters:
-  disable-all: true
+  default: none
   enable:
-    - errcheck
-    - gosimple
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    - unparam
     - bodyclose
+    - copyloopvar
     - dogsled
     - dupl
+    - errcheck
     - errorlint
     - exhaustive
-    - copyloopvar
     - funlen
     - gocognit
     - goconst
     - gocritic
     - gocyclo
     - godot
-    - goimports
-    - revive
-    - mnd
     - gosec
+    - govet
+    - ineffassign
     - lll
     - makezero
     - misspell
+    - mnd
     - nestif
     - prealloc
     - predeclared
+    - revive
     - sqlclosecheck
-    - unconvert
-    - whitespace
-    - unused
+    - staticcheck
     - testifylint
-
-linters-settings:
-  govet:
-    check-shadowing: false
-    disable-all: true
-    enable:
-      - assign
-      - atomic
-      - bools
-      - buildtag
-      - copylocks
-      - httpresponse
-      - loopclosure
-      - lostcancel
-      - printf
-      - shift
-      - stdmethods
-      - structtag
-      - tests
-      - unmarshal
-      - unreachable
-      - unsafeptr
-      - unused
-    settings:
-      printf:
-        funcs:
-          - (*log.Logger).Fatal
-          - (*log.Logger).Fatalf
-          - (*log.Logger).Fatalln
-          - (*log.Logger).Panic
-          - (*log.Logger).Panicf
-          - (*log.Logger).Panicln
-          - (*log.Logger).Print
-          - (*log.Logger).Printf
-          - (*log.Logger).Println
-          - (*testing.common).Error
-          - (*testing.common).Errorf
-          - (*testing.common).Fatal
-          - (*testing.common).Fatalf
-          - (*testing.common).Log
-          - (*testing.common).Logf
-          - (*testing.common).Skip
-          - (*testing.common).Skipf
-          - (testing.TB).Error
-          - (testing.TB).Errorf
-          - (testing.TB).Fatal
-          - (testing.TB).Fatalf
-          - (testing.TB).Log
-          - (testing.TB).Logf
-          - (testing.TB).Skip
-          - (testing.TB).Skipf
-          - fmt.Errorf
-          - fmt.Fprint
-          - fmt.Fprintf
-          - fmt.Fprintln
-          - fmt.Print
-          - fmt.Printf
-          - fmt.Println
-          - fmt.Sprint
-          - fmt.Sprintf
-          - fmt.Sprintln
-          - log.Fatal
-          - log.Fatalf
-          - log.Fatalln
-          - log.Panic
-          - log.Panicf
-          - log.Panicln
-          - log.Print
-          - log.Printf
-          - log.Println
-          - runtime/trace.Logf
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Fatalf
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Panicf
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Panicf
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Criticalf
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Errorf
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Warningf
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Noticef
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Infof
-          - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Debugf
-  unused:
-    check-exported: false
-  unparam:
-    check-exported: false
-  dogsled:
-    max-blank-identifiers: 3
-  dupl:
-    threshold: 200
-  errorlint:
-    errorf: true
-  exhaustive:
-    check-generated: false
-    default-signifies-exhaustive: false
-  funlen:
-    lines: 65
-    statements: 50
-  gocognit:
-    min-complexity: 25
-  gocyclo:
-    min-complexity: 25
-  goimports:
-    local-prefixes: github.com/retailcrm/mg-transport-api-client-go
-  lll:
-    line-length: 120
-  misspell:
-    locale: US
-  nestif:
-    min-complexity: 5
-  whitespace:
-    multi-if: false
-    multi-func: false
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+  settings:
+    dogsled:
+      max-blank-identifiers: 3
+    dupl:
+      threshold: 200
+    errorlint:
+      errorf: true
+    exhaustive:
+      default-signifies-exhaustive: false
+    funlen:
+      lines: 65
+      statements: 50
+    gocognit:
+      min-complexity: 25
+    gocyclo:
+      min-complexity: 25
+    govet:
+      disable-all: true
+      enable:
+        - assign
+        - atomic
+        - bools
+        - buildtag
+        - copylocks
+        - httpresponse
+        - loopclosure
+        - lostcancel
+        - printf
+        - shift
+        - stdmethods
+        - structtag
+        - tests
+        - unmarshal
+        - unreachable
+        - unsafeptr
+        - unusedresult
+      settings:
+        printf:
+          funcs:
+            - (*log.Logger).Fatal
+            - (*log.Logger).Fatalf
+            - (*log.Logger).Fatalln
+            - (*log.Logger).Panic
+            - (*log.Logger).Panicf
+            - (*log.Logger).Panicln
+            - (*log.Logger).Print
+            - (*log.Logger).Printf
+            - (*log.Logger).Println
+            - (*testing.common).Error
+            - (*testing.common).Errorf
+            - (*testing.common).Fatal
+            - (*testing.common).Fatalf
+            - (*testing.common).Log
+            - (*testing.common).Logf
+            - (*testing.common).Skip
+            - (*testing.common).Skipf
+            - (testing.TB).Error
+            - (testing.TB).Errorf
+            - (testing.TB).Fatal
+            - (testing.TB).Fatalf
+            - (testing.TB).Log
+            - (testing.TB).Logf
+            - (testing.TB).Skip
+            - (testing.TB).Skipf
+            - fmt.Errorf
+            - fmt.Fprint
+            - fmt.Fprintf
+            - fmt.Fprintln
+            - fmt.Print
+            - fmt.Printf
+            - fmt.Println
+            - fmt.Sprint
+            - fmt.Sprintf
+            - fmt.Sprintln
+            - log.Fatal
+            - log.Fatalf
+            - log.Fatalln
+            - log.Panic
+            - log.Panicf
+            - log.Panicln
+            - log.Print
+            - log.Printf
+            - log.Println
+            - runtime/trace.Logf
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Fatalf
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Panicf
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Panicf
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Criticalf
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Errorf
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Warningf
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Noticef
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Infof
+            - (github.com/retailcrm/mg-transport-core/core.LoggerInterface).Debugf
+    lll:
+      line-length: 120
+    misspell:
+      locale: US
+    nestif:
+      min-complexity: 5
+    unparam:
+      check-exported: false
+    whitespace:
+      multi-if: false
+      multi-func: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters:
+          - bodyclose
+          - dupl
+          - errcheck
+          - funlen
+          - gocognit
+          - goconst
+          - gocyclo
+          - godot
+          - ineffassign
+          - lll
+          - makezero
+          - misspell
+          - mnd
+          - sqlclosecheck
+          - unused
+          - whitespace
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
 
 issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - dupl
-        - mnd
-        - lll
-        - bodyclose
-        - errcheck
-        - sqlclosecheck
-        - misspell
-        - ineffassign
-        - whitespace
-        - makezero
-        - maligned
-        - ifshort
-        - errcheck
-        - funlen
-        - goconst
-        - gocognit
-        - gocyclo
-        - godot
-        - unused
-  exclude-use-default: true
-  exclude-case-sensitive: false
   max-issues-per-linter: 0
   max-same-issues: 0
   fix: true
 
 severity:
-  default-severity: error
-  case-sensitive: false
+  default: error
 
-service:
-  golangci-lint-version: 1.62.x
+formatters:
+  enable:
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/retailcrm/mg-transport-api-client-go
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
