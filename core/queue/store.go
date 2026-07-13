@@ -12,7 +12,7 @@ type Constructor[T any] func(id int) (Queue[T], context.CancelFunc)
 // Store keeps queue executors by queue ID.
 type Store[T any] struct {
 	mu            sync.RWMutex
-	executors     map[int]*QueueExecutor[T]
+	executors     map[int]*Executor[T]
 	constructor   Constructor[T]
 	processor     ProcessFunc[T]
 	panicHandler  PanicHandler[T]
@@ -40,7 +40,7 @@ func NewStore[T any](
 	}
 
 	s := &Store[T]{
-		executors:     make(map[int]*QueueExecutor[T]),
+		executors:     make(map[int]*Executor[T]),
 		constructor:   constructor,
 		processor:     processor,
 		workerFactory: defaultWorkerFactory[T],
@@ -74,17 +74,17 @@ func WithWorkerFactory[T any](factory WorkerFactory[T]) StoreOption[T] {
 }
 
 // Get returns the queue executor for id, creating it if necessary.
-func (s *Store[T]) Get(id int) (*QueueExecutor[T], error) {
+func (s *Store[T]) Get(id int) (*Executor[T], error) {
 	return s.getOrCreate(id)
 }
 
 // Info returns queue executor information for id.
-func (s *Store[T]) Info(id int) (QueueExecutorInfo, bool) {
+func (s *Store[T]) Info(id int) (ExecutorInfo, bool) {
 	s.mu.RLock()
 	executor, ok := s.executors[id]
 	s.mu.RUnlock()
 	if !ok {
-		return QueueExecutorInfo{}, false
+		return ExecutorInfo{}, false
 	}
 
 	return executor.Info(), true
@@ -113,7 +113,7 @@ func (s *Store[T]) Stop() {
 	}
 
 	s.stopped = true
-	executors := make([]*QueueExecutor[T], 0, len(s.executors))
+	executors := make([]*Executor[T], 0, len(s.executors))
 	for _, executor := range s.executors {
 		executors = append(executors, executor)
 	}
@@ -125,7 +125,7 @@ func (s *Store[T]) Stop() {
 	}
 }
 
-func (s *Store[T]) getOrCreate(id int) (*QueueExecutor[T], error) {
+func (s *Store[T]) getOrCreate(id int) (*Executor[T], error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 

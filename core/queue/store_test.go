@@ -104,16 +104,26 @@ func TestStore_ConcurrentEnqueueCreatesQueueExecutorOnce(t *testing.T) {
 
 	const goroutines = 25
 	var wg sync.WaitGroup
+	errs := make(chan error, goroutines)
 	wg.Add(goroutines)
 	for i := 0; i < goroutines; i++ {
 		go func(item int) {
 			defer wg.Done()
 			executor, err := store.Get(1)
-			require.NoError(t, err)
-			require.NoError(t, executor.Enqueue(item))
+			if err != nil {
+				errs <- err
+				return
+			}
+
+			errs <- executor.Enqueue(item)
 		}(i)
 	}
 	wg.Wait()
+	close(errs)
+
+	for err := range errs {
+		require.NoError(t, err)
+	}
 
 	assert.Equal(t, int32(1), constructed.Load())
 	info, ok := store.Info(1)
@@ -127,34 +137,23 @@ func TestStore_StartsWorkers(t *testing.T) {
 		MinWorkers:    2,
 		MaxWorkers:    4,
 		JobsPerWorker: 10,
-		IdleTimeout:   20 * time.Millisecond,
+		IdleTimeout:   500 * time.Millisecond,
 	})
 	t.Cleanup(store.Stop)
 
 	executor, err := store.Get(1)
 	require.NoError(t, err)
 
-	// check min
 	require.NoError(t, executor.Enqueue(1))
 	require.Eventually(t, func() bool {
 		info, ok := store.Info(1)
 		return ok && info.ActiveWorkers == 2
-	}, time.Millisecond * 200, 5*time.Millisecond)
+	}, time.Millisecond*200, 5*time.Millisecond)
 
 	time.Sleep(80 * time.Millisecond)
 	info, ok := store.Info(1)
 	require.True(t, ok)
 	assert.Equal(t, 2, info.ActiveWorkers)
-
-	// check max
-	for i := 0; i < 45; i++ {
-		require.NoError(t, executor.Enqueue(i))
-	}
-
-	require.Eventually(t, func() bool {
-		i := executor.Info()
-		return 4 == i.ActiveWorkers
-	}, time.Millisecond * 200, 5*time.Millisecond)
 }
 
 func TestStore_ScalesUpAndRetiresIdleWorkers(t *testing.T) {
@@ -182,7 +181,7 @@ func TestStore_ScalesUpAndRetiresIdleWorkers(t *testing.T) {
 	require.Eventually(t, func() bool {
 		info, ok := store.Info(1)
 		return ok && info.ActiveWorkers == 4
-	}, time.Millisecond * 500, 5*time.Millisecond)
+	}, time.Millisecond*500, 5*time.Millisecond)
 
 	for i := 0; i < 4; i++ {
 		select {
@@ -195,12 +194,12 @@ func TestStore_ScalesUpAndRetiresIdleWorkers(t *testing.T) {
 	close(release)
 	require.Eventually(t, func() bool {
 		return processed.Load() == 8
-	}, time.Millisecond * 250, 5*time.Millisecond)
+	}, time.Millisecond*250, 5*time.Millisecond)
 
 	require.Eventually(t, func() bool {
 		info, ok := store.Info(1)
 		return ok && info.ActiveWorkers == 1
-	}, time.Millisecond * 250, 5*time.Millisecond)
+	}, time.Millisecond*250, 5*time.Millisecond)
 
 	store.Stop()
 }

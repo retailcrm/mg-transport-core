@@ -37,6 +37,7 @@ func newWorkerGroup[T any](
 	panicHandler PanicHandler[T],
 	workerFactory WorkerFactory[T],
 ) *workerGroup[T] {
+	// #nosec G118 -- cancel is stored in workerGroup and called by Stop.
 	ctx, cancel := context.WithCancel(queue.Context())
 	return &workerGroup[T]{
 		ctx:           ctx,
