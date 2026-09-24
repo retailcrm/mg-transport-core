@@ -117,6 +117,8 @@ jm.Start()
 ```
 
 One-shot variants: `RunJobOnce`, `RunJobOnceSync`, `RunJobsOnceSequentially`.
+`StopRegularJobs` stops all periodic schedules promptly; commands already running
+must be allowed to finish separately.
 
 ### Database & migrations
 
@@ -175,22 +177,45 @@ pipeline.
 
 ## Graceful shutdown
 
+`core/lifecycle` provides opt-in readiness, activity tracking, and outbound HTTP
+cancellation. Create one state per process and put its management handler on a
+separate HTTP server. The management handler serves `GET /readiness` (503 until
+`MarkReady`, and again after `BeginShutdown`) and `GET /liveness` (200 while the
+management server is running). It does not expose application routes.
+
 ```go
-sigCh := make(chan os.Signal, 1)
-signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
+state := lifecycle.New()
+app.Router().Use(state.HTTPMiddleware())
+management := &http.Server{
+    Addr:              ":3002",
+    Handler:           state.ManagementHandler(),
+    ReadHeaderTimeout: 5 * time.Second,
+}
+app.SetHTTPClient(state.WrapHTTPClient(app.HTTPClient()))
 
-go func() {
-    if err := app.Run(); err != nil {
-        log.Error("server failed", zap.Error(err))
-    }
-}()
+app.JobManager().RegisterJob("refreshTokens", &core.Job{
+    Command:  state.TrackJob(refreshTokens),
+    Regular:  true,
+    Interval: time.Hour,
+})
 
-<-sigCh
-jobs.CloseIntake()                                 // stop accepting new queue work (docs/queues.md)
-_ = jobs.Drain(drainCtx)                           // wait for queued work to finish
-_ = jobs.Stop(stopCtx)                             // stop workers and drivers
-_ = app.Shutdown(shutdownCtx)                      // graceful HTTP server shutdown
+// Start the application and management servers, then complete startup jobs.
+state.MarkReady()
+
+// On SIGTERM or a server failure, create one bounded shutdown context.
+state.BeginShutdown(shutdownCtx)
+app.JobManager().StopRegularJobs()
+_ = app.Shutdown(shutdownCtx)  // finish accepted HTTP requests first
+jobs.CloseIntake()             // stop accepting new queue work
+_ = jobs.Drain(shutdownCtx)    // wait for queued work and acknowledgements
+_ = state.WaitJobs(shutdownCtx)
+_ = management.Shutdown(shutdownCtx)
+_ = jobs.Stop(shutdownCtx)
+state.Stop()                   // cancel any remaining outbound HTTP requests
+// Close database and other transport resources before the process exits.
 ```
 
-`app.Shutdown(ctx)` delegates to `http.Server.Shutdown`; pair it with queue draining so in-flight
-requests that enqueue work complete before workers stop.
+`BeginShutdown` refuses newly started tracked jobs. Outbound HTTP requests remain
+active through response body consumption and are canceled when the shutdown
+context ends or `Stop` is called. The state does not choose signal handling,
+startup job order, queue drain order, or resource cleanup for a transport.
