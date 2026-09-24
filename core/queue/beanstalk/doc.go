@@ -24,5 +24,6 @@
 //	})
 //
 // The driver is durable across restarts: jobs live in beanstalkd until deleted, and delayed items use
-// native beanstalkd delays.
+// native beanstalkd delays. When reusing a tube containing bodies written by the old queue, pass
+// NewLegacyBodyAdapter(manager) to New so old jobs remain consumable during the migration.
 package beanstalk

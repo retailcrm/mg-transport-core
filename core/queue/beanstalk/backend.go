@@ -70,7 +70,13 @@ func (b *Driver[T]) Enqueue(ctx context.Context, value T, options queue.EnqueueO
 		return fmt.Errorf("encode beanstalk envelope: %w", err)
 	}
 	delay := max(time.Until(options.NotBefore), 0)
-	_, err = b.manager.Put(body, b.options.Priority, delay, b.options.TTR)
+	if manager, ok := b.manager.(interface {
+		PutContext(context.Context, []byte, uint32, time.Duration, time.Duration) (uint64, error)
+	}); ok {
+		_, err = manager.PutContext(ctx, body, b.options.Priority, delay, b.options.TTR)
+	} else {
+		_, err = b.manager.Put(body, b.options.Priority, delay, b.options.TTR)
+	}
 	return err
 }
 

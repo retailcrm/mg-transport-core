@@ -90,6 +90,13 @@ func (w *defaultWorker[T]) Run(ctx context.Context) WorkerResult {
 }
 
 func (w *defaultWorker[T]) process(ctx context.Context, delivery Delivery[T]) {
+	if renewable, ok := delivery.(AutoRenewableDelivery); ok {
+		interval := renewable.AutoRenewInterval()
+		if interval > 0 {
+			stop := renewDelivery(ctx, delivery, interval)
+			defer stop()
+		}
+	}
 	cause := UnsettledCause{Kind: UnsettledReturned}
 	func() {
 		defer func() {
@@ -110,6 +117,29 @@ func (w *defaultWorker[T]) process(ctx context.Context, delivery Delivery[T]) {
 			w.config.UnsettledProcessor(ctx, w.config.Queue.ID(), delivery, cause)
 		}()
 	}
+}
+
+func renewDelivery[T any](ctx context.Context, delivery Delivery[T], interval time.Duration) func() {
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-stop:
+				return
+			case <-ticker.C:
+				if delivery.Touch(ctx) != nil {
+					return
+				}
+			}
+		}
+	}()
+	return func() { close(stop); <-done }
 }
 
 func callPanicHandler[T any](handler PanicHandler[T], ctx context.Context, id int, delivery Delivery[T], recovered any) {

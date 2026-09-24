@@ -225,6 +225,11 @@ func (d *memoryDelivery[T]) Settled() bool {
 	return d.settled.Load()
 }
 
+// AutoRenewInterval keeps a managed processor's lease alive while it is running.
+func (d *memoryDelivery[T]) AutoRenewInterval() time.Duration {
+	return max(d.driver.ackWait/3, time.Nanosecond)
+}
+
 func (d *memoryDelivery[T]) terminal(fn func()) error {
 	if !d.settled.CompareAndSwap(false, true) {
 		return queue.ErrDeliverySettled
@@ -262,8 +267,13 @@ func (d *memoryDelivery[T]) Touch(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if d.Settled() {
+	d.driver.mu.Lock()
+	defer d.driver.mu.Unlock()
+	if d.settled.Load() {
 		return queue.ErrDeliverySettled
+	}
+	if d.driver.closed {
+		return context.Canceled
 	}
 	d.timer.Reset(d.driver.ackWait)
 	return nil

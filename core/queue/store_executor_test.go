@@ -2,6 +2,7 @@ package queue_test
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -97,6 +98,66 @@ func TestStoreScalesForJobsPublishedOutsideExecutor(t *testing.T) {
 		assert.Equal(t, 42, value)
 	case <-time.After(time.Second):
 		t.Fatal("periodic scaling did not discover the driver job")
+	}
+}
+
+func TestDrainLocalWaitsForCurrentProcessorAndStopsFetching(t *testing.T) {
+	started := make(chan int, 2)
+	release := make(chan struct{})
+	var releaseOnce sync.Once
+	releaseProcessor := func() { releaseOnce.Do(func() { close(release) }) }
+	defer releaseProcessor()
+	processorDone := make(chan error, 1)
+	var driver *memory.Memory[int]
+	store, err := queue.NewStore(
+		func(context.Context, int) (queue.Driver[int], error) {
+			driver = memory.New[int](memory.Options{AckWait: time.Second})
+			return driver, nil
+		},
+		func(ctx context.Context, _ int, delivery queue.Delivery[int]) {
+			started <- delivery.Value()
+			<-release
+			processorDone <- ctx.Err()
+			_ = delivery.Ack(ctx)
+		},
+		testWorkerPolicy(),
+	)
+	require.NoError(t, err)
+	stopStore(t, store)
+	require.NoError(t, store.Enqueue(t.Context(), 1, 1))
+	select {
+	case value := <-started:
+		require.Equal(t, 1, value)
+	case <-time.After(time.Second):
+		t.Fatal("processor did not start")
+	}
+
+	drainCtx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	drained := make(chan error, 1)
+	go func() { drained <- store.DrainLocal(drainCtx) }()
+	require.Eventually(t, func() bool {
+		_, getErr := store.Get(t.Context(), 1)
+		return errors.Is(getErr, queue.ErrIntakeClosed)
+	}, time.Second, time.Millisecond)
+	select {
+	case err := <-drained:
+		t.Fatalf("local drain returned before the processor finished: %v", err)
+	default:
+	}
+	releaseProcessor()
+	require.NoError(t, <-drained)
+	require.NoError(t, <-processorDone)
+	require.NoError(t, driver.Enqueue(t.Context(), 2, queue.EnqueueOptions{}))
+	info, exists, err := store.Info(t.Context(), 1)
+	require.NoError(t, err)
+	require.True(t, exists)
+	require.Equal(t, int64(1), info.Stats.Ready)
+	require.Zero(t, info.ActiveWorkers)
+	select {
+	case value := <-started:
+		t.Fatalf("processed queued item %d after local drain", value)
+	default:
 	}
 }
 

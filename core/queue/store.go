@@ -59,6 +59,7 @@ type Store[T any] struct {
 	closing           []*storeEntry[T]
 	stopped           bool
 	intakeClosed      bool
+	localDraining     bool
 }
 
 // NewStore creates a store from a driver constructor, a processor shared by all executors, and a
@@ -99,6 +100,10 @@ func (s *Store[T]) Get(ctx context.Context, id int) (*Executor[T], error) {
 		if s.stopped {
 			s.mu.Unlock()
 			return nil, context.Canceled
+		}
+		if s.localDraining {
+			s.mu.Unlock()
+			return nil, ErrIntakeClosed
 		}
 		if entry := s.executors[id]; entry != nil {
 			s.mu.Unlock()
@@ -267,7 +272,7 @@ func (s *Store[T]) Remove(ctx context.Context, id int) error {
 }
 
 // CloseIntake closes the intake of every current executor and of executors created afterwards. It is
-// the first phase of a graceful shutdown; follow it with Drain and Stop.
+// the first phase of a graceful shutdown; follow it with Drain or DrainLocal, then Stop.
 func (s *Store[T]) CloseIntake() {
 	s.mu.Lock()
 	s.intakeClosed = true
@@ -313,8 +318,9 @@ func (s *Store[T]) Stats(ctx context.Context) (Stats, error) {
 	return total, errors.Join(errs...)
 }
 
-// Drain blocks until no executor has queued or in-flight items left, or until the context expires.
-// Close intake first to guarantee that the drain terminates.
+// Drain blocks until no executor's driver reports queued or in-flight items, or until the context
+// expires. For shared durable consumers these are global counts, including other replicas' work.
+// Use DrainLocal for rolling shutdown of one process.
 func (s *Store[T]) Drain(ctx context.Context) error {
 	ticker := time.NewTicker(drainPollInterval)
 	defer ticker.Stop()
@@ -332,6 +338,45 @@ func (s *Store[T]) Drain(ctx context.Context) error {
 		case <-ticker.C:
 		}
 	}
+}
+
+// DrainLocal closes local intake, stops this store's workers from fetching new deliveries, and
+// waits for their current Run calls to finish. It does not wait for shared driver queues to empty.
+// Call Stop afterward to close the drivers. Concurrent Get calls cannot create new executors once
+// local draining starts. Custom workers must return from Run when their queue's Dequeue is canceled.
+func (s *Store[T]) DrainLocal(ctx context.Context) error {
+	s.mu.Lock()
+	s.intakeClosed = true
+	s.localDraining = true
+	entries := make([]*storeEntry[T], 0, len(s.executors)+len(s.closing))
+	for _, entry := range s.executors {
+		entries = append(entries, entry)
+	}
+	entries = append(entries, s.closing...)
+	ready := s.readyExecutorsLocked()
+	s.mu.Unlock()
+
+	for _, executor := range ready {
+		executor.quiesceLocal()
+	}
+	executors := make([]*Executor[T], 0, len(entries))
+	for _, entry := range entries {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-entry.ready:
+		}
+		if entry.executor != nil {
+			entry.executor.quiesceLocal()
+			executors = append(executors, entry.executor)
+		}
+	}
+	for _, executor := range executors {
+		if err := executor.workers.Wait(ctx); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Stop closes every executor (worker groups first, then drivers) and renders the store unusable:

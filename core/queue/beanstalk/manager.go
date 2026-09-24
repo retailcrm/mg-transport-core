@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strconv"
 	"sync"
@@ -46,7 +47,7 @@ type Manager struct {
 	ctx            context.Context
 	cancel         context.CancelFunc
 	closed         atomic.Bool
-	sendMu         sync.Mutex
+	sendGate       chan struct{}
 	receiveMu      sync.Mutex
 	tube           *beanstalk.Tube
 	idle           []*consumerConn
@@ -71,7 +72,11 @@ func NewManager(ctx context.Context, address, tube string, log logger.Logger, re
 		log = logger.NewNil()
 	}
 	runtimeCtx, cancel := context.WithCancel(context.Background())
-	manager := &Manager{address: address, tubeName: tube, log: log, reconnectDelay: reconnectDelay, ctx: runtimeCtx, cancel: cancel}
+	manager := &Manager{
+		address: address, tubeName: tube, log: log, reconnectDelay: reconnectDelay,
+		ctx: runtimeCtx, cancel: cancel, sendGate: make(chan struct{}, 1),
+	}
+	manager.sendGate <- struct{}{}
 	if err := manager.connect(ctx); err != nil {
 		cancel()
 		return nil, err
@@ -116,14 +121,31 @@ func (m *Manager) connect(ctx context.Context) error {
 }
 
 func (m *Manager) Put(body []byte, priority uint32, delay, ttr time.Duration) (uint64, error) {
-	m.sendMu.Lock()
-	defer m.sendMu.Unlock()
+	return m.PutContext(context.Background(), body, priority, delay, ttr)
+}
+
+// PutContext puts a job and stops retrying when ctx or the manager is canceled.
+func (m *Manager) PutContext(ctx context.Context, body []byte, priority uint32, delay, ttr time.Duration) (uint64, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	stop := context.AfterFunc(m.ctx, cancel)
+	defer stop()
+	defer cancel()
+	if err := m.acquireSend(ctx); err != nil {
+		return 0, err
+	}
+	defer m.releaseSend()
 	for {
+		if err := ctx.Err(); err != nil {
+			return 0, err
+		}
+		connection := m.tube.Conn
+		stop := context.AfterFunc(ctx, func() { _ = connection.Close() })
 		id, err := m.tube.Put(body, priority, delay, ttr)
+		stop()
 		if !isNetworkError(err) || m.closed.Load() {
 			return id, err
 		}
-		if err := m.reconnectProducerLocked(); err != nil {
+		if err := m.reconnectProducerLocked(ctx); err != nil {
 			return 0, err
 		}
 	}
@@ -198,8 +220,13 @@ func (m *Manager) Attempts(id uint64) (uint64, error) {
 	return m.statistic[uint64](values, "reserves")
 }
 func (m *Manager) Stats() (TubeStats, error) {
-	m.sendMu.Lock()
-	defer m.sendMu.Unlock()
+	if err := m.acquireSend(m.ctx); err != nil {
+		return TubeStats{}, err
+	}
+	defer m.releaseSend()
+	connection := m.tube.Conn
+	stop := context.AfterFunc(m.ctx, func() { _ = connection.Close() })
+	defer stop()
 	values, err := m.tube.Stats()
 	if err != nil {
 		return TubeStats{}, err
@@ -221,9 +248,9 @@ func (m *Manager) Stats() (TubeStats, error) {
 func (m *Manager) Close() error {
 	m.closed.Store(true)
 	m.cancel()
-	m.sendMu.Lock()
+	_ = m.acquireSend(context.Background())
 	m.receiveMu.Lock()
-	defer m.sendMu.Unlock()
+	defer m.releaseSend()
 	defer m.receiveMu.Unlock()
 	var errs []error
 	errs = append(errs, m.tube.Conn.Close())
@@ -231,6 +258,19 @@ func (m *Manager) Close() error {
 		errs = append(errs, session.conn.Load().Close())
 	}
 	return errors.Join(errs...)
+}
+
+func (m *Manager) acquireSend(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-m.sendGate:
+		return nil
+	}
+}
+
+func (m *Manager) releaseSend() {
+	m.sendGate <- struct{}{}
 }
 
 func (m *Manager) statistic[Integer ~int64 | ~uint64](values map[string]string, key string) (Integer, error) {
@@ -316,9 +356,9 @@ func (m *Manager) settle(id uint64, operation func(*beanstalk.Conn) error) error
 	return err
 }
 
-func (m *Manager) reconnectProducerLocked() error {
+func (m *Manager) reconnectProducerLocked(ctx context.Context) error {
 	_ = m.tube.Conn.Close()
-	connection, err := m.dial(m.ctx)
+	connection, err := m.dial(ctx)
 	if err != nil {
 		return err
 	}
@@ -345,5 +385,5 @@ func (m *Manager) reconnectConsumer(session *consumerConn) error {
 
 func isNetworkError(err error) bool {
 	_, ok := errors.AsType[net.Error](err)
-	return ok
+	return ok || errors.Is(err, io.EOF) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, net.ErrClosed)
 }

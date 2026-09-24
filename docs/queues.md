@@ -291,6 +291,9 @@ by timers. State is lost on restart — suitable for tests and re-creatable work
 driver := memory.New[Job](memory.Options{AckWait: 30 * time.Second})
 ```
 
+The default worker renews memory delivery leases while a processor runs. A custom worker must call
+`delivery.Touch(ctx)` before `AckWait` expires, or the item can be handed to another worker.
+
 ### beanstalk (durable)
 
 `core/queue/beanstalk` maps queues onto beanstalkd tubes. A `Manager` owns two dedicated connections
@@ -314,6 +317,35 @@ driverFor := func(ctx context.Context, accountID int) (queue.Driver[Job], error)
 
 `Reject` is aliased to `Ack` (beanstalkd has no poison-message concept), and native tube delays back
 `Requeue`/`WithDelay`.
+The built-in `Manager` stops reconnecting a producer when the enqueue context is canceled. Custom
+`ManagerInterface` implementations can provide `PutContext` with the same arguments as `Put` plus a
+leading `context.Context`; otherwise the driver falls back to `Put`.
+
+#### Existing tubes with unwrapped jobs
+
+The old beanstalk queue wrote the codec payload directly into the tube. The new driver writes an
+envelope containing the delivery ID, enqueue time, and payload. When reusing a tube that may still
+contain old jobs, wrap the manager before constructing the driver:
+
+```go
+manager, err := beanstalk.NewManager(ctx, address, tube, log, time.Second)
+if err != nil {
+    return nil, err
+}
+driver := beanstalk.New[Job](
+    beanstalk.NewLegacyBodyAdapter(manager),
+    queue.JSONCodec[Job]{},
+    beanstalk.Options{Priority: 1, TTR: time.Minute},
+)
+```
+
+The adapter passes new envelopes through and wraps old bodies so the codec sees their original
+bytes. Use the same codec or compatible decoder that produced the old body. This also works for
+non-JSON bodies with a `queue.FuncCodec`. The adapter assigns old jobs a `legacy-<beanstalk-id>`
+delivery ID and an approximate enqueue time because the old format did not store that metadata.
+Keep the adapter until all old jobs have been consumed; otherwise the new driver rejects and deletes
+them. If old bodies happen to have the same `id`, `enqueuedAt`, and `payload` fields as a new envelope,
+use a transport-specific adapter to distinguish the formats.
 
 ### nats (durable, JetStream)
 
@@ -347,6 +379,8 @@ driver does not close the shared client.
 
 The enqueue ID is used as the JetStream message ID, giving publisher-side deduplication. `Stats` maps
 consumer pending (Ready), scheduled messages (Deferred), and unacknowledged deliveries (InFlight).
+These counts belong to the shared durable consumer, so `Drain` can wait for work owned by other
+replicas. Use `DrainLocal` when shutting down one replica.
 
 For compatibility with streams populated by direct NATS publishers, use `PayloadMode: nats.PayloadRaw`.
 The codec bytes then form the entire message body, while ID and enqueue time come from NATS metadata.
@@ -422,8 +456,23 @@ if err := jobs.Drain(ctx); err != nil { // 2. wait until queues are empty
 return jobs.Stop(ctx)           // 3. cancel workers, close drivers
 ```
 
-`Executor` exposes the same phases for a single queue (`CloseIntake`, `Drain`, `Close`). `Stop` is
-final: after it succeeds, `Get` returns `context.Canceled`.
+For a rolling restart with shared Beanstalk or NATS queues, drain only this process:
+
+```go
+if err := jobs.DrainLocal(ctx); err != nil {
+    return err
+}
+return jobs.Stop(ctx)
+```
+
+`DrainLocal` closes local enqueue intake, interrupts blocked dequeues, and waits for running workers
+to finish. It leaves queued jobs in the driver for other replicas. Running processor contexts remain
+active until `Stop`; after local draining starts, `Get` and `Enqueue` return `ErrIntakeClosed`.
+`Executor` exposes `DrainLocal` for a single queue. Custom workers must return from `Run` when their
+queue's `Dequeue` is canceled, and must finish any work they start before returning.
+
+`Executor` also exposes `CloseIntake`, `Drain`, and `Close`. `Stop` is final: after it succeeds,
+`Get` returns `context.Canceled`.
 
 ## Custom workers
 

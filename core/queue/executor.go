@@ -57,8 +57,8 @@ func (e *Executor[T]) Info(ctx context.Context) (ExecutorInfo, error) {
 // CloseIntake stops accepting new items while allowing workers to finish the queued ones.
 func (e *Executor[T]) CloseIntake() { e.queue.CloseIntake() }
 
-// Drain blocks until the queue has no queued or in-flight items left, or until the context expires.
-// Close intake first to guarantee that the drain terminates.
+// Drain blocks until the driver reports no queued or in-flight items, or until the context expires.
+// Shared durable drivers include other replicas' work; use DrainLocal for one process.
 func (e *Executor[T]) Drain(ctx context.Context) error {
 	ticker := time.NewTicker(drainPollInterval)
 	defer ticker.Stop()
@@ -76,6 +76,18 @@ func (e *Executor[T]) Drain(ctx context.Context) error {
 		case <-ticker.C:
 		}
 	}
+}
+
+// DrainLocal stops this executor from fetching new deliveries and waits for its running workers.
+// Queued items remain in the driver for other consumers. Processor contexts stay active until Stop.
+func (e *Executor[T]) DrainLocal(ctx context.Context) error {
+	e.quiesceLocal()
+	return e.workers.Wait(ctx)
+}
+
+func (e *Executor[T]) quiesceLocal() {
+	e.CloseIntake()
+	e.workers.Quiesce()
 }
 
 // Close cancels the worker group, closes the queue, and waits for the workers to stop. The returned

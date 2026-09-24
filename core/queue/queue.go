@@ -87,6 +87,12 @@ type Delivery[T any] interface {
 	Settled() bool
 }
 
+// AutoRenewableDelivery optionally tells the default worker how often to call Touch while a
+// processor is running. Custom workers remain responsible for renewing their own deliveries.
+type AutoRenewableDelivery interface {
+	AutoRenewInterval() time.Duration
+}
+
 // DeadLetterDelivery is optionally implemented by deliveries whose driver can preserve rejected
 // messages in a dead-letter destination.
 type DeadLetterDelivery interface {
@@ -133,10 +139,12 @@ type Driver[T any] interface {
 // time, can close the intake for graceful shutdown, and cancels in-flight dequeues once closed.
 // Queues are normally not created directly but owned by an Executor, which in turn is managed by a Store.
 type Queue[T any] struct {
-	id     int
-	driver Driver[T]
-	ctx    context.Context
-	cancel context.CancelCauseFunc
+	id          int
+	driver      Driver[T]
+	ctx         context.Context
+	cancel      context.CancelCauseFunc
+	dequeueCtx  context.Context
+	stopDequeue context.CancelFunc
 
 	mu           sync.RWMutex
 	intakeClosed bool
@@ -148,7 +156,11 @@ type Queue[T any] struct {
 // New creates a Queue with the given numeric ID and driver.
 func New[T any](id int, driver Driver[T]) *Queue[T] {
 	ctx, cancel := context.WithCancelCause(context.Background())
-	return &Queue[T]{id: id, driver: driver, ctx: ctx, cancel: cancel}
+	dequeueCtx, stopDequeue := context.WithCancel(ctx)
+	return &Queue[T]{
+		id: id, driver: driver, ctx: ctx, cancel: cancel,
+		dequeueCtx: dequeueCtx, stopDequeue: stopDequeue,
+	}
 }
 
 // ID returns the queue identifier passed to New.
@@ -193,14 +205,22 @@ func (q *Queue[T]) Enqueue(ctx context.Context, item T, options ...EnqueueOption
 	return nil
 }
 
-// Dequeue waits for the next driver delivery. The call is aborted when either the passed context or the
-// queue itself is closed, so workers stop promptly during shutdown.
+// Dequeue waits for the next driver delivery. The call is aborted when the passed context, the
+// queue, or local dequeue intake is closed.
 func (q *Queue[T]) Dequeue(ctx context.Context) (Delivery[T], error) {
+	if err := q.dequeueCtx.Err(); err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithCancelCause(ctx)
-	stop := context.AfterFunc(q.ctx, func() { cancel(context.Cause(q.ctx)) })
+	stop := context.AfterFunc(q.dequeueCtx, func() { cancel(context.Cause(q.dequeueCtx)) })
 	defer stop()
 	defer cancel(nil)
 	return q.driver.Dequeue(ctx)
+}
+
+// stopLocalDequeue interrupts blocked local dequeues without canceling processors already running.
+func (q *Queue[T]) stopLocalDequeue() {
+	q.stopDequeue()
 }
 
 // Stats returns the driver workload counters.

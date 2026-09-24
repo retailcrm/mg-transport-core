@@ -63,6 +63,8 @@ func (p WorkerPolicy) validate() error {
 type workerGroup[T any] struct {
 	ctx           context.Context
 	cancel        context.CancelFunc
+	controlCtx    context.Context
+	stopControl   context.CancelFunc
 	queue         *Queue[T]
 	processor     Processor[T]
 	panicHandler  PanicHandler[T]
@@ -82,8 +84,10 @@ func newWorkerGroup[T any](queue *Queue[T], processor Processor[T], policy Worke
 	panicHandler PanicHandler[T], unsettled UnsettledProcessor[T], factory WorkerFactory[T],
 ) *workerGroup[T] {
 	ctx, cancel := context.WithCancel(queue.Context())
+	controlCtx, stopControl := context.WithCancel(ctx)
 	return &workerGroup[T]{
 		ctx: ctx, cancel: cancel, queue: queue, processor: processor, policy: policy,
+		controlCtx: controlCtx, stopControl: stopControl,
 		panicHandler: panicHandler, unsettled: unsettled, workerFactory: factory,
 		notify: make(chan struct{}, 1), desired: policy.MinWorkers,
 	}
@@ -111,7 +115,7 @@ func (g *workerGroup[T]) control() {
 	defer ticker.Stop()
 	for {
 		select {
-		case <-g.ctx.Done():
+		case <-g.controlCtx.Done():
 			return
 		case <-g.notify:
 			g.scale()
@@ -122,7 +126,7 @@ func (g *workerGroup[T]) control() {
 }
 
 func (g *workerGroup[T]) scale() {
-	stats, err := g.queue.Stats(g.ctx)
+	stats, err := g.queue.Stats(g.controlCtx)
 	if err != nil {
 		g.mu.Lock()
 		if !g.stopped {
@@ -209,7 +213,7 @@ func (g *workerGroup[T]) notifyAfterRestartDelay() {
 		timer := time.NewTimer(g.policy.RestartDelay)
 		defer timer.Stop()
 		select {
-		case <-g.ctx.Done():
+		case <-g.controlCtx.Done():
 		case <-timer.C:
 			g.Notify()
 		}
@@ -222,13 +226,19 @@ func (g *workerGroup[T]) ActiveWorkers() int {
 	return g.activeWorkers
 }
 
-func (g *workerGroup[T]) Cancel() {
+func (g *workerGroup[T]) Quiesce() {
 	g.mu.Lock()
 	if !g.stopped {
 		g.stopped = true
-		g.cancel()
+		g.stopControl()
+		g.queue.stopLocalDequeue()
 	}
 	g.mu.Unlock()
+}
+
+func (g *workerGroup[T]) Cancel() {
+	g.Quiesce()
+	g.cancel()
 }
 
 func (g *workerGroup[T]) Wait(ctx context.Context) error {
