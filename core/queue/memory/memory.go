@@ -132,6 +132,14 @@ func (b *Memory[T]) nextDelay(now time.Time) time.Duration {
 func (b *Memory[T]) Dequeue(ctx context.Context) (queue.Delivery[T], error) {
 	for {
 		b.mu.Lock()
+		if err := ctx.Err(); err != nil {
+			b.mu.Unlock()
+			return nil, err
+		}
+		if b.closed {
+			b.mu.Unlock()
+			return nil, context.Canceled
+		}
 		now := time.Now()
 		b.promote(now)
 		if len(b.ready) > 0 {
@@ -148,10 +156,6 @@ func (b *Memory[T]) Dequeue(ctx context.Context) (queue.Delivery[T], error) {
 			b.inFlight[entry.internalID] = delivery
 			b.mu.Unlock()
 			return delivery, nil
-		}
-		if b.closed {
-			b.mu.Unlock()
-			return nil, context.Canceled
 		}
 		wait := b.nextDelay(now)
 		b.mu.Unlock()

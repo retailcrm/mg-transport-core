@@ -212,6 +212,52 @@ func TestDeadLetterUnsupported(t *testing.T) {
 	require.ErrorIs(t, err, queue.ErrDeadLetterUnsupported)
 }
 
+func TestCoveredByRequiresMatchingWildcardPrefix(t *testing.T) {
+	assert.False(t, coveredBy([]string{"other.>"}, "queue.jobs"))
+	assert.True(t, coveredBy([]string{"queue.>"}, "queue.jobs"))
+	assert.False(t, coveredBy([]string{"queue.>"}, "queue"))
+	assert.True(t, coveredBy([]string{"other.>", "queue.*"}, "queue.jobs"))
+}
+
+func TestDequeueStopsOnCancellationAndClose(t *testing.T) {
+	client := startServer(t)
+	for _, test := range []struct {
+		name  string
+		close bool
+	}{
+		{name: "context cancellation"},
+		{name: "driver close", close: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			driver, err := New(t.Context(), client, queue.JSONCodec[string]{}, Config{
+				Subject: "idle.jobs", DisableScheduling: true, Provision: Ensure,
+				Stream:   jetstream.StreamConfig{Name: "IDLE_JOBS", Storage: jetstream.MemoryStorage},
+				Consumer: jetstream.ConsumerConfig{Name: "idle_workers"}, FetchMaxWait: 5 * time.Second,
+			})
+			require.NoError(t, err)
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			result := make(chan error, 1)
+			go func() {
+				_, dequeueErr := driver.Dequeue(ctx)
+				result <- dequeueErr
+			}()
+			time.Sleep(50 * time.Millisecond)
+			if test.close {
+				require.NoError(t, driver.Close(t.Context()))
+			} else {
+				cancel()
+			}
+			select {
+			case err := <-result:
+				require.ErrorIs(t, err, context.Canceled)
+			case <-time.After(time.Second):
+				t.Fatal("dequeue did not stop promptly")
+			}
+		})
+	}
+}
+
 func nextMessage(t *testing.T, subscription *natsgo.Subscription) *natsgo.Msg {
 	t.Helper()
 	message, err := subscription.NextMsg(time.Second)

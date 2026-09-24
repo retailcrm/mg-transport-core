@@ -86,6 +86,8 @@ type Driver[T any] struct {
 	codec    queue.Codec[T]
 	config   Config
 	closed   atomic.Bool
+	closeCtx context.Context
+	cancel   context.CancelFunc
 }
 
 type envelope struct {
@@ -134,7 +136,8 @@ func New[T any](
 		return nil, errors.New("NATS dead-letter subject and stream name are required")
 	}
 
-	b := &Driver[T]{js: client.JetStream, codec: codec, config: config}
+	closeCtx, cancel := context.WithCancel(context.Background())
+	b := &Driver[T]{js: client.JetStream, codec: codec, config: config, closeCtx: closeCtx, cancel: cancel}
 	var err error
 	if config.Provision == Ensure {
 		err = b.ensure(ctx)
@@ -142,6 +145,7 @@ func New[T any](
 		err = b.bind(ctx)
 	}
 	if err != nil {
+		cancel()
 		return nil, err
 	}
 	return b, nil
@@ -306,8 +310,24 @@ func (b *Driver[T]) Dequeue(ctx context.Context) (queue.Delivery[T], error) {
 		if b.closed.Load() {
 			return nil, context.Canceled
 		}
-		message, err := b.consumer.Next(jetstream.FetchMaxWait(b.config.FetchMaxWait))
-		if errors.Is(err, natsgo.ErrTimeout) {
+		fetchCtx, cancel := context.WithTimeout(ctx, b.config.FetchMaxWait)
+		stop := context.AfterFunc(b.closeCtx, cancel)
+		message, err := b.consumer.Next(jetstream.FetchContext(fetchCtx))
+		stop()
+		cancel()
+		if ctx.Err() != nil {
+			if message != nil {
+				_ = message.Nak()
+			}
+			return nil, ctx.Err()
+		}
+		if b.closed.Load() {
+			if message != nil {
+				_ = message.Nak()
+			}
+			return nil, context.Canceled
+		}
+		if errors.Is(err, natsgo.ErrTimeout) || errors.Is(err, context.DeadlineExceeded) {
 			continue
 		}
 		if err != nil {
@@ -417,6 +437,7 @@ func queueCount(value uint64) int64 {
 // other users of the stream are unaffected.
 func (b *Driver[T]) Close(context.Context) error {
 	b.closed.Store(true)
+	b.cancel()
 	return nil
 }
 
@@ -511,7 +532,10 @@ func coveredBy(patterns []string, subject string) bool {
 		matched := true
 		for index, token := range patternTokens {
 			if token == ">" {
-				return true
+				if matched && index < len(subjectTokens) {
+					return true
+				}
+				break
 			}
 			if index >= len(subjectTokens) || token != "*" && token != subjectTokens[index] {
 				matched = false
