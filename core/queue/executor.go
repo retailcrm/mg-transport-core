@@ -78,7 +78,7 @@ func (e *Executor[T]) Drain(ctx context.Context) error {
 	}
 }
 
-// DrainLocal stops this executor from fetching new deliveries and waits for its running workers.
+// DrainLocal stops this executor from fetching new envelopes and waits for its running workers.
 // Queued items remain in the driver for other consumers. Processor contexts stay active until Stop.
 func (e *Executor[T]) DrainLocal(ctx context.Context) error {
 	e.quiesceLocal()

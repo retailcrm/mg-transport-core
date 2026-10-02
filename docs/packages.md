@@ -105,7 +105,10 @@ See [NATS integration](nats.md).
 
 - `NewStore(driverFor, processor, policy, opts...)` — one executor per queue ID; `Enqueue`, `Get`,
   `Info`, `Has`, `Reconcile`, `Remove`, `Stats`, `Drain`, `CloseIntake`, `Stop`.
-- `Delivery[T]` — `Value`, `Metadata`, `Ack`, `Requeue`, `Reject`, `Touch`, `Settled`.
+- `JobEnvelope[T]` — `Value`, `Metadata`, `Ack`, `Requeue`, `Reject`, `Touch`, `Settled`.
+- `AutoRenewableJobEnvelope` — optional `AutoRenewInterval` for automatic lease renewal.
+- `DeadLetterJobEnvelope` — optional `DeadLetter`; use `queue.DeadLetter` to preserve terminal failures.
+- `ErrJobEnvelopeSettled` — returned when an envelope is settled more than once.
 - `WorkerPolicy` — scaling bounds and timing; `DesiredWorkersFunc` for custom scaling.
 - Options: `WithID`, `WithDelay`, `WithNotBefore`; store options `WithPanicHandler`,
   `WithUnsettledProcessor`, `WithWorkerFactory`.

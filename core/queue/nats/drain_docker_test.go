@@ -14,8 +14,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// NATS_TEST_URL=nats://127.0.0.1:<port> go test ./core/queue/nats -run TestDrainSeesOtherReplicaDelivery -count=1
-func TestDrainSeesOtherReplicaDelivery(t *testing.T) {
+// NATS_TEST_URL=nats://127.0.0.1:<port> go test ./core/queue/nats -run TestDrainSeesOtherReplicaJobEnvelope -count=1
+func TestDrainSeesOtherReplicaJobEnvelope(t *testing.T) {
 	url := os.Getenv("NATS_TEST_URL")
 	if url == "" {
 		t.Skip("set NATS_TEST_URL to test against NATS in Docker")
@@ -40,7 +40,7 @@ func TestDrainSeesOtherReplicaDelivery(t *testing.T) {
 		func(ctx context.Context, _ int) (queue.Driver[string], error) {
 			return New(ctx, localClient, queue.JSONCodec[string]{}, config)
 		},
-		func(context.Context, int, queue.Delivery[string]) {},
+		func(context.Context, int, queue.JobEnvelope[string]) {},
 		queue.WorkerPolicy{
 			MinWorkers: 0, MaxWorkers: 1, IdleTimeout: time.Second,
 			ScaleInterval: time.Second, DesiredWorkers: func(queue.ScaleInfo) int { return 0 },
@@ -56,7 +56,7 @@ func TestDrainSeesOtherReplicaDelivery(t *testing.T) {
 	require.NoError(t, err)
 	t.Cleanup(func() { _ = remote.Close(context.Background()) })
 	require.NoError(t, remote.Enqueue(t.Context(), "other replica's job", queue.EnqueueOptions{}))
-	delivery, err := remote.Dequeue(t.Context())
+	envelope, err := remote.Dequeue(t.Context())
 	require.NoError(t, err)
 
 	local.CloseIntake()
@@ -66,7 +66,7 @@ func TestDrainSeesOtherReplicaDelivery(t *testing.T) {
 	localCtx, localCancel := context.WithTimeout(t.Context(), time.Second)
 	defer localCancel()
 	require.NoError(t, local.DrainLocal(localCtx))
-	require.NoError(t, delivery.Ack(t.Context()))
+	require.NoError(t, envelope.Ack(t.Context()))
 	finished, done := context.WithTimeout(t.Context(), time.Second)
 	defer done()
 	require.NoError(t, local.Drain(finished))

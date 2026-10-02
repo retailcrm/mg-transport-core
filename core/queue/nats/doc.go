@@ -11,11 +11,11 @@
 // DisableScheduling to bind a legacy stream without this feature; delayed negative acknowledgments
 // still work, while delayed enqueue returns queue.ErrSchedulingUnsupported.
 //
-// By default, items are wrapped into an envelope (delivery ID, enqueue timestamp, encoded payload).
+// By default, items are wrapped into an envelope (job ID, enqueue timestamp, encoded payload).
 // PayloadRaw stores only the queue.Codec output and derives metadata from the NATS header and stream
 // metadata, allowing a driver to consume messages from legacy direct publishers. The caller-provided
 // enqueue ID doubles as the JetStream message ID, giving
-// publisher-side deduplication for free. Delivery leases map to the consumer acknowledgment wait:
+// publisher-side deduplication for free. Job envelope leases map to the consumer acknowledgment wait:
 // Touch sends in-progress working acknowledgments, Requeue maps to a negative acknowledgment with
 // delay, and Reject terminates the message. An optional DeadLetter configuration preserves malformed
 // messages automatically; processors can call queue.DeadLetter to preserve terminal failures with a

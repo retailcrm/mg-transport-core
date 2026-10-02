@@ -27,24 +27,24 @@ func TestDequeueReadyItemAfterCancellationOrClose(t *testing.T) {
 			} else {
 				require.NoError(t, driver.Close(t.Context()))
 			}
-			delivery, err := driver.Dequeue(ctx)
-			require.Nil(t, delivery)
+			envelope, err := driver.Dequeue(ctx)
+			require.Nil(t, envelope)
 			require.ErrorIs(t, err, context.Canceled)
 		})
 	}
 }
 
-func TestLongRunningProcessorKeepsMemoryDelivery(t *testing.T) {
+func TestLongRunningProcessorKeepsMemoryJobEnvelope(t *testing.T) {
 	driver := New[int](Options{AckWait: 30 * time.Millisecond})
 	started := make(chan struct{}, 2)
 	release := make(chan struct{})
 	defer close(release)
 	store, err := queue.NewStore(
 		func(context.Context, int) (queue.Driver[int], error) { return driver, nil },
-		func(ctx context.Context, _ int, delivery queue.Delivery[int]) {
+		func(ctx context.Context, _ int, envelope queue.JobEnvelope[int]) {
 			started <- struct{}{}
 			<-release
-			_ = delivery.Ack(ctx)
+			_ = envelope.Ack(ctx)
 		},
 		queue.WorkerPolicy{
 			MinWorkers: 2, MaxWorkers: 2, JobsPerWorker: 1,
@@ -65,7 +65,7 @@ func TestLongRunningProcessorKeepsMemoryDelivery(t *testing.T) {
 	}
 	select {
 	case <-started:
-		t.Fatal("delivery was processed twice before the first processor finished")
+		t.Fatal("envelope was processed twice before the first processor finished")
 	case <-time.After(120 * time.Millisecond):
 	}
 }

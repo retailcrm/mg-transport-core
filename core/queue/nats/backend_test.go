@@ -51,22 +51,22 @@ func TestDriverLifecycleAndScheduling(t *testing.T) {
 		return statsErr == nil && stats.Deferred == 1
 	}, time.Second, 10*time.Millisecond)
 
-	delivery, err := q.Dequeue(t.Context())
+	envelope, err := q.Dequeue(t.Context())
 	require.NoError(t, err)
-	assert.Equal(t, "now", delivery.Value())
-	assert.Equal(t, "transport-message-id", delivery.Metadata().ID)
-	require.NoError(t, delivery.Requeue(t.Context(), 20*time.Millisecond))
-	delivery, err = q.Dequeue(t.Context())
+	assert.Equal(t, "now", envelope.Value())
+	assert.Equal(t, "transport-message-id", envelope.Metadata().ID)
+	require.NoError(t, envelope.Requeue(t.Context(), 20*time.Millisecond))
+	envelope, err = q.Dequeue(t.Context())
 	require.NoError(t, err)
-	assert.Equal(t, "now", delivery.Value())
-	assert.GreaterOrEqual(t, delivery.Metadata().Attempt, uint64(2))
-	require.NoError(t, delivery.Ack(t.Context()))
+	assert.Equal(t, "now", envelope.Value())
+	assert.GreaterOrEqual(t, envelope.Metadata().Attempt, uint64(2))
+	require.NoError(t, envelope.Ack(t.Context()))
 
-	delivery, err = q.Dequeue(t.Context())
+	envelope, err = q.Dequeue(t.Context())
 	require.NoError(t, err)
-	assert.Equal(t, "later", delivery.Value())
-	assert.Equal(t, "scheduled id with spaces", delivery.Metadata().ID)
-	require.NoError(t, delivery.Reject(t.Context()))
+	assert.Equal(t, "later", envelope.Value())
+	assert.Equal(t, "scheduled id with spaces", envelope.Metadata().ID)
+	require.NoError(t, envelope.Reject(t.Context()))
 	require.NoError(t, driver.Close(t.Context()))
 
 	_, err = New(t.Context(), client, queue.JSONCodec[string]{}, Config{
@@ -94,33 +94,33 @@ func TestRawPayloadAndDisabledScheduling(t *testing.T) {
 	_, err = client.JetStream.PublishMsg(t.Context(), message)
 	require.NoError(t, err)
 
-	delivery, err := driver.Dequeue(t.Context())
+	envelope, err := driver.Dequeue(t.Context())
 	require.NoError(t, err)
-	assert.Equal(t, "already queued", delivery.Value())
-	assert.Equal(t, "legacy-id", delivery.Metadata().ID)
-	assert.False(t, delivery.Metadata().EnqueuedAt.IsZero())
-	require.NoError(t, delivery.Requeue(t.Context(), 10*time.Millisecond))
-	delivery, err = driver.Dequeue(t.Context())
+	assert.Equal(t, "already queued", envelope.Value())
+	assert.Equal(t, "legacy-id", envelope.Metadata().ID)
+	assert.False(t, envelope.Metadata().EnqueuedAt.IsZero())
+	require.NoError(t, envelope.Requeue(t.Context(), 10*time.Millisecond))
+	envelope, err = driver.Dequeue(t.Context())
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, delivery.Metadata().Attempt, uint64(2))
-	require.NoError(t, delivery.Ack(t.Context()))
+	assert.GreaterOrEqual(t, envelope.Metadata().Attempt, uint64(2))
+	require.NoError(t, envelope.Ack(t.Context()))
 
 	q := queue.New(42, driver)
 	err = q.Enqueue(t.Context(), "delayed", queue.WithDelay(time.Second))
 	require.ErrorIs(t, err, queue.ErrSchedulingUnsupported)
 	require.NoError(t, q.Enqueue(t.Context(), "direct", queue.WithID("direct-id")))
-	delivery, err = q.Dequeue(t.Context())
+	envelope, err = q.Dequeue(t.Context())
 	require.NoError(t, err)
-	assert.Equal(t, "direct", delivery.Value())
-	assert.Equal(t, "direct-id", delivery.Metadata().ID)
-	require.NoError(t, delivery.Ack(t.Context()))
+	assert.Equal(t, "direct", envelope.Value())
+	assert.Equal(t, "direct-id", envelope.Metadata().ID)
+	require.NoError(t, envelope.Ack(t.Context()))
 
 	stats, err := q.Stats(t.Context())
 	require.NoError(t, err)
 	assert.Zero(t, stats.Deferred)
 }
 
-func TestDeadLetterMalformedAndRejectedDeliveries(t *testing.T) {
+func TestDeadLetterMalformedAndRejectedJobEnvelopes(t *testing.T) {
 	client := startServer(t)
 	dlqSubscription, err := client.Conn.SubscribeSync("legacy.dlq.outbound.42")
 	require.NoError(t, err)
@@ -148,23 +148,23 @@ func TestDeadLetterMalformedAndRejectedDeliveries(t *testing.T) {
 	_, err = client.JetStream.PublishMsg(t.Context(), malformed)
 	require.NoError(t, err)
 	_, err = driver.Dequeue(t.Context())
-	require.ErrorContains(t, err, "decode NATS delivery")
+	require.ErrorContains(t, err, "decode NATS envelope")
 	deadLetter := nextMessage(t, dlqSubscription)
 	assert.Equal(t, malformed.Data, deadLetter.Data)
 	assert.Equal(t, "header", deadLetter.Header.Get("Original"))
 	assert.Equal(t, malformed.Subject, deadLetter.Header.Get("X-Original-Subject"))
-	assert.Contains(t, deadLetter.Header.Get("X-Error"), "decode NATS delivery")
+	assert.Contains(t, deadLetter.Header.Get("X-Error"), "decode NATS envelope")
 
 	q := queue.New(42, driver)
 	require.NoError(t, q.Enqueue(t.Context(), "valid", queue.WithID("valid-id")))
-	delivery, err := q.Dequeue(t.Context())
+	envelope, err := q.Dequeue(t.Context())
 	require.NoError(t, err)
 	cause := errors.New("permanent transport error")
-	require.NoError(t, queue.DeadLetter(t.Context(), delivery, cause))
+	require.NoError(t, queue.DeadLetter(t.Context(), envelope, cause))
 	deadLetter = nextMessage(t, dlqSubscription)
 	assert.Equal(t, `"valid"`, string(deadLetter.Data))
 	assert.Equal(t, cause.Error(), deadLetter.Header.Get("X-Error"))
-	require.ErrorIs(t, delivery.Ack(t.Context()), queue.ErrDeliverySettled)
+	require.ErrorIs(t, envelope.Ack(t.Context()), queue.ErrJobEnvelopeSettled)
 
 	_, err = New(t.Context(), client, queue.JSONCodec[string]{}, Config{
 		Subject: "legacy.task.outbound.42", PayloadMode: PayloadRaw,
@@ -179,7 +179,7 @@ func TestDeadLetterMalformedAndRejectedDeliveries(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestFailedDeadLetterDoesNotSettleDelivery(t *testing.T) {
+func TestFailedDeadLetterDoesNotSettleJobEnvelope(t *testing.T) {
 	client := startServer(t)
 	driver, err := New(t.Context(), client, queue.JSONCodec[string]{}, Config{
 		Subject: "failed.task", DisableScheduling: true, Provision: Ensure,
@@ -195,20 +195,20 @@ func TestFailedDeadLetterDoesNotSettleDelivery(t *testing.T) {
 	require.NoError(t, err)
 	q := queue.New(1, driver)
 	require.NoError(t, q.Enqueue(t.Context(), "payload"))
-	delivery, err := q.Dequeue(t.Context())
+	envelope, err := q.Dequeue(t.Context())
 	require.NoError(t, err)
 
 	canceled, cancel := context.WithCancel(t.Context())
 	cancel()
-	err = queue.DeadLetter(canceled, delivery, errors.New("failed"))
+	err = queue.DeadLetter(canceled, envelope, errors.New("failed"))
 	require.ErrorIs(t, err, context.Canceled)
-	assert.False(t, delivery.Settled())
-	require.NoError(t, delivery.Ack(t.Context()))
+	assert.False(t, envelope.Settled())
+	require.NoError(t, envelope.Ack(t.Context()))
 }
 
 func TestDeadLetterUnsupported(t *testing.T) {
-	delivery := &unsupportedDeadLetterDelivery{}
-	err := queue.DeadLetter(t.Context(), delivery, errors.New("failed"))
+	envelope := &unsupportedDeadLetterJobEnvelope{}
+	err := queue.DeadLetter(t.Context(), envelope, errors.New("failed"))
 	require.ErrorIs(t, err, queue.ErrDeadLetterUnsupported)
 }
 
@@ -265,12 +265,12 @@ func nextMessage(t *testing.T, subscription *natsgo.Subscription) *natsgo.Msg {
 	return message
 }
 
-type unsupportedDeadLetterDelivery struct{}
+type unsupportedDeadLetterJobEnvelope struct{}
 
-func (*unsupportedDeadLetterDelivery) Value() string                                { return "" }
-func (*unsupportedDeadLetterDelivery) Metadata() queue.Metadata                     { return queue.Metadata{} }
-func (*unsupportedDeadLetterDelivery) Ack(context.Context) error                    { return nil }
-func (*unsupportedDeadLetterDelivery) Requeue(context.Context, time.Duration) error { return nil }
-func (*unsupportedDeadLetterDelivery) Reject(context.Context) error                 { return nil }
-func (*unsupportedDeadLetterDelivery) Touch(context.Context) error                  { return nil }
-func (*unsupportedDeadLetterDelivery) Settled() bool                                { return false }
+func (*unsupportedDeadLetterJobEnvelope) Value() string                                { return "" }
+func (*unsupportedDeadLetterJobEnvelope) Metadata() queue.Metadata                     { return queue.Metadata{} }
+func (*unsupportedDeadLetterJobEnvelope) Ack(context.Context) error                    { return nil }
+func (*unsupportedDeadLetterJobEnvelope) Requeue(context.Context, time.Duration) error { return nil }
+func (*unsupportedDeadLetterJobEnvelope) Reject(context.Context) error                 { return nil }
+func (*unsupportedDeadLetterJobEnvelope) Touch(context.Context) error                  { return nil }
+func (*unsupportedDeadLetterJobEnvelope) Settled() bool                                { return false }

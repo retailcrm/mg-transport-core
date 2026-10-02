@@ -36,8 +36,8 @@ func TestStoreConstructsEachIDOnceWithoutSerializingDifferentIDs(t *testing.T) {
 		<-release
 		return memory.New[int](memory.Options{}), nil
 	}
-	store, err := queue.NewStore(constructor, func(ctx context.Context, _ int, delivery queue.Delivery[int]) {
-		require.NoError(t, delivery.Ack(ctx))
+	store, err := queue.NewStore(constructor, func(ctx context.Context, _ int, envelope queue.JobEnvelope[int]) {
+		require.NoError(t, envelope.Ack(ctx))
 	}, testWorkerPolicy())
 	require.NoError(t, err)
 	stopStore(t, store)
@@ -82,10 +82,10 @@ func TestStoreScalesForJobsPublishedOutsideExecutor(t *testing.T) {
 	store, err := queue.NewStore(func(context.Context, int) (queue.Driver[int], error) {
 		driver = memory.New[int](memory.Options{})
 		return driver, nil
-	}, func(ctx context.Context, id int, delivery queue.Delivery[int]) {
+	}, func(ctx context.Context, id int, envelope queue.JobEnvelope[int]) {
 		assert.Equal(t, 7, id)
-		processed <- delivery.Value()
-		require.NoError(t, delivery.Ack(ctx))
+		processed <- envelope.Value()
+		require.NoError(t, envelope.Ack(ctx))
 	}, policy)
 	require.NoError(t, err)
 	stopStore(t, store)
@@ -114,11 +114,11 @@ func TestDrainLocalWaitsForCurrentProcessorAndStopsFetching(t *testing.T) {
 			driver = memory.New[int](memory.Options{AckWait: time.Second})
 			return driver, nil
 		},
-		func(ctx context.Context, _ int, delivery queue.Delivery[int]) {
-			started <- delivery.Value()
+		func(ctx context.Context, _ int, envelope queue.JobEnvelope[int]) {
+			started <- envelope.Value()
 			<-release
 			processorDone <- ctx.Err()
-			_ = delivery.Ack(ctx)
+			_ = envelope.Ack(ctx)
 		},
 		testWorkerPolicy(),
 	)
@@ -169,10 +169,10 @@ func TestStoreScalesUpAndRetiresIdleWorkers(t *testing.T) {
 	policy.IdleTimeout = 20 * time.Millisecond
 	store, err := queue.NewStore(func(context.Context, int) (queue.Driver[int], error) {
 		return memory.New[int](memory.Options{}), nil
-	}, func(ctx context.Context, _ int, delivery queue.Delivery[int]) {
+	}, func(ctx context.Context, _ int, envelope queue.JobEnvelope[int]) {
 		started <- struct{}{}
 		<-release
-		require.NoError(t, delivery.Ack(ctx))
+		require.NoError(t, envelope.Ack(ctx))
 	}, policy)
 	require.NoError(t, err)
 	stopStore(t, store)
@@ -201,8 +201,8 @@ func TestStoreScalesUpAndRetiresIdleWorkers(t *testing.T) {
 func TestStoreReconcileCreatesAndRemovesExecutors(t *testing.T) {
 	store, err := queue.NewStore(func(context.Context, int) (queue.Driver[int], error) {
 		return memory.New[int](memory.Options{}), nil
-	}, func(ctx context.Context, _ int, delivery queue.Delivery[int]) {
-		require.NoError(t, delivery.Ack(ctx))
+	}, func(ctx context.Context, _ int, envelope queue.JobEnvelope[int]) {
+		require.NoError(t, envelope.Ack(ctx))
 	}, testWorkerPolicy())
 	require.NoError(t, err)
 	stopStore(t, store)
@@ -241,7 +241,7 @@ func TestStoreRestartsMinimumWorkerAfterWorkerPanic(t *testing.T) {
 		func(context.Context, int) (queue.Driver[int], error) {
 			return memory.New[int](memory.Options{}), nil
 		},
-		func(context.Context, int, queue.Delivery[int]) {},
+		func(context.Context, int, queue.JobEnvelope[int]) {},
 		testWorkerPolicy(),
 		queue.WithWorkerFactory(func(queue.WorkerConfig[int]) queue.Worker {
 			if factoryCalls.Add(1) == 1 {
@@ -271,7 +271,7 @@ func TestStoreUsesCustomDesiredWorkerPolicy(t *testing.T) {
 	}
 	store, err := queue.NewStore(func(context.Context, int) (queue.Driver[int], error) {
 		return memory.New[int](memory.Options{}), nil
-	}, func(context.Context, int, queue.Delivery[int]) {}, policy)
+	}, func(context.Context, int, queue.JobEnvelope[int]) {}, policy)
 	require.NoError(t, err)
 	stopStore(t, store)
 	_, err = store.Get(t.Context(), 9)
@@ -286,7 +286,7 @@ func TestNewStoreValidatesPolicy(t *testing.T) {
 	constructor := func(context.Context, int) (queue.Driver[int], error) {
 		return memory.New[int](memory.Options{}), nil
 	}
-	processor := func(context.Context, int, queue.Delivery[int]) {}
+	processor := func(context.Context, int, queue.JobEnvelope[int]) {}
 	_, err := queue.NewStore(constructor, processor, queue.WorkerPolicy{})
 	require.EqualError(t, err, "max workers must be at least 1")
 	_, err = queue.NewStore[int](nil, processor, testWorkerPolicy())

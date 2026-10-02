@@ -35,9 +35,9 @@ const (
 type PayloadMode uint8
 
 const (
-	// PayloadEnvelope stores delivery metadata and the encoded value in an internal JSON envelope.
+	// PayloadEnvelope stores envelope metadata and the encoded value in an internal JSON envelope.
 	PayloadEnvelope PayloadMode = iota
-	// PayloadRaw stores only the codec output and derives delivery metadata from the NATS message.
+	// PayloadRaw stores only the codec output and derives envelope metadata from the NATS message.
 	PayloadRaw
 )
 
@@ -261,7 +261,7 @@ func (b *Driver[T]) Enqueue(ctx context.Context, value T, options queue.EnqueueO
 	}
 	payload, err := b.codec.Encode(value)
 	if err != nil {
-		return fmt.Errorf("encode NATS delivery: %w", err)
+		return fmt.Errorf("encode NATS envelope: %w", err)
 	}
 	now := time.Now()
 	id := options.ID
@@ -294,7 +294,7 @@ func (b *Driver[T]) Enqueue(ctx context.Context, value T, options queue.EnqueueO
 		)
 	}
 	if _, err := b.js.PublishMsg(ctx, message, publishOptions...); err != nil {
-		return fmt.Errorf("publish NATS delivery: %w", err)
+		return fmt.Errorf("publish NATS envelope: %w", err)
 	}
 	return nil
 }
@@ -302,7 +302,7 @@ func (b *Driver[T]) Enqueue(ctx context.Context, value T, options queue.EnqueueO
 // Dequeue fetches the next message from the durable consumer. Messages whose envelope or payload
 // cannot be decoded are terminated; the error is returned to the caller, and the next Dequeue attempt
 // fetches the following message.
-func (b *Driver[T]) Dequeue(ctx context.Context) (queue.Delivery[T], error) {
+func (b *Driver[T]) Dequeue(ctx context.Context) (queue.JobEnvelope[T], error) {
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -331,12 +331,12 @@ func (b *Driver[T]) Dequeue(ctx context.Context) (queue.Delivery[T], error) {
 			continue
 		}
 		if err != nil {
-			return nil, fmt.Errorf("fetch NATS delivery: %w", err)
+			return nil, fmt.Errorf("fetch NATS envelope: %w", err)
 		}
 		metadata, err := message.Metadata()
 		if err != nil {
 			_ = message.Nak()
-			return nil, fmt.Errorf("read NATS delivery metadata: %w", err)
+			return nil, fmt.Errorf("read NATS envelope metadata: %w", err)
 		}
 		body, err := b.decodeMessage(message, metadata)
 		if err != nil {
@@ -344,9 +344,9 @@ func (b *Driver[T]) Dequeue(ctx context.Context) (queue.Delivery[T], error) {
 		}
 		value, err := b.codec.Decode(body.Payload)
 		if err != nil {
-			return nil, b.rejectMalformed(ctx, message, fmt.Errorf("decode NATS delivery: %w", err))
+			return nil, b.rejectMalformed(ctx, message, fmt.Errorf("decode NATS envelope: %w", err))
 		}
-		return &delivery[T]{
+		return &jobEnvelope[T]{
 			driver:  b,
 			message: message,
 			value:   value,
@@ -383,7 +383,7 @@ func (b *Driver[T]) rejectMalformed(ctx context.Context, message jetstream.Msg, 
 		return errors.Join(cause, err)
 	}
 	if err := message.Term(); err != nil {
-		return errors.Join(cause, fmt.Errorf("terminate malformed NATS delivery: %w", err))
+		return errors.Join(cause, fmt.Errorf("terminate malformed NATS envelope: %w", err))
 	}
 	return cause
 }
@@ -400,13 +400,13 @@ func (b *Driver[T]) publishDeadLetter(ctx context.Context, message jetstream.Msg
 	header.Set("X-Original-Subject", message.Subject())
 	deadLetter := &natsgo.Msg{Subject: b.config.DeadLetter.Subject, Header: header, Data: message.Data()}
 	if _, err := b.js.PublishMsg(ctx, deadLetter); err != nil {
-		return fmt.Errorf("publish NATS dead-letter delivery: %w", err)
+		return fmt.Errorf("publish NATS dead-letter envelope: %w", err)
 	}
 	return nil
 }
 
 // Stats maps consumer and stream counters to the queue counters: pending messages are Ready,
-// scheduled messages under the schedule subject are Deferred, and unacknowledged deliveries are
+// scheduled messages under the schedule subject are Deferred, and unacknowledged envelopes are
 // InFlight.
 func (b *Driver[T]) Stats(ctx context.Context) (queue.Stats, error) {
 	info, err := b.consumer.Info(ctx)
@@ -441,7 +441,7 @@ func (b *Driver[T]) Close(context.Context) error {
 	return nil
 }
 
-type delivery[T any] struct {
+type jobEnvelope[T any] struct {
 	driver   *Driver[T]
 	message  jetstream.Msg
 	value    T
@@ -449,20 +449,20 @@ type delivery[T any] struct {
 	settled  atomic.Bool
 }
 
-func (d *delivery[T]) Value() T {
+func (d *jobEnvelope[T]) Value() T {
 	return d.value
 }
 
-func (d *delivery[T]) Metadata() queue.Metadata {
+func (d *jobEnvelope[T]) Metadata() queue.Metadata {
 	return d.metadata
 }
 
-func (d *delivery[T]) Settled() bool {
+func (d *jobEnvelope[T]) Settled() bool {
 	return d.settled.Load()
 }
-func (d *delivery[T]) terminal(operation func() error) error {
+func (d *jobEnvelope[T]) terminal(operation func() error) error {
 	if !d.settled.CompareAndSwap(false, true) {
-		return queue.ErrDeliverySettled
+		return queue.ErrJobEnvelopeSettled
 	}
 	if err := operation(); err != nil {
 		d.settled.Store(false)
@@ -470,10 +470,10 @@ func (d *delivery[T]) terminal(operation func() error) error {
 	}
 	return nil
 }
-func (d *delivery[T]) Ack(ctx context.Context) error {
+func (d *jobEnvelope[T]) Ack(ctx context.Context) error {
 	return d.terminal(func() error { return d.message.DoubleAck(ctx) })
 }
-func (d *delivery[T]) Requeue(ctx context.Context, delay time.Duration) error {
+func (d *jobEnvelope[T]) Requeue(ctx context.Context, delay time.Duration) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -484,26 +484,26 @@ func (d *delivery[T]) Requeue(ctx context.Context, delay time.Duration) error {
 		return d.message.Nak()
 	})
 }
-func (d *delivery[T]) Reject(ctx context.Context) error {
+func (d *jobEnvelope[T]) Reject(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	return d.terminal(d.message.Term)
 }
-func (d *delivery[T]) Touch(ctx context.Context) error {
+func (d *jobEnvelope[T]) Touch(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if d.Settled() {
-		return queue.ErrDeliverySettled
+		return queue.ErrJobEnvelopeSettled
 	}
 	return d.message.InProgress()
 }
 
 // DeadLetter preserves the original NATS message with the supplied cause and then terminates it.
-func (d *delivery[T]) DeadLetter(ctx context.Context, cause error) error {
+func (d *jobEnvelope[T]) DeadLetter(ctx context.Context, cause error) error {
 	if cause == nil {
-		cause = errors.New("delivery rejected")
+		cause = errors.New("envelope rejected")
 	}
 	return d.terminal(func() error {
 		if err := d.driver.publishDeadLetter(ctx, d.message, cause); err != nil {

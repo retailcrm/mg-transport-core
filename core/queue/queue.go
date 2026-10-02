@@ -10,19 +10,19 @@ import (
 var (
 	// ErrIntakeClosed is returned by Enqueue after CloseIntake was called. Existing items can still be drained.
 	ErrIntakeClosed = errors.New("queue intake is closed")
-	// ErrDeliverySettled is returned when a delivery is acknowledged, requeued, or rejected a second time.
-	ErrDeliverySettled = errors.New("delivery is already settled")
+	// ErrJobEnvelopeSettled is returned when an envelope is acknowledged, requeued, or rejected a second time.
+	ErrJobEnvelopeSettled = errors.New("envelope is already settled")
 	// ErrSchedulingUnsupported is returned when delayed enqueue is requested from a driver whose
 	// scheduling support is disabled.
 	ErrSchedulingUnsupported = errors.New("queue scheduling is not supported")
-	// ErrDeadLetterUnsupported is returned when DeadLetter is used with a delivery whose driver has
+	// ErrDeadLetterUnsupported is returned when DeadLetter is used with an envelope whose driver has
 	// no dead-letter support configured.
 	ErrDeadLetterUnsupported = errors.New("queue dead-lettering is not supported")
 )
 
 // EnqueueOptions controls how an item is enqueued by a Driver.
 type EnqueueOptions struct {
-	// ID is the caller-provided delivery identity. Drivers that support deduplication use it as the
+	// ID is the caller-provided envelope identity. Drivers that support deduplication use it as the
 	// message ID; when empty a driver-generated ID is used.
 	ID string
 	// NotBefore defers the item until the given time. A zero value makes the item immediately ready.
@@ -33,7 +33,7 @@ type EnqueueOptions struct {
 // EnqueueOption mutates EnqueueOptions during Enqueue.
 type EnqueueOption func(*EnqueueOptions)
 
-// WithID assigns a stable delivery ID, enabling deduplication in supporting drivers.
+// WithID assigns a stable envelope ID, enabling deduplication in supporting drivers.
 func WithID(id string) EnqueueOption {
 	return func(options *EnqueueOptions) { options.ID = id }
 }
@@ -67,13 +67,13 @@ type Metadata struct {
 	Attempt     uint64
 }
 
-// Delivery is a single dequeued item handed to a Processor. Exactly one of Ack, Requeue, or Reject must
-// eventually be called; every method returns ErrDeliverySettled after the first successful settlement.
-// Touch extends the driver acknowledgment lease and does not settle the delivery.
-type Delivery[T any] interface {
+// JobEnvelope is a single dequeued item handed to a Processor. Exactly one of Ack, Requeue, or Reject must
+// eventually be called; every method returns ErrJobEnvelopeSettled after the first successful settlement.
+// Touch extends the driver acknowledgment lease and does not settle the envelope.
+type JobEnvelope[T any] interface {
 	// Value returns the decoded item.
 	Value() T
-	// Metadata returns delivery identity and timing information.
+	// Metadata returns envelope identity and timing information.
 	Metadata() Metadata
 	// Ack marks the item as successfully processed.
 	Ack(context.Context) error
@@ -83,26 +83,26 @@ type Delivery[T any] interface {
 	Reject(context.Context) error
 	// Touch renews the acknowledgment lease for long-running processing.
 	Touch(context.Context) error
-	// Settled reports whether the delivery was already settled.
+	// Settled reports whether the envelope was already settled.
 	Settled() bool
 }
 
-// AutoRenewableDelivery optionally tells the default worker how often to call Touch while a
-// processor is running. Custom workers remain responsible for renewing their own deliveries.
-type AutoRenewableDelivery interface {
+// AutoRenewableJobEnvelope optionally tells the default worker how often to call Touch while a
+// processor is running. Custom workers remain responsible for renewing their own envelopes.
+type AutoRenewableJobEnvelope interface {
 	AutoRenewInterval() time.Duration
 }
 
-// DeadLetterDelivery is optionally implemented by deliveries whose driver can preserve rejected
+// DeadLetterJobEnvelope is optionally implemented by envelopes whose driver can preserve rejected
 // messages in a dead-letter destination.
-type DeadLetterDelivery interface {
+type DeadLetterJobEnvelope interface {
 	DeadLetter(context.Context, error) error
 }
 
-// DeadLetter rejects a delivery after preserving it in the driver's dead-letter destination. It
-// returns ErrDeadLetterUnsupported when the delivery has no configured dead-letter implementation.
-func DeadLetter[T any](ctx context.Context, delivery Delivery[T], cause error) error {
-	deadLetter, ok := delivery.(DeadLetterDelivery)
+// DeadLetter rejects an envelope after preserving it in the driver's dead-letter destination. It
+// returns ErrDeadLetterUnsupported when the envelope has no configured dead-letter implementation.
+func DeadLetter[T any](ctx context.Context, envelope JobEnvelope[T], cause error) error {
+	deadLetter, ok := envelope.(DeadLetterJobEnvelope)
 	if !ok {
 		return ErrDeadLetterUnsupported
 	}
@@ -124,13 +124,13 @@ func (s Stats) Queued() int64 {
 	return s.Ready + s.Deferred
 }
 
-// Driver stores items and hands out deliveries. The interface is intentionally small so that radically
+// Driver stores items and hands out envelopes. The interface is intentionally small so that radically
 // different storages (in-memory, beanstalkd, NATS JetStream) can implement it; implementations live in
-// the memory, beanstalk, and nats subpackages. Dequeue blocks until a delivery is available, the context
+// the memory, beanstalk, and nats subpackages. Dequeue blocks until an envelope is available, the context
 // is canceled, or the driver is closed.
 type Driver[T any] interface {
 	Enqueue(context.Context, T, EnqueueOptions) error
-	Dequeue(context.Context) (Delivery[T], error)
+	Dequeue(context.Context) (JobEnvelope[T], error)
 	Stats(context.Context) (Stats, error)
 	Close(context.Context) error
 }
@@ -205,9 +205,9 @@ func (q *Queue[T]) Enqueue(ctx context.Context, item T, options ...EnqueueOption
 	return nil
 }
 
-// Dequeue waits for the next driver delivery. The call is aborted when the passed context, the
+// Dequeue waits for the next driver envelope. The call is aborted when the passed context, the
 // queue, or local dequeue intake is closed.
-func (q *Queue[T]) Dequeue(ctx context.Context) (Delivery[T], error) {
+func (q *Queue[T]) Dequeue(ctx context.Context) (JobEnvelope[T], error) {
 	if err := q.dequeueCtx.Err(); err != nil {
 		return nil, err
 	}

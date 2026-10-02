@@ -24,8 +24,8 @@ func WithPanicHandler[T any](handler PanicHandler[T]) StoreOption[T] {
 	return func(store *Store[T]) { store.panicHandler = handler }
 }
 
-// WithUnsettledProcessor registers a processor invoked for deliveries that finished processing without
-// an explicit settlement, including deliveries abandoned because of a processor panic.
+// WithUnsettledProcessor registers a processor invoked for envelopes that finished processing without
+// an explicit settlement, including envelopes abandoned because of a processor panic.
 func WithUnsettledProcessor[T any](processor UnsettledProcessor[T]) StoreOption[T] {
 	return func(store *Store[T]) { store.unsettled = processor }
 }
@@ -63,7 +63,7 @@ type Store[T any] struct {
 }
 
 // NewStore creates a store from a driver constructor, a processor shared by all executors, and a
-// worker policy. Optional StoreOption values can register panic and unsettled-delivery handling or a
+// worker policy. Optional StoreOption values can register panic and unsettled-envelope handling or a
 // custom worker factory. The constructor returns an error when required arguments are missing or the
 // policy is invalid.
 func NewStore[T any](constructor DriverConstructor[T], processor Processor[T], policy WorkerPolicy,
@@ -340,7 +340,7 @@ func (s *Store[T]) Drain(ctx context.Context) error {
 	}
 }
 
-// DrainLocal closes local intake, stops this store's workers from fetching new deliveries, and
+// DrainLocal closes local intake, stops this store's workers from fetching new envelopes, and
 // waits for their current Run calls to finish. It does not wait for shared driver queues to empty.
 // Call Stop afterward to close the drivers. Concurrent Get calls cannot create new executors once
 // local draining starts. Custom workers must return from Run when their queue's Dequeue is canceled.

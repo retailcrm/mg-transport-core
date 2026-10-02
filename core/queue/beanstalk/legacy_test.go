@@ -42,10 +42,10 @@ func TestLegacyBodyAdapterPreservesBinaryPayload(t *testing.T) {
 	_, err := manager.Put(body, 1, 0, time.Minute)
 	require.NoError(t, err)
 	driver := New(NewLegacyBodyAdapter(manager), queue.BytesCodec{}, Options{PollTimeout: time.Millisecond})
-	delivery, err := driver.Dequeue(t.Context())
+	envelope, err := driver.Dequeue(t.Context())
 	require.NoError(t, err)
-	require.Equal(t, body, delivery.Value())
-	require.NoError(t, delivery.Ack(t.Context()))
+	require.Equal(t, body, envelope.Value())
+	require.NoError(t, envelope.Ack(t.Context()))
 }
 
 func TestLegacyBodyAdapterAgainstBeanstalkd(t *testing.T) {
@@ -60,8 +60,8 @@ func TestLegacyBodyAdapterAgainstBeanstalkd(t *testing.T) {
 	_, err = manager.Put([]byte(`"old job"`), 1, 0, time.Minute)
 	require.NoError(t, err)
 	driver := New(NewLegacyBodyAdapter(manager), queue.JSONCodec[string]{}, Options{})
-	delivery, err := driver.Dequeue(t.Context())
+	envelope, err := driver.Dequeue(t.Context())
 	require.NoError(t, err)
-	require.Equal(t, "old job", delivery.Value())
-	require.NoError(t, delivery.Ack(t.Context()))
+	require.Equal(t, "old job", envelope.Value())
+	require.NoError(t, envelope.Ack(t.Context()))
 }

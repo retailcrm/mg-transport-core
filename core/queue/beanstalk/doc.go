@@ -8,7 +8,7 @@
 // transparently reconnect with a configurable delay on network errors, and Close shuts both down.
 //
 // The Driver adapts the Manager to the queue.Driver contract. Items are wrapped into an envelope
-// carrying the caller-provided ID and the enqueue timestamp, serialized with a queue.Codec. Delivery
+// carrying the caller-provided ID and the enqueue timestamp, serialized with a queue.Codec. Envelope
 // leases map to the beanstalkd time-to-run: Touch renews the lease, Requeue maps to Release with a
 // delay, Ack and Reject both Delete the job, and a lease expiry re-releases the job server-side.
 //

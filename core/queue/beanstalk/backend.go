@@ -16,7 +16,7 @@ import (
 type Options struct {
 	// Priority is the beanstalkd job priority used on Put and Release; lower values mean higher priority.
 	Priority uint32
-	// TTR is the beanstalkd time-to-run, which acts as the delivery lease: an unsettled job is
+	// TTR is the beanstalkd time-to-run, which acts as the envelope lease: an unsettled job is
 	// re-released by the server after it expires. Non-positive values default to one minute.
 	TTR time.Duration
 	// PollTimeout bounds a single reserve attempt before retrying. Non-positive values default to one
@@ -39,7 +39,7 @@ type envelope struct {
 }
 
 // New creates a beanstalk driver over the given manager. The codec serializes items into the
-// beanstalkd job body wrapped into an envelope with the delivery ID and enqueue timestamp.
+// beanstalkd job body wrapped into an envelope with the job ID and enqueue timestamp.
 func New[T any](manager ManagerInterface, codec queue.Codec[T], options Options) *Driver[T] {
 	if options.TTR <= 0 {
 		options.TTR = time.Minute
@@ -58,7 +58,7 @@ func (b *Driver[T]) Enqueue(ctx context.Context, value T, options queue.EnqueueO
 	}
 	payload, err := b.codec.Encode(value)
 	if err != nil {
-		return fmt.Errorf("encode beanstalk delivery: %w", err)
+		return fmt.Errorf("encode beanstalk envelope: %w", err)
 	}
 	now := time.Now()
 	id := options.ID
@@ -82,7 +82,7 @@ func (b *Driver[T]) Enqueue(ctx context.Context, value T, options queue.EnqueueO
 
 // Dequeue reserves the next job from the tube. Jobs whose envelope or payload cannot be decoded are
 // deleted; the error is returned to the caller, and the next Dequeue attempt fetches the following job.
-func (b *Driver[T]) Dequeue(ctx context.Context) (queue.Delivery[T], error) {
+func (b *Driver[T]) Dequeue(ctx context.Context) (queue.JobEnvelope[T], error) {
 	for {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -102,14 +102,14 @@ func (b *Driver[T]) Dequeue(ctx context.Context) (queue.Delivery[T], error) {
 		value, err := b.codec.Decode(message.Payload)
 		if err != nil {
 			_ = b.manager.Delete(id)
-			return nil, fmt.Errorf("decode beanstalk delivery: %w", err)
+			return nil, fmt.Errorf("decode beanstalk envelope: %w", err)
 		}
 		attempt, err := b.manager.Attempts(id)
 		if err != nil {
 			_ = b.manager.Release(id, b.options.Priority, 0)
-			return nil, fmt.Errorf("read beanstalk delivery metadata: %w", err)
+			return nil, fmt.Errorf("read beanstalk envelope metadata: %w", err)
 		}
-		return &delivery[T]{driver: b, jobID: id, value: value, metadata: queue.Metadata{ID: message.ID, EnqueuedAt: message.EnqueuedAt, DeliveredAt: time.Now(), Attempt: attempt}}, nil
+		return &jobEnvelope[T]{driver: b, jobID: id, value: value, metadata: queue.Metadata{ID: message.ID, EnqueuedAt: message.EnqueuedAt, DeliveredAt: time.Now(), Attempt: attempt}}, nil
 	}
 }
 
@@ -129,7 +129,7 @@ func (b *Driver[T]) Close(context.Context) error {
 	return b.manager.Close()
 }
 
-type delivery[T any] struct {
+type jobEnvelope[T any] struct {
 	driver   *Driver[T]
 	jobID    uint64
 	value    T
@@ -137,20 +137,20 @@ type delivery[T any] struct {
 	settled  atomic.Bool
 }
 
-func (d *delivery[T]) Value() T {
+func (d *jobEnvelope[T]) Value() T {
 	return d.value
 }
 
-func (d *delivery[T]) Metadata() queue.Metadata {
+func (d *jobEnvelope[T]) Metadata() queue.Metadata {
 	return d.metadata
 }
 
-func (d *delivery[T]) Settled() bool {
+func (d *jobEnvelope[T]) Settled() bool {
 	return d.settled.Load()
 }
-func (d *delivery[T]) terminal(operation func() error) error {
+func (d *jobEnvelope[T]) terminal(operation func() error) error {
 	if !d.settled.CompareAndSwap(false, true) {
-		return queue.ErrDeliverySettled
+		return queue.ErrJobEnvelopeSettled
 	}
 	if err := operation(); err != nil {
 		d.settled.Store(false)
@@ -158,24 +158,24 @@ func (d *delivery[T]) terminal(operation func() error) error {
 	}
 	return nil
 }
-func (d *delivery[T]) Ack(context.Context) error {
+func (d *jobEnvelope[T]) Ack(context.Context) error {
 	return d.terminal(func() error { return d.driver.manager.Delete(d.jobID) })
 }
-func (d *delivery[T]) Reject(ctx context.Context) error {
+func (d *jobEnvelope[T]) Reject(ctx context.Context) error {
 	return d.Ack(ctx)
 }
-func (d *delivery[T]) Requeue(ctx context.Context, delay time.Duration) error {
+func (d *jobEnvelope[T]) Requeue(ctx context.Context, delay time.Duration) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	return d.terminal(func() error { return d.driver.manager.Release(d.jobID, d.driver.options.Priority, delay) })
 }
-func (d *delivery[T]) Touch(ctx context.Context) error {
+func (d *jobEnvelope[T]) Touch(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
 	if d.Settled() {
-		return queue.ErrDeliverySettled
+		return queue.ErrJobEnvelopeSettled
 	}
 	return d.driver.manager.Touch(d.jobID)
 }

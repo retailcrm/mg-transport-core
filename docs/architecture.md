@@ -126,7 +126,7 @@ flowchart TB
         Q1["Queue[T]"] --> B1["Driver[T]"]
         WG["workerGroup<br/>(WorkerPolicy)"] --> W1["Worker"]
         WG --> W2["Worker"]
-        W1 --> P["Processor(ctx, id, Delivery[T])"]
+        W1 --> P["Processor(ctx, id, JobEnvelope[T])"]
         W2 --> P
     end
 
@@ -144,7 +144,7 @@ flowchart TB
     B1 -.-> NB
 ```
 
-Delivery lifecycle:
+Job envelope lifecycle:
 
 ```mermaid
 stateDiagram-v2
@@ -161,8 +161,8 @@ stateDiagram-v2
     Done --> [*]
 ```
 
-A delivery that reaches the processor is *settled* exactly once. If the processor returns or panics
-without settling, the delivery stays pending in the driver and an optional
+An envelope that reaches the processor is *settled* exactly once. If the processor returns or panics
+without settling, the envelope stays pending in the driver and an optional
 `WithUnsettledProcessor` hook observes it.
 
 See [Queues](queues.md).

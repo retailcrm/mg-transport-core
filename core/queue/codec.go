@@ -5,7 +5,7 @@ import (
 	"errors"
 )
 
-// Codec converts items to bytes and back for drivers that persist deliveries. The Decode
+// Codec converts items to bytes and back for drivers that persist envelopes. The Decode
 // implementation must be deterministic across process restarts, so runtime-only dependencies should be
 // restored with FuncCodec rather than serialized.
 type Codec[T any] interface {

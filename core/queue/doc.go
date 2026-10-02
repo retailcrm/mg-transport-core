@@ -1,13 +1,13 @@
-// Package queue provides a generic, storage-agnostic job queue with typed deliveries, autoscaling worker
+// Package queue provides a generic, storage-agnostic job queue with typed envelopes, autoscaling worker
 // pools, and a multi-queue store.
 //
 // # Architecture
 //
 // The package is organized around five collaborating concepts:
 //
-//   - Driver stores items and hands out deliveries. Implementations live in subpackages: memory
+//   - Driver stores items and hands out envelopes. Implementations live in subpackages: memory
 //     (process-local), beanstalk (beanstalkd tubes), and nats (JetStream streams). Drivers are
-//     responsible for persistence, delivery leases, and statistics.
+//     responsible for persistence, envelope leases, and statistics.
 //   - Queue wraps a single driver and guards its lifecycle: it records the last enqueue time, closes the
 //     intake for graceful shutdown, and cancels in-flight dequeues when the queue is closed.
 //   - workerGroup runs workers over a Queue: it invokes Processor callbacks, restarts workers after errors
@@ -18,10 +18,10 @@
 //     lazily through a DriverConstructor, aggregates statistics, and reconciles the executor set against
 //     a desired list of IDs.
 //
-// Every dequeued item is delivered as a Delivery which must be explicitly settled by the processor:
-// Ack confirms successful processing, Requeue schedules a retry, and Reject discards the delivery.
-// Touch renews the driver acknowledgment lease for long-running work. An unsettled delivery remains
-// pending in the driver; use WithUnsettledProcessor to observe unsettled deliveries, including the
+// Every dequeued item is delivered as a JobEnvelope which must be explicitly settled by the processor:
+// Ack confirms successful processing, Requeue schedules a retry, and Reject discards the envelope.
+// Touch renews the driver acknowledgment lease for long-running work. An unsettled envelope remains
+// pending in the driver; use WithUnsettledProcessor to observe unsettled envelopes, including the
 // recovered value when a processor panicked.
 //
 // The following diagram shows how a Store wires these parts together for one queue ID:
@@ -31,7 +31,7 @@
 //	│ id ──► Executor ──► Queue ──► Driver (memory/beanstalk/nats)
 //	│           │            │
 //	│           │            └─ cancels in-flight Dequeue on Close
-//	│           └─ workerGroup ──► Worker ──► Processor(Delivery)
+//	│           └─ workerGroup ──► Worker ──► Processor(JobEnvelope)
 //	│                     └─ scales using WorkerPolicy + Stats
 //	└────────────────────────────────────────────────────────────┘
 //
@@ -43,12 +43,12 @@
 //	    func(ctx context.Context, accountID int) (queue.Driver[Job], error) {
 //	        return memory.New[Job](memory.Options{AckWait: 30 * time.Second}), nil
 //	    },
-//	    func(ctx context.Context, accountID int, delivery queue.Delivery[Job]) {
-//	        if err := handle(ctx, accountID, delivery.Value()); err != nil {
-//	            _ = delivery.Requeue(ctx, time.Second)
+//	    func(ctx context.Context, accountID int, envelope queue.JobEnvelope[Job]) {
+//	        if err := handle(ctx, accountID, envelope.Value()); err != nil {
+//	            _ = envelope.Requeue(ctx, time.Second)
 //	            return
 //	        }
-//	        _ = delivery.Ack(ctx)
+//	        _ = envelope.Ack(ctx)
 //	    },
 //	    queue.WorkerPolicy{
 //	        MinWorkers: 1, MaxWorkers: 10, JobsPerWorker: 10,

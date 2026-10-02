@@ -1,7 +1,7 @@
 # Queues
 
 The `core/queue` package (with the `core/queue/memory`, `core/queue/beanstalk`, and `core/queue/nats`
-subpackages) provides typed job queues with explicit delivery settlement, autoscaling worker pools,
+subpackages) provides typed job queues with explicit envelope settlement, autoscaling worker pools,
 and a multi-queue store keyed by account ID.
 
 ## Concepts
@@ -11,9 +11,9 @@ and a multi-queue store keyed by account ID.
 | Store | `queue.Store[T]` | Owns one executor per numeric queue ID; creates them lazily; aggregates stats. |
 | Executor | `queue.Executor[T]` | Operates one queue end to end: enqueue, info, drain, close. |
 | Queue | `queue.Queue[T]` | Wraps a driver with lifecycle guards (intake close, dequeue cancellation). |
-| Driver | `queue.Driver[T]` | Stores items and hands out deliveries. Selected per transport deployment. |
-| Delivery | `queue.Delivery[T]` | A dequeued item plus metadata and settlement methods. |
-| Processor | `queue.Processor[T]` | The callback that consumes deliveries. |
+| Driver | `queue.Driver[T]` | Stores items and hands out envelopes. Selected per transport deployment. |
+| Job envelope | `queue.JobEnvelope[T]` | A dequeued item plus metadata and settlement methods. |
+| Processor | `queue.Processor[T]` | The callback that consumes envelopes. |
 | Worker policy | `queue.WorkerPolicy` | Scaling bounds, ratio, idle timeout, restart delay. |
 
 ```mermaid
@@ -47,14 +47,14 @@ driverFor := func(ctx context.Context, accountID int) (queue.Driver[Job], error)
     return memory.New[Job](memory.Options{AckWait: 30 * time.Second}), nil
 }
 
-process := func(ctx context.Context, accountID int, delivery queue.Delivery[Job]) {
-    job := delivery.Value()
+process := func(ctx context.Context, accountID int, envelope queue.JobEnvelope[Job]) {
+    job := envelope.Value()
     if err := handle(ctx, job); err != nil {
         // Retry after a minute; the attempt counter grows on every redelivery.
-        _ = delivery.Requeue(ctx, time.Minute)
+        _ = envelope.Requeue(ctx, time.Minute)
         return
     }
-    _ = delivery.Ack(ctx)
+    _ = envelope.Ack(ctx)
 }
 
 jobs, err := queue.NewStore(
@@ -104,21 +104,21 @@ func sendMessage(ctx context.Context, job SendMessageJob) error {
     return nil
 }
 
-func processMessage(ctx context.Context, queueID int, delivery queue.Delivery[SendMessageJob]) {
-    job := delivery.Value()
+func processMessage(ctx context.Context, queueID int, envelope queue.JobEnvelope[SendMessageJob]) {
+    job := envelope.Value()
     err := sendMessage(ctx, job)
 
     switch {
     case err == nil:
-        err = delivery.Ack(ctx)
-    case errors.Is(err, ErrTemporary) && delivery.Metadata().Attempt < 5:
-        err = delivery.Requeue(ctx, time.Duration(delivery.Metadata().Attempt)*time.Second)
+        err = envelope.Ack(ctx)
+    case errors.Is(err, ErrTemporary) && envelope.Metadata().Attempt < 5:
+        err = envelope.Requeue(ctx, time.Duration(envelope.Metadata().Attempt)*time.Second)
     default:
         // Reject validation errors and jobs that exhausted their retry budget.
-        err = delivery.Reject(ctx)
+        err = envelope.Reject(ctx)
     }
     if err != nil {
-        slog.ErrorContext(ctx, "settle message delivery", "queue_id", queueID, "error", err)
+        slog.ErrorContext(ctx, "settle message envelope", "queue_id", queueID, "error", err)
     }
 }
 
@@ -179,14 +179,14 @@ if err := jobs.Enqueue(ctx, job, queue.WithID(job.ID)); err != nil {
     return err
 }
 
-delivery, err := jobs.Dequeue(ctx) // blocks until a job arrives or ctx is canceled
+envelope, err := jobs.Dequeue(ctx) // blocks until a job arrives or ctx is canceled
 if err != nil {
     return err
 }
-if err := sendMessage(ctx, delivery.Value()); err != nil {
-    return delivery.Requeue(ctx, time.Second)
+if err := sendMessage(ctx, envelope.Value()); err != nil {
+    return envelope.Requeue(ctx, time.Second)
 }
-return delivery.Ack(ctx)
+return envelope.Ack(ctx)
 ```
 
 ### Enqueuing
@@ -224,7 +224,7 @@ policy := queue.WorkerPolicy{
 Scaling runs on every enqueue notification and on every `ScaleInterval` tick, so persisted or
 remotely published work is discovered even without local enqueues.
 
-## Delivery lifecycle and settlement
+## Job envelope lifecycle and settlement
 
 Every dequeued item must be settled exactly once:
 
@@ -235,41 +235,41 @@ sequenceDiagram
     participant P as Processor
 
     W->>B: Dequeue(ctx)
-    B-->>W: Delivery[T] (lease armed)
-    W->>P: Processor(ctx, id, delivery)
+    B-->>W: JobEnvelope[T] (lease armed)
+    W->>P: Processor(ctx, id, envelope)
     alt success
-        P->>B: delivery.Ack(ctx)
+        P->>B: envelope.Ack(ctx)
     else retryable failure
-        P->>B: delivery.Requeue(ctx, delay)
+        P->>B: envelope.Requeue(ctx, delay)
     else permanent failure
-        P->>B: delivery.Reject(ctx)
+        P->>B: envelope.Reject(ctx)
     else still running, lease about to expire
-        P->>B: delivery.Touch(ctx)
+        P->>B: envelope.Touch(ctx)
     end
 ```
 
 - **Ack** — work is done; the item is removed.
 - **Requeue(delay)** — schedule another attempt; `Metadata.Attempt` increases on redelivery.
 - **Reject** — drop the item entirely (on JetStream drivers the message is terminated).
-- **Touch** — renew the driver lease for long-running processing; does not settle the delivery.
+- **Touch** — renew the driver lease for long-running processing; does not settle the envelope.
 
-Calling a settlement method twice returns `queue.ErrDeliverySettled`. If a processor returns or
-panics without settling, the delivery remains pending in the driver (the lease eventually expires
+Calling a settlement method twice returns `queue.ErrJobEnvelopeSettled`. If a processor returns or
+panics without settling, the envelope remains pending in the driver (the lease eventually expires
 and the driver redelivers it). To observe — and optionally handle — such cases:
 
 ```go
 jobs, err := queue.NewStore(driverFor, process, policy,
     queue.WithUnsettledProcessor(
-        func(ctx context.Context, id int, delivery queue.Delivery[Job], cause queue.UnsettledCause) {
-            log.Warn("unsettled delivery",
-                zap.Uint64("attempt", delivery.Metadata().Attempt),
+        func(ctx context.Context, id int, envelope queue.JobEnvelope[Job], cause queue.UnsettledCause) {
+            log.Warn("unsettled envelope",
+                zap.Uint64("attempt", envelope.Metadata().Attempt),
                 zap.Uint8("cause", uint8(cause.Kind)),
             )
-            _ = delivery.Reject(ctx)
+            _ = envelope.Reject(ctx)
         },
     ),
     queue.WithPanicHandler(
-        func(ctx context.Context, id int, delivery queue.Delivery[Job], recovered any) {
+        func(ctx context.Context, id int, envelope queue.JobEnvelope[Job], recovered any) {
             log.Error("processor panicked", zap.Any("panic", recovered))
         },
     ),
@@ -291,8 +291,8 @@ by timers. State is lost on restart — suitable for tests and re-creatable work
 driver := memory.New[Job](memory.Options{AckWait: 30 * time.Second})
 ```
 
-The default worker renews memory delivery leases while a processor runs. A custom worker must call
-`delivery.Touch(ctx)` before `AckWait` expires, or the item can be handed to another worker.
+The default worker renews memory envelope leases while a processor runs. A custom worker must call
+`envelope.Touch(ctx)` before `AckWait` expires, or the item can be handed to another worker.
 
 ### beanstalk (durable)
 
@@ -309,7 +309,7 @@ driverFor := func(ctx context.Context, accountID int) (queue.Driver[Job], error)
     }
     return beanstalk.New[Job](manager, queue.JSONCodec[Job]{}, beanstalk.Options{
         Priority: 1,
-        TTR:      time.Minute, // delivery lease
+        TTR:      time.Minute, // envelope lease
         PollTimeout: time.Second,
     }), nil // Closing the executor closes this manager.
 }
@@ -324,7 +324,7 @@ leading `context.Context`; otherwise the driver falls back to `Put`.
 #### Existing tubes with unwrapped jobs
 
 The old beanstalk queue wrote the codec payload directly into the tube. The new driver writes an
-envelope containing the delivery ID, enqueue time, and payload. When reusing a tube that may still
+envelope containing the job ID, enqueue time, and payload. When reusing a tube that may still
 contain old jobs, wrap the manager before constructing the driver:
 
 ```go
@@ -342,7 +342,7 @@ driver := beanstalk.New[Job](
 The adapter passes new envelopes through and wraps old bodies so the codec sees their original
 bytes. Use the same codec or compatible decoder that produced the old body. This also works for
 non-JSON bodies with a `queue.FuncCodec`. The adapter assigns old jobs a `legacy-<beanstalk-id>`
-delivery ID and an approximate enqueue time because the old format did not store that metadata.
+envelope ID and an approximate enqueue time because the old format did not store that metadata.
 Keep the adapter until all old jobs have been consumed; otherwise the new driver rejects and deletes
 them. If old bodies happen to have the same `id`, `enqueuedAt`, and `payload` fields as a new envelope,
 use a transport-specific adapter to distinguish the formats.
@@ -378,7 +378,7 @@ the queue store first during shutdown, and then call `client.Drain(shutdownCtx)`
 driver does not close the shared client.
 
 The enqueue ID is used as the JetStream message ID, giving publisher-side deduplication. `Stats` maps
-consumer pending (Ready), scheduled messages (Deferred), and unacknowledged deliveries (InFlight).
+consumer pending (Ready), scheduled messages (Deferred), and unacknowledged envelopes (InFlight).
 These counts belong to the shared durable consumer, so `Drain` can wait for work owned by other
 replicas. Use `DrainLocal` when shutting down one replica.
 
@@ -392,8 +392,8 @@ copied automatically with `X-Error` and `X-Original-Subject` headers. A processo
 terminal processing failure explicitly:
 
 ```go
-if err := handle(ctx, delivery.Value()); err != nil {
-    _ = queue.DeadLetter(ctx, delivery, err)
+if err := handle(ctx, envelope.Value()); err != nil {
+    _ = queue.DeadLetter(ctx, envelope, err)
     return
 }
 ```

@@ -160,12 +160,12 @@ jobs, err := queue.NewStore(
     func(context.Context, int) (queue.Driver[Job], error) {
         return memory.New[Job](memory.Options{AckWait: 30 * time.Second}), nil
     },
-    func(ctx context.Context, accountID int, delivery queue.Delivery[Job]) {
-        if err := handle(ctx, accountID, delivery.Value()); err != nil {
-            _ = delivery.Requeue(ctx, time.Second)
+    func(ctx context.Context, accountID int, envelope queue.JobEnvelope[Job]) {
+        if err := handle(ctx, accountID, envelope.Value()); err != nil {
+            _ = envelope.Requeue(ctx, time.Second)
             return
         }
-        _ = delivery.Ack(ctx)
+        _ = envelope.Ack(ctx)
     },
     queue.WorkerPolicy{
         MinWorkers: 1, MaxWorkers: 10, JobsPerWorker: 10,
@@ -182,7 +182,7 @@ return jobs.Stop(ctx)
 ```
 
 Deliveries must be explicitly acknowledged, requeued, or rejected. `Touch` renews the driver acknowledgment lease.
-An unsettled worker delivery remains pending unless `queue.WithUnsettledProcessor` is configured. A store owns one
+An unsettled worker envelope remains pending unless `queue.WithUnsettledProcessor` is configured. A store owns one
 executor per numeric queue ID; each executor owns its driver, worker group, scaling controller, and lifecycle. Scaling
 reacts to local enqueues and periodically checks driver statistics, so persisted or remotely published work is also
 discovered. `Store.Reconcile` can keep the executor set aligned with active transport accounts. The NATS driver
