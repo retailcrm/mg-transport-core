@@ -3,86 +3,149 @@ package queue
 import (
 	"context"
 	"errors"
+	"time"
 )
 
-type (
-	// Worker represents function which dequeues an item from provided queue and does something with it.
-	// Useful when NewWorker implementation isn't agile enough.
-	// A custom Worker must call Queue.TaskDone after processing every successfully dequeued item.
-	Worker[T any]       func(Queue[T])
-	contextQueue[T any] interface {
-		DequeueContext(context.Context) (T, error)
+// Processor consumes a single envelope. It receives the queue ID alongside the envelope so one
+// processor can serve every executor of a Store. The processor must settle the envelope with Ack,
+// Requeue, or Reject; if it does not (and no UnsettledProcessor is registered), the envelope stays
+// pending in the driver.
+type Processor[T any] func(context.Context, int, JobEnvelope[T])
+
+// PanicHandler observes the recovered value when a Processor or UnsettledProcessor panics. The panic
+// is already contained by the worker; the handler is only a reporting hook.
+type PanicHandler[T any] func(context.Context, int, JobEnvelope[T], any)
+
+// UnsettledKind describes why an UnsettledProcessor was invoked.
+type UnsettledKind uint8
+
+const (
+	// UnsettledReturned means the processor returned without settling the envelope.
+	UnsettledReturned UnsettledKind = iota + 1
+	// UnsettledPanicked means the processor panicked; the recovered value is in UnsettledCause.Panic.
+	UnsettledPanicked
+)
+
+// UnsettledCause carries the reason an UnsettledProcessor was invoked.
+type UnsettledCause struct {
+	Kind  UnsettledKind
+	Panic any
+}
+
+// UnsettledProcessor handles envelopes that reached the end of processing without an explicit Ack,
+// Requeue, or Reject. It is the recommended place for fallback settlement (for example, Reject with
+// logging) and for recording envelope losses caused by processor panics.
+type UnsettledProcessor[T any] func(context.Context, int, JobEnvelope[T], UnsettledCause)
+
+// WorkerResult reports why a Worker Run call returned.
+type WorkerResult uint8
+
+const (
+	// WorkerIdle means no envelope arrived within the idle timeout and the worker can be retired.
+	WorkerIdle WorkerResult = iota
+	// WorkerStopped means the worker hit an error or cancellation and cannot continue.
+	WorkerStopped
+)
+
+// Worker consumes envelopes until it becomes idle or cannot continue.
+type Worker interface {
+	Run(context.Context) WorkerResult
+}
+
+// WorkerConfig is the set of collaborators handed to a WorkerFactory. IdleTimeout bounds a single
+// dequeue attempt: a worker that times out reports WorkerIdle and becomes a candidate for retirement.
+type WorkerConfig[T any] struct {
+	Queue              *Queue[T]
+	Processor          Processor[T]
+	PanicHandler       PanicHandler[T]
+	UnsettledProcessor UnsettledProcessor[T]
+	IdleTimeout        time.Duration
+}
+
+// WorkerFactory builds a Worker for a queue. Override it with WithWorkerFactory to plug in custom
+// instrumentation, envelope wrapping, or an alternative consumption strategy.
+type WorkerFactory[T any] func(WorkerConfig[T]) Worker
+
+type defaultWorker[T any] struct {
+	config WorkerConfig[T]
+}
+
+func defaultWorkerFactory[T any](config WorkerConfig[T]) Worker {
+	return &defaultWorker[T]{config: config}
+}
+
+func (w *defaultWorker[T]) Run(ctx context.Context) WorkerResult {
+	for {
+		dequeueCtx, cancel := context.WithTimeout(ctx, w.config.IdleTimeout)
+		envelope, err := w.config.Queue.Dequeue(dequeueCtx)
+		cancel()
+		if errors.Is(err, context.DeadlineExceeded) {
+			return WorkerIdle
+		}
+		if err != nil {
+			return WorkerStopped
+		}
+		w.process(ctx, envelope)
 	}
-	// Processor accepts incoming job and does something with it.
-	Processor[T any] func(T, Queue[T])
-	// RecoverFunc handles output value received from recover() call.
-	RecoverFunc[T any] func(context.Context, T, any)
-)
+}
 
-// NewWorker constructs new worker that will retry the given processor until it succeeds
-// or is interrupted by the context cancellation. `recover()` value in cause of panics is handled by provided recoverFn.
-func NewWorker[T any](
-	ctx context.Context,
-	processor Processor[T],
-	recoverFn RecoverFunc[T],
-	cancelCallbacks ...func(),
-) Worker[T] {
-	return func(q Queue[T]) {
-		callCancelCallbacks := func() {
-			for _, cb := range cancelCallbacks {
-				cb()
-			}
+func (w *defaultWorker[T]) process(ctx context.Context, envelope JobEnvelope[T]) {
+	if renewable, ok := envelope.(AutoRenewableJobEnvelope); ok {
+		interval := renewable.AutoRenewInterval()
+		if interval > 0 {
+			stop := renewJobEnvelope(ctx, envelope, interval)
+			defer stop()
 		}
-
-		dequeue := q.Dequeue
-		if contextQueue, ok := q.(contextQueue[T]); ok {
-			dequeue = func() (T, error) {
-				return contextQueue.DequeueContext(ctx)
+	}
+	cause := UnsettledCause{Kind: UnsettledReturned}
+	func() {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				cause = UnsettledCause{Kind: UnsettledPanicked, Panic: recovered}
+				callPanicHandler(w.config.PanicHandler, ctx, w.config.Queue.ID(), envelope, recovered)
 			}
-		}
-
-		for {
-			if ctx.Err() != nil {
-				callCancelCallbacks()
-				return
-			}
-
-			job, err := dequeue()
-			if err != nil {
-				if errors.Is(err, context.Canceled) || ctx.Err() != nil {
-					callCancelCallbacks()
+		}()
+		w.config.Processor(ctx, w.config.Queue.ID(), envelope)
+	}()
+	if !envelope.Settled() && w.config.UnsettledProcessor != nil {
+		func() {
+			defer func() {
+				if recovered := recover(); recovered != nil {
+					callPanicHandler(w.config.PanicHandler, ctx, w.config.Queue.ID(), envelope, recovered)
 				}
+			}()
+			w.config.UnsettledProcessor(ctx, w.config.Queue.ID(), envelope, cause)
+		}()
+	}
+}
+
+func renewJobEnvelope[T any](ctx context.Context, envelope JobEnvelope[T], interval time.Duration) func() {
+	stop := make(chan struct{})
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
 				return
+			case <-stop:
+				return
+			case <-ticker.C:
+				if envelope.Touch(ctx) != nil {
+					return
+				}
 			}
-
-			(func() {
-				defer q.TaskDone()
-				defer func() {
-					if r := recover(); r != nil {
-						recoverFn(q.Context(), job, r)
-					}
-				}()
-				processor(job, q)
-			})()
 		}
-	}
+	}()
+	return func() { close(stop); <-done }
 }
 
-// DummyWorker worker constructor. Returns worker that does nothing.
-func DummyWorker[T any]() WorkerConstructor[T] {
-	return func(_ context.Context, _ int) Worker[T] {
-		return func(_ Queue[T]) {}
+func callPanicHandler[T any](handler PanicHandler[T], ctx context.Context, id int, envelope JobEnvelope[T], recovered any) {
+	if handler == nil {
+		return
 	}
+	defer func() { _ = recover() }()
+	handler(ctx, id, envelope, recovered)
 }
-
-// DummyProcessor does nothing with provided data.
-func DummyProcessor[T any](_ T, _ Queue[T]) {}
-
-// RecoverFuncDummy doesn't do anything with the result of `recover()` call.
-func RecoverFuncDummy[T any](_ context.Context, _ T, _ any) {}
-
-// Compile-time checks for interface compatibility.
-var (
-	_ = Processor[int](DummyProcessor[int])
-	_ = RecoverFunc[int](RecoverFuncDummy[int])
-)

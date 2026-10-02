@@ -3,10 +3,14 @@
 [![Coverage](https://codecov.io/gh/retailcrm/mg-transport-core/branch/master/graph/badge.svg?logo=codecov&logoColor=white)](https://codecov.io/gh/retailcrm/mg-transport-core)
 [![GitHub release](https://img.shields.io/github/release/retailcrm/mg-transport-core.svg?logo=github&logoColor=white)](https://github.com/retailcrm/mg-transport-core/releases)
 [![Go Report Card](https://goreportcard.com/badge/github.com/retailcrm/mg-transport-core)](https://goreportcard.com/report/github.com/retailcrm/mg-transport-core)
-[![GoLang version](https://img.shields.io/badge/go->=1.22-blue.svg?logo=go&logoColor=white)](https://golang.org/dl/)
+[![GoLang version](https://img.shields.io/badge/go->=1.27-blue.svg?logo=go&logoColor=white)](https://golang.org/dl/)
 [![pkg.go.dev](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white)](https://pkg.go.dev/github.com/retailcrm/mg-transport-core/core)
 
 This library provides different functions like error-reporting, logging, localization, etc. in order to make it easier to create transports.
+
+Full documentation with architecture diagrams and guides lives in [docs/](docs/README.md):
+[architecture overview](docs/architecture.md), [engine](docs/engine.md), [queues](docs/queues.md),
+[cache](docs/cache.md), [NATS](docs/nats.md), and a [package reference](docs/packages.md).
 
 Usage:
 ```go
@@ -144,3 +148,85 @@ This library contains helper tool for transports. You can install it via go:
 $ go get -u github.com/retailcrm/mg-transport-core/cmd/transport-core-tool
 ```
 Currently, it only can generate new migrations for your transport.
+
+### Queue drivers
+
+`core/queue` provides a typed queue, workers, and a queue store independent of storage. Drivers live in
+`core/queue/memory`, `core/queue/beanstalk`, and `core/queue/nats`. Persistent drivers accept a `queue.Codec[T]`;
+`queue.JSONCodec[T]` uses Go's JSON v2 implementation.
+
+```go
+jobs, err := queue.NewStore(
+    func(context.Context, int) (queue.Driver[Job], error) {
+        return memory.New[Job](memory.Options{AckWait: 30 * time.Second}), nil
+    },
+    func(ctx context.Context, accountID int, envelope queue.JobEnvelope[Job]) {
+        if err := handle(ctx, accountID, envelope.Value()); err != nil {
+            _ = envelope.Requeue(ctx, time.Second)
+            return
+        }
+        _ = envelope.Ack(ctx)
+    },
+    queue.WorkerPolicy{
+        MinWorkers: 1, MaxWorkers: 10, JobsPerWorker: 10,
+        IdleTimeout: time.Minute, ScaleInterval: time.Second,
+    },
+)
+if err != nil {
+    return err
+}
+if err := jobs.Enqueue(ctx, accountID, job, queue.WithID(job.ID), queue.WithDelay(time.Minute)); err != nil {
+    return err
+}
+return jobs.Stop(ctx)
+```
+
+Deliveries must be explicitly acknowledged, requeued, or rejected. `Touch` renews the driver acknowledgment lease.
+An unsettled worker envelope remains pending unless `queue.WithUnsettledProcessor` is configured. A store owns one
+executor per numeric queue ID; each executor owns its driver, worker group, scaling controller, and lifecycle. Scaling
+reacts to local enqueues and periodically checks driver statistics, so persisted or remotely published work is also
+discovered. `Store.Reconcile` can keep the executor set aligned with active transport accounts. The NATS driver
+uses a durable JetStream pull consumer and requires message schedules. Its `Ensure` mode can create or update the
+stream and consumer; `BindExisting` only validates pre-provisioned resources.
+
+Use `queue.FuncCodec` when persisted values need runtime-only dependencies restored after decoding. The driver
+constructor receives the queue ID, so a transport can bind the decoder and NATS subject to the same account:
+
+```go
+codec := queue.FuncCodec[*Task]{
+    EncodeFunc: queue.JSONCodec[*Task]{}.Encode,
+    DecodeFunc: func(data []byte) (*Task, error) {
+        task, err := queue.JSONCodec[*Task]{}.Decode(data)
+        if err == nil {
+            err = hydrateTask(accountID, task)
+        }
+        return task, err
+    },
+}
+```
+
+### Cache drivers
+
+`core/cache` provides a typed cache adapter with interchangeable in-memory and NATS JetStream KV drivers. Cache
+entries use a fixed driver-wide TTL. Persistent values and non-string keys are encoded explicitly, allowing a
+transport-specific cache to switch storage without changing its domain-facing API.
+
+```go
+driver, err := memory.New[int, Account](memory.Options{
+    Capacity: 1_000,
+    TTL:      time.Hour,
+})
+if err != nil {
+    return err
+}
+accounts := cache.New(driver)
+
+if err := accounts.Set(ctx, account.ID, account); err != nil {
+    return err
+}
+account, found, err := accounts.Get(ctx, accountID)
+```
+
+The NATS driver accepts the shared `core/nats.Client`, a typed `cache.KeyEncoder`, a value `cache.Codec`, and a
+JetStream KV configuration. `Ensure` creates or updates the bucket, while `BindExisting` only binds to a bucket with
+the configured TTL. Closing a NATS cache does not close the shared client or delete the bucket.

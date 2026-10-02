@@ -1,3 +1,5 @@
 .idea
 coverage.*
 vendor
+# Local Pi runtime state
+.atl/

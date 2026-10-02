@@ -78,7 +78,7 @@ func (t *BufferLoggerTest) TestRace() {
 	}()
 	go func() {
 		starter.Wait()
-		t.logger.String()
+		_ = t.logger.String()
 		wg.Done()
 	}()
 	go func() {
@@ -88,7 +88,7 @@ func (t *BufferLoggerTest) TestRace() {
 	}()
 	go func() {
 		starter.Wait()
-		t.silentLogger.String()
+		_ = t.silentLogger.String()
 		wg.Done()
 	}()
 	starter.Done()

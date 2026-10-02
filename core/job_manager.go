@@ -33,9 +33,9 @@ type Job struct {
 	Command      JobFunc
 	ErrorHandler JobErrorHandler
 	PanicHandler JobPanicHandler
-	stopChannel  chan bool
+	stopChannel  chan struct{}
 	Interval     time.Duration
-	writeLock    sync.RWMutex
+	writeLock    sync.Mutex
 	Regular      bool
 	active       bool
 }
@@ -89,14 +89,22 @@ func (j *Job) getWrappedFunc(name string, log logger.Logger) func(callback JobAf
 }
 
 // getWrappedTimerFunc returns job timer func to run in the separate goroutine.
-func (j *Job) getWrappedTimerFunc(name string, log logger.Logger) func(chan bool) {
-	return func(stopChannel chan bool) {
-		for range time.NewTicker(j.Interval).C {
+func (j *Job) getWrappedTimerFunc(name string, log logger.Logger) func(<-chan struct{}) {
+	return func(stopChannel <-chan struct{}) {
+		ticker := time.NewTicker(j.Interval)
+		defer ticker.Stop()
+
+		for {
 			select {
 			case <-stopChannel:
 				return
-			default:
-				j.getWrappedFunc(name, log)(nil)
+			case <-ticker.C:
+				select {
+				case <-stopChannel:
+					return
+				default:
+					j.getWrappedFunc(name, log)(nil)
+				}
 			}
 		}
 	}
@@ -104,35 +112,24 @@ func (j *Job) getWrappedTimerFunc(name string, log logger.Logger) func(chan bool
 
 // run job.
 func (j *Job) run(name string, log logger.Logger) {
-	j.writeLock.RLock()
+	j.writeLock.Lock()
+	defer j.writeLock.Unlock()
 
 	if j.Regular && j.Interval > 0 && !j.active {
-		j.writeLock.RUnlock()
-		defer j.writeLock.Unlock()
-		j.writeLock.Lock()
-
-		j.stopChannel = make(chan bool)
-		go j.getWrappedTimerFunc(name, log)(j.stopChannel)
+		j.stopChannel = make(chan struct{})
 		j.active = true
-	} else {
-		j.writeLock.RUnlock()
+		go j.getWrappedTimerFunc(name, log)(j.stopChannel)
 	}
 }
 
 // stop running job.
 func (j *Job) stop() {
-	j.writeLock.RLock()
-
+	j.writeLock.Lock()
+	defer j.writeLock.Unlock()
 	if j.active && j.stopChannel != nil {
-		j.writeLock.RUnlock()
-		go func() {
-			defer j.writeLock.Unlock()
-			j.writeLock.Lock()
-			j.stopChannel <- true
-			j.active = false
-		}()
-	} else {
-		j.writeLock.RUnlock()
+		close(j.stopChannel)
+		j.stopChannel = nil
+		j.active = false
 	}
 }
 
@@ -212,6 +209,7 @@ func (j *JobManager) UnregisterJob(name string) error {
 	if i, ok := j.FetchJob(name); ok {
 		i.stop()
 		j.jobs.Delete(name)
+		return nil
 	}
 
 	return fmt.Errorf("cannot find job `%s`", name)
@@ -249,7 +247,7 @@ func (j *JobManager) RunJob(name string) error {
 	return fmt.Errorf("cannot find job `%s`", name)
 }
 
-// StopJob stops provided regular regular job if it's exists.
+// StopJob stops scheduling the provided regular job if it exists.
 func (j *JobManager) StopJob(name string) error {
 	if job, ok := j.FetchJob(name); ok {
 		job.stop()
@@ -257,6 +255,15 @@ func (j *JobManager) StopJob(name string) error {
 	}
 
 	return fmt.Errorf("cannot find job `%s`", name)
+}
+
+// StopRegularJobs stops scheduling all registered regular jobs.
+// Commands already running can continue after this method returns.
+func (j *JobManager) StopRegularJobs() {
+	j.jobs.Range(func(_, value any) bool {
+		value.(*Job).stop()
+		return true
+	})
 }
 
 // RunJobOnce starts provided job once if it exists. It's also async.
