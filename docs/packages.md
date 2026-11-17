@@ -84,6 +84,30 @@ See [Engine & web application: health monitoring](engine.md#health-monitoring-co
 - Adapters — `APIClientAdapter`, `MGTransportClientAdapter`, `ZabbixCollectorAdapter`,
   `WriterAdapter(log, level)`.
 
+Register secrets on a child logger with `Mask(secrets ...string)`:
+
+```go
+log := parent.With(logger.Mask(apiKey, token))
+log.Info("Request with "+token, zap.String("apiKey", apiKey))
+// The message and apiKey value contain "****" instead of the registered secrets.
+```
+
+`With` and `WithLazy` keep their existing cloning and evaluation behavior. One `Mask`
+can register any number of secrets in a single child derivation. Rules accumulate in
+descendants; parents and siblings remain unchanged. Masking covers messages, inherited
+fields and nested string values in both JSON and console output, including errors and
+reflected objects. Empty secrets are ignored; matches are literal and case-sensitive,
+with the longest match preferred at the same position. JSON keys and numeric values
+are preserved. Register encoded variants such as URL escaping or base64 separately.
+For `%#v` or `%q`, secrets containing quotes, backslashes or control characters also
+need their Go-escaped spelling registered (use `strconv.Quote(secret)` without the
+surrounding quotes).
+Using `Mask` as a log-site field applies those additional rules only to that entry.
+
+Masking is supported by this package's logger constructors, `NewJSONWithContextEncoder`
+and the buffered test loggers. Custom implementations of `Logger` must provide their
+own support for the directive.
+
 ## core/middleware
 
 - `NewCSRF(...)`, `GenerateCSRFMiddleware`/`VerifyCSRFMiddleware`, `CSRFErrorReason` — session-backed

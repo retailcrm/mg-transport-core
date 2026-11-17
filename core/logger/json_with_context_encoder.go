@@ -81,7 +81,7 @@ type jsonWithContextEncoder struct {
 }
 
 // NewJSONWithContextEncoder creates a fast, low-allocation JSON encoder. The encoder
-// appropriately escapes all field keys and values.
+// appropriately escapes all field keys and values and supports Mask directives.
 //
 // Note that the encoder doesn't deduplicate keys, so it's possible to produce
 // a message like
@@ -93,7 +93,8 @@ type jsonWithContextEncoder struct {
 // pair) when unmarshaling, but users should attempt to avoid adding duplicate
 // keys.
 func NewJSONWithContextEncoder(cfg zapcore.EncoderConfig) zapcore.Encoder {
-	return newJSONWithContextEncoder(cfg, false)
+	enc := newJSONWithContextEncoder(cfg, false)
+	return &maskingEncoder{Encoder: enc, config: *enc.EncoderConfig}
 }
 
 func newJSONWithContextEncoder(cfg zapcore.EncoderConfig, spaced bool) *jsonWithContextEncoder {

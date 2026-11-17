@@ -27,7 +27,7 @@ func NewZapConsole(debug bool) *zap.Logger {
 	log, err := zap.Config{
 		Level:            zap.NewAtomicLevelAt(level),
 		Development:      debug,
-		Encoding:         "console",
+		Encoding:         "console-with-masking",
 		EncoderConfig:    EncoderConfigConsole(),
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
