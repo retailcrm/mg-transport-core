@@ -322,17 +322,13 @@ func (t *JobTest) Test_getWrappedFunc() {
 
 	t.clear()
 	t.onceJob()
+	t.executedChan = make(chan bool, 1)
 	fn := t.job.getWrappedFunc("job", t.testLogger())
 	require.NotNil(t.T(), fn)
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		fn(nil)
-	}()
+	fn(nil)
 	assert.True(t.T(), t.executed())
 	assert.False(t.T(), t.errored(time.Millisecond))
 	assert.False(t.T(), t.panicked(time.Millisecond))
-	<-done
 }
 
 func (t *JobTest) Test_getWrappedFuncError() {
@@ -342,17 +338,14 @@ func (t *JobTest) Test_getWrappedFuncError() {
 
 	t.clear()
 	t.onceErrorJob()
+	t.executedChan = make(chan bool, 1)
+	t.executeErr = make(chan error, 1)
 	fn := t.job.getWrappedFunc("job", t.testLogger())
 	require.NotNil(t.T(), fn)
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		fn(nil)
-	}()
+	fn(nil)
 	assert.True(t.T(), t.executed())
 	assert.True(t.T(), t.errored(time.Millisecond))
 	assert.False(t.T(), t.panicked(time.Millisecond))
-	<-done
 }
 
 func (t *JobTest) Test_getWrappedFuncPanic() {
@@ -362,17 +355,14 @@ func (t *JobTest) Test_getWrappedFuncPanic() {
 
 	t.clear()
 	t.oncePanicJob()
+	t.executedChan = make(chan bool, 1)
+	t.panicValue = make(chan any, 1)
 	fn := t.job.getWrappedFunc("job", t.testLogger())
 	require.NotNil(t.T(), fn)
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		fn(nil)
-	}()
+	fn(nil)
 	assert.True(t.T(), t.executed())
 	assert.False(t.T(), t.errored(time.Millisecond))
 	assert.True(t.T(), t.panicked(time.Millisecond))
-	<-done
 }
 
 func (t *JobTest) Test_run() {
